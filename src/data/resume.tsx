@@ -94,7 +94,7 @@ export const DATA = {
       start: "Feb 2022",
       end: "Sep 2022",
       description:
-        "Translated UI/UX designs into seamless web interfaces using ReactJS with JavaScript. Improved application performance and user experience by refining JavaScript and CSS codebases. Implemented Redux for efficient global state management across applications. Collaborated with system analysts, backend developers, and UI/UX designers in an Agile development environment. Integrated REST APIs for robust data interaction and functionality.",
+        "Collaborated with system analysts, technical writers, and database managers to develop functional and efficient web solutions. Identified and resolved application bugs while implementing new features to enhance user experience. Utilized CodeIgniter 3 (PHP) and SVN version control to manage development workflows. Focused on maintaining high standards of usability and functionality through iterative testing and updates.",
     },
     {
       company: "Digital Amoeba",
