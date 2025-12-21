@@ -1,3 +1,4 @@
+import { Icons } from "@/components/icons";
 import { Dock, DockIcon } from "@/components/magicui/dock";
 import { ModeToggle } from "@/components/mode-toggle";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,6 +60,26 @@ export default function Navbar() {
               </Tooltip>
             </DockIcon>
           ))}
+        <DockIcon>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                target="_blank"
+                href="/cv-fachalik.pdf"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "size-12"
+                )}
+                download
+              >
+                <Icons.newspaper className="size-4" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Download CV</p>
+            </TooltipContent>
+          </Tooltip>
+        </DockIcon>
         <Separator orientation="vertical" className="h-full py-2" />
         <DockIcon>
           <Tooltip>

@@ -47,6 +47,7 @@ export function ProjectCard({
       }
     >
       <Link
+        target={href ? "_blank" : undefined}
         href={href || "#"}
         className={cn("block cursor-pointer", className)}
       >
