@@ -121,6 +121,18 @@ export const DATA = {
   ],
   projects: [
     {
+      title: "Credit Scoring",
+      href: "",
+      dates: "November 2025 - Present",
+      active: true,
+      description:
+        "An AI-powered credit scoring system that evaluates the creditworthiness of individuals and businesses by analyzing various financial and behavioral data points using advanced machine learning algorithms.",
+      technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
+      links: [],
+      image: "/credit-scoring.png",
+      video: "",
+    },
+    {
       title: "Intelligent Document Processing",
       href: "",
       dates: "October 2025 - Present",
