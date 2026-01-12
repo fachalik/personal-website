@@ -121,6 +121,24 @@ export const DATA = {
   ],
   projects: [
     {
+      title: "PPG Serdik",
+      href: "https://ppg-serdik.solong.tech/",
+      dates: "Januari 2026",
+      active: true,
+      description:
+        "A web application designed to show the PPG Teacher Certification and inform that the user has passed the certification.",
+      technologies: [
+        "Next.js",
+        "Typescript",
+        "TailwindCSS",
+        "Shadcn UI",
+        "Drizzle",
+      ],
+      links: [],
+      image: "/ppg-serdik.png",
+      video: "",
+    },
+    {
       title: "Credit Scoring",
       href: "",
       dates: "November 2025 - Present",
