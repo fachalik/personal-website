@@ -222,6 +222,26 @@ export default function Page() {
           </BlurFade>
         </div>
       </section>
+
+      <section className="mx-auto max-w-[600px]">
+        <div className="text-center">
+          Built with{" "}
+          <a
+            href="https://magicui.design/"
+            className="text-blue-500 hover:underline"
+          >
+            Magic UI
+          </a>{" "}
+          Shout out to{" "}
+          <a
+            href="https://github.com/dillionverma"
+            className="text-blue-500 hover:underline"
+          >
+            dillionverma
+          </a>
+          !
+        </div>
+      </section>
     </main>
   );
 }
