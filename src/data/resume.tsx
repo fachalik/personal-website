@@ -121,6 +121,18 @@ export const DATA = {
   ],
   projects: [
     {
+      title: "Aliran App",
+      href: "https://aliran.app",
+      dates: "May 2026",
+      active: true,
+      description:
+        "Most finance apps only focus on one thing, such as personal expense tracking or bill splitting. Managing shared subscriptions like Netflix or Spotify with friends is still complicated and requires manual reminders and tracking. Our app combines expense tracking, recurring shared subscriptions, bill splitting, and payment reminders into one simple and seamless platform.",
+      technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
+      links: [],
+      image: "/aliran.png",
+      video: "",
+    },
+    {
       title: "PPG Serdik",
       href: "https://ppg-serdik.solong.tech/",
       dates: "Januari 2026",
