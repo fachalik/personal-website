@@ -121,6 +121,31 @@ export const DATA = {
   ],
   projects: [
     {
+      title: "Git Switcher",
+      href: "https://github.com/fachalik/git-switch",
+      dates: "Sep 2026",
+      active: true,
+      description:
+        "A macOS menu bar app for juggling several Git identities on one machine — work, personal, a client. Local-only: no accounts, no network calls, no telemetry.",
+      technologies: [
+        "Tauri v2",
+        "Rust",
+        "React",
+        "Typescript",
+        "TailwindCSS",
+        "Shadcn UI",
+      ],
+      links: [
+        {
+          type: "Source",
+          href: "https://github.com/fachalik/git-switch",
+          icon: <Icons.github className="size-3" />,
+        },
+      ],
+      image: "",
+      video: "/git-switch-demo.mp4",
+    },
+    {
       title: "Aliran App",
       href: "https://aliran.app",
       dates: "May 2026",
