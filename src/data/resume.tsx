@@ -1,5 +1,5 @@
-import { HomeIcon, NotebookIcon } from "lucide-react";
 import { Icons } from "@/components/icons";
+import { HomeIcon, NotebookIcon } from "lucide-react";
 
 const professionalStart = 2021;
 const totalYearsExperiance = new Date().getFullYear() - professionalStart;
@@ -84,7 +84,7 @@ export const DATA = {
       start: "Jun 2025",
       end: "Present",
       description:
-        "Developed and maintained user-friendly web applications using React and Next.js, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
+        "Developed and maintained user-friendly web applications using React and RemixJS, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
     },
     {
       company: "Infomedia Nusantara",
