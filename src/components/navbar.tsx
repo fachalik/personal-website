@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+import Link from "next/link";
 import { Icons } from "@/components/icons";
 import { Dock, DockIcon } from "@/components/magicui/dock";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -10,7 +14,6 @@ import {
 } from "@/components/ui/tooltip";
 import { DATA } from "@/data/resume";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 export default function Navbar() {
   return (
@@ -21,15 +24,17 @@ export default function Navbar() {
           <DockIcon key={item.href}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon" }),
-                    "size-12"
-                  )}
-                >
-                  <item.icon className="size-4" />
-                </Link>
+                <motion.span whileTap={{ scale: 0.9 }} className="inline-block">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "icon" }),
+                      "size-12",
+                    )}
+                  >
+                    <item.icon className="size-4" />
+                  </Link>
+                </motion.span>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{item.label}</p>
@@ -44,15 +49,20 @@ export default function Navbar() {
             <DockIcon key={name}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link
-                    href={social.url}
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-12"
-                    )}
+                  <motion.span
+                    whileTap={{ scale: 0.9 }}
+                    className="inline-block"
                   >
-                    <social.icon className="size-4" />
-                  </Link>
+                    <Link
+                      href={social.url}
+                      className={cn(
+                        buttonVariants({ variant: "ghost", size: "icon" }),
+                        "size-12",
+                      )}
+                    >
+                      <social.icon className="size-4" />
+                    </Link>
+                  </motion.span>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{name}</p>
@@ -63,17 +73,19 @@ export default function Navbar() {
         <DockIcon>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link
-                target="_blank"
-                href="/cv-fachalik.pdf"
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "size-12"
-                )}
-                download
-              >
-                <Icons.newspaper className="size-4" />
-              </Link>
+              <motion.span whileTap={{ scale: 0.9 }} className="inline-block">
+                <Link
+                  target="_blank"
+                  href="/cv-fachalik.pdf"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "size-12",
+                  )}
+                  download
+                >
+                  <Icons.newspaper className="size-4" />
+                </Link>
+              </motion.span>
             </TooltipTrigger>
             <TooltipContent>
               <p>Download CV</p>

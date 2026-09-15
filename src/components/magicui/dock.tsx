@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import React, { PropsWithChildren, useRef } from "react";
+import React, { type PropsWithChildren, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 export interface DockProps extends VariantProps<typeof dockVariants> {
   className?: string;
@@ -16,7 +16,7 @@ const DEFAULT_MAGNIFICATION = 60;
 const DEFAULT_DISTANCE = 140;
 
 const dockVariants = cva(
-  "mx-auto w-max h-full p-2 flex items-end rounded-full border"
+  "mx-auto w-max h-full p-2 flex items-end rounded-full border",
 );
 
 const Dock = React.forwardRef<HTMLDivElement, DockProps>(
@@ -28,7 +28,7 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
       distance = DEFAULT_DISTANCE,
       ...props
     },
-    ref
+    ref,
   ) => {
     const mousex = useMotionValue(Infinity);
 
@@ -56,7 +56,7 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
         {renderChildren()}
       </motion.div>
     );
-  }
+  },
 );
 
 Dock.displayName = "Dock";
@@ -87,13 +87,13 @@ const DockIcon = ({
     return val - bounds.x - bounds.width / 2;
   });
 
-  let widthSync = useTransform(
+  const widthSync = useTransform(
     distanceCalc,
     [-distance, 0, distance],
-    [40, magnification, 40]
+    [40, magnification, 40],
   );
 
-  let width = useSpring(widthSync, {
+  const width = useSpring(widthSync, {
     mass: 0.1,
     stiffness: 150,
     damping: 12,
@@ -105,7 +105,7 @@ const DockIcon = ({
       style={{ width }}
       className={cn(
         "flex aspect-square cursor-pointer items-center justify-center rounded-full",
-        className
+        className,
       )}
       {...props}
     >

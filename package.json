@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "biome lint",
+    "format": "biome format --write",
+    "check": "biome check --write",
+    "check:ci": "biome ci"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.6",
@@ -21,12 +24,12 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
     "gray-matter": "^4.0.3",
-    "lucide-react": "^0.395.0",
+    "lucide-react": "^1.46.0",
     "motion": "^12.7.4",
-    "next": "14.2.4",
-    "next-themes": "^0.3.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "16.3.5",
+    "next-themes": "^0.4.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-markdown": "^9.1.0",
     "react-plock": "^3.6.1",
     "rehype-pretty-code": "^0.13.2",
@@ -40,12 +43,11 @@
     "unified": "^11.0.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.13",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20.17.30",
-    "@types/react": "^18.3.20",
-    "@types/react-dom": "^18.3.6",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"

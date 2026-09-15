@@ -1,8 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { AnimatePresence, motion, Variants } from "framer-motion";
+import type { Variants } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface BlurFadeTextProps {
   text: string;
@@ -39,7 +40,7 @@ const BlurFadeText = ({
         <AnimatePresence>
           {characters.map((char, i) => (
             <motion.span
-              key={i}
+              key={char}
               initial="hidden"
               animate="visible"
               exit="hidden"

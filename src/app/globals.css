@@ -4,7 +4,7 @@
 
 @layer base {
     :root {
-      --background: 0 0% 100%;
+      --background: 40 30% 97%;
       --foreground: 210 11.1% 3.53%;
 
       --card: 0 0% 100%;
@@ -30,16 +30,19 @@
 
       --border: 0 0% 89.8%;
       --input: 0 0% 89.8%;
-      --ring: 0 0% 3.9%;
+      --ring: 243 75% 59%;
 
-      --radius: 0.5rem;
+      --accent-brand: 243 75% 59%;
+      --accent-brand-foreground: 0 0% 98%;
+
+      --radius: 0.75rem;
     }
 
     .dark {
-      --background: 210 11.1% 3.53%;
+      --background: 30 8% 6%;
       --foreground: 0 0% 98%;
 
-      --card: 210 11.1% 3.53%;
+      --card: 30 7% 8.5%;
       --card-foreground: 0 0% 98%;
 
       --popover: 210 11.1% 3.53%;
@@ -62,7 +65,10 @@
 
       --border: 0 0% 14.9%;
       --input: 0 0% 14.9%;
-      --ring: 0 0% 83.1%;
+      --ring: 243 90% 74%;
+
+      --accent-brand: 243 90% 74%;
+      --accent-brand-foreground: 0 0% 9%;
     }
   }
 
@@ -141,4 +147,54 @@ code[data-line-numbers-max-digits="2"] > [data-line]::before {
  
 code[data-line-numbers-max-digits="3"] > [data-line]::before {
   width: 3rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Paper texture
+   Every layer is an inline SVG used as a *mask*, painted with --foreground, so
+   a single asset reads correctly in both light and dark mode. No image
+   requests, no extra bytes over the wire.
+--------------------------------------------------------------------------- */
+@layer utilities {
+  .paper-grain {
+    background-color: hsl(var(--foreground));
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
+    -webkit-mask-size: 220px 220px;
+    mask-size: 220px 220px;
+  }
+
+  /* 原稿用紙 / 田字格 — square cell with a dashed cross, kanji practice paper */
+  .paper-genkoyoshi {
+    background-color: hsl(var(--foreground));
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cg fill='none' stroke='%23000'%3E%3Cpath d='M.5 0v36M0 .5h36'/%3E%3Cpath d='M18.5 0v36M0 18.5h36' stroke-dasharray='2 4' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cg fill='none' stroke='%23000'%3E%3Cpath d='M.5 0v36M0 .5h36'/%3E%3Cpath d='M18.5 0v36M0 18.5h36' stroke-dasharray='2 4' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+    -webkit-mask-size: 36px 36px;
+    mask-size: 36px 36px;
+  }
+
+  .paper-grid {
+    background-color: hsl(var(--foreground));
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M.5 0v28M0 .5h28' fill='none' stroke='%23000'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M.5 0v28M0 .5h28' fill='none' stroke='%23000'/%3E%3C/svg%3E");
+    -webkit-mask-size: 28px 28px;
+    mask-size: 28px 28px;
+  }
+
+  .paper-dots {
+    background-color: hsl(var(--foreground));
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1.5' cy='1.5' r='1.25'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1.5' cy='1.5' r='1.25'/%3E%3C/svg%3E");
+    -webkit-mask-size: 24px 24px;
+    mask-size: 24px 24px;
+  }
+
+  /* Soft edge shading so the page reads as a sheet rather than a flat fill */
+  .paper-vignette {
+    background: radial-gradient(
+      125% 85% at 50% 0%,
+      transparent 45%,
+      hsl(var(--foreground) / 0.05) 100%
+    );
+  }
 }

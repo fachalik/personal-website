@@ -1,5 +1,8 @@
-import { Icons } from "@/components/icons";
 import { HomeIcon, NotebookIcon } from "lucide-react";
+import { Icons } from "@/components/icons";
+
+const professionalStart = 2021;
+const totalYearsExperiance = new Date().getFullYear() - professionalStart;
 
 export const DATA = {
   name: "FA Chalik",
@@ -9,8 +12,7 @@ export const DATA = {
   locationLink: "https://www.google.com/maps/place/south+jakarta",
   description:
     "Frontend Developer, want to be a Fullstack Developer, and love to learn new technology.",
-  summary:
-    "I'm FA Chalik, a passionate Frontend Developer experienced in 3 years based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way.",
+  summary: `I'm FA Chalik, a passionate Frontend Developer experienced in ${totalYearsExperiance} years based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way.`,
   avatarUrl: "/me.jpeg",
   skills: [
     "React",
@@ -72,6 +74,18 @@ export const DATA = {
   },
 
   work: [
+    {
+      company: "Medira Talenta Asia",
+      badges: [],
+      href: "https://www.medira.id",
+      location: "South Jakarta, Indonesia",
+      title: "Frontend Developer (Part Time)",
+      logoUrl: "/medira.png",
+      start: "Jun 2025",
+      end: "Present",
+      description:
+        "Developed and maintained user-friendly web applications using React and Next.js, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
+    },
     {
       company: "Infomedia Nusantara",
       href: "https://www.infomedia.co.id",

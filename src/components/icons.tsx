@@ -1,6 +1,5 @@
 import { GlobeIcon, MailIcon, NewspaperIcon } from "lucide-react";
 
-
 export type IconProps = React.HTMLAttributes<SVGElement>;
 
 export const Icons = {

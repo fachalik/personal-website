@@ -1,9 +1,9 @@
 "use client";
 
+import { Masonry } from "react-plock";
 import BlurFade from "@/components/magicui/blur-fade";
 import { ProjectCard } from "@/components/project-card";
 import { DATA } from "@/data/resume";
-import { Masonry } from "react-plock";
 
 const BLUR_FADE_DELAY = 0.04;
 
