@@ -42,6 +42,24 @@ Built with next.js, [shadcn/ui](https://ui.shadcn.com/), and [magic ui](https://
 
 5. Open the [Config file](./src/data/resume.tsx) and make changes
 
+# GitHub activity
+
+The GitHub Activity section merges the public contribution calendars of every
+account listed in `githubAccounts` in the [config file](./src/data/resume.tsx)
+into one heatmap, summing contributions day by day.
+
+It works with no configuration — the public contributions fragment needs no
+credentials. Setting `GITHUB_TOKEN` to a personal access token (no scopes
+required for public data) switches it to the GraphQL API, which is faster and
+fetches every account in a single request:
+
+```bash
+GITHUB_TOKEN=ghp_your_token_here
+```
+
+Results are cached for an hour. If GitHub is unreachable the section is omitted
+rather than failing the page.
+
 # License
 
 Licensed under the [MIT license](https://github.com/dillionverma/portfolio/blob/main/LICENSE.md).

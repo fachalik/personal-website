@@ -14,6 +14,8 @@ export const DATA = {
     "Frontend Developer, want to be a Fullstack Developer, and love to learn new technology.",
   summary: `I'm FA Chalik, a passionate Frontend Developer experienced in ${totalYearsExperiance} years based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way.`,
   avatarUrl: "/me.jpeg",
+  // Every GitHub identity to merge into one contribution graph.
+  githubAccounts: ["fachalik", "chalikfa", "fachalikA"],
   skills: [
     "React",
     "Next.js",
@@ -80,7 +82,6 @@ export const DATA = {
       href: "https://www.medira.id",
       location: "South Jakarta, Indonesia",
       title: "Frontend Developer (Part Time)",
-      logoUrl: "/medira.png",
       start: "Jun 2025",
       end: "Present",
       description:

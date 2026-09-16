@@ -35,6 +35,13 @@
       --accent-brand: 243 75% 59%;
       --accent-brand-foreground: 0 0% 98%;
 
+      /* Contribution heatmap ramp, derived from the brand hue. */
+      --gh-0: 40 12% 90%;
+      --gh-1: 243 70% 88%;
+      --gh-2: 243 72% 76%;
+      --gh-3: 243 74% 64%;
+      --gh-4: 243 75% 52%;
+
       --radius: 0.75rem;
     }
 
@@ -69,6 +76,12 @@
 
       --accent-brand: 243 90% 74%;
       --accent-brand-foreground: 0 0% 9%;
+
+      --gh-0: 30 6% 15%;
+      --gh-1: 243 35% 28%;
+      --gh-2: 243 50% 40%;
+      --gh-3: 243 70% 56%;
+      --gh-4: 243 90% 72%;
     }
   }
 

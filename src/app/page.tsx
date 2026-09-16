@@ -3,6 +3,7 @@ import { PersonStructuredData } from "@/components/structured-data";
 import { AboutSection } from "@/features/page/about-section";
 import { ContactSection } from "@/features/page/contact-section";
 import { EducationSection } from "@/features/page/education-section";
+import { GithubSection } from "@/features/page/github-section";
 import { HeroSection } from "@/features/page/hero-section";
 import { ProjectsSection } from "@/features/page/projects-section";
 import { SkillsSection } from "@/features/page/skills-section";
@@ -17,6 +18,7 @@ export default function Page() {
       <WorkSection />
       <EducationSection />
       <SkillsSection />
+      <GithubSection />
       <ProjectsSection />
       <ContactSection />
       <Credits />
