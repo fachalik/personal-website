@@ -1,4 +1,5 @@
 import { Credits } from "@/components/credits";
+import { PersonStructuredData } from "@/components/structured-data";
 import { AboutSection } from "@/features/page/about-section";
 import { ContactSection } from "@/features/page/contact-section";
 import { EducationSection } from "@/features/page/education-section";
@@ -10,6 +11,7 @@ import { WorkSection } from "@/features/page/work-section";
 export default function Page() {
   return (
     <main className="flex flex-col min-h-[100dvh] space-y-14 md:space-y-20">
+      <PersonStructuredData />
       <HeroSection />
       <AboutSection />
       <WorkSection />

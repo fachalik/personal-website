@@ -1,10 +1,31 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import BlurFade from "@/components/magicui/blur-fade";
 import { getBlogPosts } from "@/data/blog";
+import { absoluteUrl, ogImageUrl } from "@/lib/seo";
 
-export const metadata = {
-  title: "Blog",
-  description: "My thoughts on software development, life, and more.",
+const title = "Blog";
+const description = "My thoughts on software development, life, and more.";
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: {
+    canonical: "/blog",
+  },
+  openGraph: {
+    title,
+    description,
+    type: "website",
+    url: absoluteUrl("/blog"),
+    images: [{ url: ogImageUrl(title), width: 1200, height: 630, alt: title }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [ogImageUrl(title)],
+  },
 };
 
 const BLUR_FADE_DELAY = 0.04;

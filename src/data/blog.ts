@@ -38,31 +38,36 @@ export async function markdownToHTML(markdown: string) {
   return p.toString();
 }
 
-export async function getPost(slug: string) {
-  const filePath = path.join("content", `${slug}.mdx`);
+export type Post = {
+  source: string;
+  metadata: Metadata;
+  slug: string;
+};
+
+export async function getPost(slug: string): Promise<Post | null> {
+  const filePath = path.join(process.cwd(), "content", `${slug}.mdx`);
+
+  // An unknown slug should render a 404, not throw a 500 at crawlers.
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
   const source = fs.readFileSync(filePath, "utf-8");
   const { content: rawContent, data: metadata } = matter(source);
   const content = await markdownToHTML(rawContent);
   return {
     source: content,
-    metadata,
+    metadata: metadata as Metadata,
     slug,
   };
 }
 
 async function getAllPosts(dir: string) {
   const mdxFiles = getMDXFiles(dir);
-  return Promise.all(
-    mdxFiles.map(async (file) => {
-      const slug = path.basename(file, path.extname(file));
-      const { metadata, source } = await getPost(slug);
-      return {
-        metadata,
-        slug,
-        source,
-      };
-    }),
+  const posts = await Promise.all(
+    mdxFiles.map((file) => getPost(path.basename(file, path.extname(file)))),
   );
+  return posts.filter((post): post is Post => post !== null);
 }
 
 export async function getBlogPosts() {
