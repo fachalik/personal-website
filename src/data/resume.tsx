@@ -83,6 +83,7 @@ export const DATA = {
       location: "South Jakarta, Indonesia",
       title: "Frontend Developer (Part Time)",
       start: "Jun 2025",
+      logoUrl: "",
       end: "Present",
       description:
         "Developed and maintained user-friendly web applications using React and RemixJS, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
