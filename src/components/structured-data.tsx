@@ -2,7 +2,10 @@ import { useTranslations } from "next-intl";
 import { DATA } from "@/data/resume";
 import { absoluteUrl, SITE_URL, SOCIAL_PROFILES } from "@/lib/seo";
 
-const currentRoles = DATA.work.filter((job) => !job.end);
+// Undisclosed employers stay out of the search-engine data too.
+const currentRoles = DATA.work.filter(
+  (job) => !job.end && !("confidential" in job && job.confidential),
+);
 
 /**
  * schema.org graph for the home page: who the site is about, and what the site

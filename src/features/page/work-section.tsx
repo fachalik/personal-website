@@ -15,20 +15,32 @@ export function WorkSection() {
         <BlurFade delay={BLUR_FADE_DELAY * 5}>
           <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
         </BlurFade>
-        {DATA.work.map((work, id) => (
-          <BlurFade key={work.company} delay={BLUR_FADE_DELAY * 6 + id * 0.05}>
-            <ResumeCard
-              logoUrl={work.logoUrl}
-              altText={work.company}
-              title={work.company}
-              subtitle={tResume(`${work.key}.title`)}
-              href={work.href}
-              badges={work.badges}
-              period={formatPeriod(work.start, work.end, locale, t("present"))}
-              description={tResume(`${work.key}.description`)}
-            />
-          </BlurFade>
-        ))}
+        {DATA.work.map((work, id) => {
+          const company =
+            "confidential" in work && work.confidential
+              ? t("confidential")
+              : work.company;
+          return (
+            <BlurFade key={work.key} delay={BLUR_FADE_DELAY * 6 + id * 0.05}>
+              <ResumeCard
+                logoUrl={work.logoUrl}
+                altText={company}
+                title={company}
+                subtitle={tResume(`${work.key}.title`)}
+                href={work.href}
+                badges={work.badges}
+                period={formatPeriod(
+                  work.start,
+                  work.end,
+                  locale,
+                  t("present"),
+                )}
+                description={tResume(`${work.key}.description`)}
+                defaultExpanded={id === 0}
+              />
+            </BlurFade>
+          );
+        })}
       </div>
     </section>
   );

@@ -1,8 +1,8 @@
 {
   "Metadata": {
-    "siteDescription": "{name} is a Frontend Developer in {location}, building fast, user-friendly web apps with React, Next.js and TypeScript.",
-    "ogSubtitle": "Frontend Developer in South Jakarta, Indonesia",
-    "jobTitle": "Frontend Developer",
+    "siteDescription": "{name} is a frontend-focused Fullstack Developer in {location}, building production web apps for fintech and AI products with React, Next.js, TypeScript and Node.js.",
+    "ogSubtitle": "Frontend & Fullstack Developer · South Jakarta, Indonesia",
+    "jobTitle": "Frontend & Fullstack Developer",
     "location": "South Jakarta, Indonesia"
   },
   "Nav": {
@@ -14,16 +14,25 @@
     "switchTo": "ID"
   },
   "Hero": {
+    "openToWork": "Open to frontend & fullstack roles",
     "greeting": "Hi, I'm {name} 👋",
-    "description": "Frontend Developer, want to be a Fullstack Developer, and love to learn new technology."
+    "description": "Frontend-focused Fullstack Developer building production web apps for fintech and AI products with React, Next.js, TypeScript and Node.js.",
+    "downloadCv": "Download CV",
+    "email": "Email me",
+    "stats": {
+      "years": "Years of experience",
+      "companies": "Companies",
+      "projects": "Projects built"
+    }
   },
   "About": {
     "title": "About",
-    "summary": "I'm {name}, a passionate Frontend Developer with {years} years of experience, based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way."
+    "summary": "I'm {name}, a frontend-focused fullstack developer based in South Jakarta with **{years}+ years** of professional experience. I'm currently the **sole frontend engineer across three AI products** — Knowledge Chat, Intelligent Document Processing and Credit Scoring — owning the UI architecture, the shared design system and the observability setup. Part-time, I build the frontend for **Medira**, an AI hiring platform. Before that I spent three years at **Infomedia Nusantara** (Telkom Indonesia group) building enterprise web apps.\n\nMy core is **React, Next.js and TypeScript**, and I work across the stack with **Node.js, NestJS, PostgreSQL, Qdrant and Docker** when a feature needs it. I also published an **IEEE paper** on CNN image classification, so I'm comfortable working alongside ML and data teams."
   },
   "Work": {
     "title": "Work Experience",
-    "present": "Present"
+    "present": "Present",
+    "confidential": "Undisclosed company"
   },
   "Education": {
     "title": "Education"
@@ -50,9 +59,10 @@
   },
   "Contact": {
     "badge": "Contact",
-    "title": "Get in Touch",
-    "description": "Want to chat? Just shoot me a DM <link>on LinkedIn</link> and I'll respond whenever I can. I will ignore all soliciting.",
-    "cta": "Say hello on LinkedIn"
+    "title": "Hiring? Let's talk.",
+    "description": "I'm open to frontend and fullstack roles — full-time, remote or in Jakarta. Email me at {email} or message me <link>on LinkedIn</link>.",
+    "cta": "Email me",
+    "ctaSecondary": "Message on LinkedIn"
   },
   "Credits": {
     "text": "Built with <magic>Magic UI</magic>. Shout out to <dillion>dillionverma</dillion>!"
@@ -81,21 +91,33 @@
   },
   "Resume": {
     "work": {
+      "current": {
+        "title": "Frontend Developer",
+        "description": "Sole frontend engineer responsible for three AI products — Knowledge Chat, IDP (Intelligent Document Processing) and Credit Scoring — owning UI architecture end to end.\nBuilt and maintained the shared design system and reusable UI component library (shadcn/ui, Tailwind CSS) used across all three products.\nDeveloped application UIs with React, Next.js (App Router), TypeScript and TanStack Query, coordinating closely with backend, product and QA to ship maintainable, well-tested features.\nSet up application observability (OpenTelemetry SDK, OpenObserve, Pino structured logging) covering distributed tracing, RUM and custom product metrics; presented the findings to the wider engineering team.\nIntegrated the Qdrant vector database for a knowledge-base/RAG feature, including document ingestion, filtered search and cleanup workflows."
+      },
       "medira": {
-        "title": "Frontend Developer (Part Time)",
-        "description": "Developed and maintained user-friendly web applications using React and RemixJS, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team."
+        "title": "Frontend Developer (Part-time)",
+        "description": "Built the frontend for Medira, a job & internship recruitment platform connecting candidates with trusted companies, using React Router v7 in framework mode.\nContributed to Medira SaaS, an AI hiring platform that lets organizations build customized, autonomous video assessment workflows powered by enterprise-grade AI.\nImplemented core routing, data loading and authentication/login flows for the platform (app.medira.id).\nDelivered features as an independent part-time contributor alongside a full-time role."
       },
       "infomedia": {
-        "title": "Frontend Developer",
-        "description": "Developed and maintained user-friendly web applications using React and Next.js, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team."
+        "title": "Frontend Web Developer",
+        "description": "Translated UI/UX designs into responsive, production-ready web interfaces using React, TypeScript, Tailwind CSS and Ant Design.\nBuilt scalable, interactive applications with React and TypeScript, managing global state with Redux and Zustand.\nFollowed Agile/Scrum practices, collaborating closely with backend developers and UI/UX designers to keep delivery on schedule.\nIntegrated and consumed REST APIs to ensure reliable end-to-end data flow across applications."
       },
       "puti": {
-        "title": "Web Developer",
-        "description": "Collaborated with system analysts, technical writers, and database managers to develop functional and efficient web solutions. Identified and resolved application bugs while implementing new features to enhance user experience. Utilized CodeIgniter 3 (PHP) and SVN version control to manage development workflows. Focused on maintaining high standards of usability and functionality through iterative testing and updates."
+        "title": "Frontend Web Developer",
+        "description": "Collaborated with a System Analyst, Technical Writer and Database Manager to build and maintain a production website within scope and timeline.\nDeveloped features and fixed bugs on a web application built with CodeIgniter 3 (PHP), using SVN for version control."
+      },
+      "upana": {
+        "title": "Frontend Web Developer (Freelance)",
+        "description": "Implemented UI/UX designs into a React + TypeScript website with Redux for global state management.\nWorked directly with a backend developer and UI/UX designer under Agile/Scrum, from REST API integration through deployment."
       },
       "amoeba": {
-        "title": "Frontend Developer Intern",
-        "description": "Translated UI/UX designs into seamless web interfaces using ReactJS with JavaScript. Improved application performance and user experience by refining JavaScript and CSS codebases. Implemented Redux for efficient global state management across applications. Collaborated with system analysts, backend developers, and UI/UX designers in an Agile development environment. Integrated REST APIs for robust data interaction and functionality."
+        "title": "Frontend Web Developer Intern",
+        "description": "Implemented UI/UX designs and led the adoption of Redux for global state management, improving app scalability.\nCollaborated with backend developers, system analysts and designers to integrate RESTful APIs and deploy the product."
+      },
+      "vutura": {
+        "title": "Frontend Web Developer Intern",
+        "description": "Built a website and chat widget using jQuery, JavaScript, Vue.js, Materialize and Vuetify.\nWorked within an Agile/Scrum team alongside backend, QA and UI/UX to hit delivery milestones ahead of schedule."
       }
     },
     "education": {

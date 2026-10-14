@@ -1,8 +1,10 @@
 import { useTranslations } from "next-intl";
 import BlurFade from "@/components/magicui/blur-fade";
 import ShimmerButton from "@/components/magicui/shimmer-button";
+import { buttonVariants } from "@/components/ui/button";
 import { DATA } from "@/data/resume";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export function ContactSection() {
   const t = useTranslations("Contact");
@@ -19,6 +21,7 @@ export function ContactSection() {
             </h2>
             <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               {t.rich("description", {
+                email: DATA.contact.email,
                 link: (chunks) => (
                   <a
                     href={DATA.contact.social.LinkedIn.url}
@@ -31,15 +34,25 @@ export function ContactSection() {
                 ),
               })}
             </p>
-            <div className="flex justify-center pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <ShimmerButton
-                href={DATA.contact.social.LinkedIn.url}
-                target="_blank"
+                href={`mailto:${DATA.contact.email}`}
                 background="hsl(var(--accent-brand))"
                 className="text-sm transition-transform duration-300 hover:scale-105 active:scale-95"
               >
                 {t("cta")}
               </ShimmerButton>
+              <a
+                href={DATA.contact.social.LinkedIn.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-full",
+                )}
+              >
+                {t("ctaSecondary")}
+              </a>
             </div>
           </div>
         </BlurFade>

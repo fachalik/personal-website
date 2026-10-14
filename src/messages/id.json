@@ -1,8 +1,8 @@
 {
   "Metadata": {
-    "siteDescription": "{name} adalah Frontend Developer di {location} yang membangun aplikasi web cepat dan ramah pengguna dengan React, Next.js, dan TypeScript.",
-    "ogSubtitle": "Frontend Developer di Jakarta Selatan, Indonesia",
-    "jobTitle": "Frontend Developer",
+    "siteDescription": "{name} adalah Fullstack Developer dengan fokus frontend di {location}, membangun aplikasi web produksi untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
+    "ogSubtitle": "Frontend & Fullstack Developer · Jakarta Selatan, Indonesia",
+    "jobTitle": "Frontend & Fullstack Developer",
     "location": "Jakarta Selatan, Indonesia"
   },
   "Nav": {
@@ -14,16 +14,25 @@
     "switchTo": "EN"
   },
   "Hero": {
+    "openToWork": "Terbuka untuk posisi frontend & fullstack",
     "greeting": "Halo, saya {name} 👋",
-    "description": "Frontend Developer yang ingin menjadi Fullstack Developer, dan senang mempelajari teknologi baru."
+    "description": "Fullstack Developer dengan fokus frontend yang membangun aplikasi web produksi untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
+    "downloadCv": "Unduh CV",
+    "email": "Kirim email",
+    "stats": {
+      "years": "Tahun pengalaman",
+      "companies": "Perusahaan",
+      "projects": "Proyek dibangun"
+    }
   },
   "About": {
     "title": "Tentang",
-    "summary": "Saya {name}, Frontend Developer yang bersemangat dengan pengalaman {years} tahun, berbasis di Jakarta Selatan, Indonesia. Dengan fondasi yang kuat di teknologi web, saya fokus membangun pengalaman digital yang menarik dan mudah digunakan. Tujuan saya adalah terus mengembangkan kemampuan dan beralih ke peran Fullstack Developer, sambil menyambut tantangan dan teknologi baru."
+    "summary": "Saya {name}, fullstack developer dengan fokus frontend yang berbasis di Jakarta Selatan dengan pengalaman profesional **{years}+ tahun**. Saat ini saya **satu-satunya frontend engineer untuk tiga produk AI** — Knowledge Chat, Intelligent Document Processing, dan Credit Scoring — dan memegang arsitektur UI, design system bersama, serta setup observability. Secara paruh waktu, saya membangun frontend **Medira**, platform rekrutmen berbasis AI. Sebelumnya saya tiga tahun di **Infomedia Nusantara** (grup Telkom Indonesia) membangun aplikasi web enterprise.\n\nKeahlian utama saya **React, Next.js, dan TypeScript**, dan saya juga bekerja di sisi backend dengan **Node.js, NestJS, PostgreSQL, Qdrant, dan Docker** saat fitur membutuhkannya. Saya juga mempublikasikan **makalah IEEE** tentang klasifikasi citra dengan CNN, sehingga terbiasa bekerja bersama tim ML dan data."
   },
   "Work": {
     "title": "Pengalaman Kerja",
-    "present": "Sekarang"
+    "present": "Sekarang",
+    "confidential": "Perusahaan dirahasiakan"
   },
   "Education": {
     "title": "Pendidikan"
@@ -50,9 +59,10 @@
   },
   "Contact": {
     "badge": "Kontak",
-    "title": "Hubungi Saya",
-    "description": "Mau ngobrol? Kirim saja DM <link>di LinkedIn</link> dan saya akan membalas secepatnya. Penawaran/promosi tidak akan saya tanggapi.",
-    "cta": "Sapa saya di LinkedIn"
+    "title": "Sedang mencari kandidat? Mari ngobrol.",
+    "description": "Saya terbuka untuk posisi frontend dan fullstack — full-time, remote, atau di Jakarta. Email saya di {email} atau kirim pesan <link>di LinkedIn</link>.",
+    "cta": "Kirim email",
+    "ctaSecondary": "Pesan via LinkedIn"
   },
   "Credits": {
     "text": "Dibuat dengan <magic>Magic UI</magic>. Terima kasih untuk <dillion>dillionverma</dillion>!"
@@ -81,21 +91,33 @@
   },
   "Resume": {
     "work": {
+      "current": {
+        "title": "Frontend Developer",
+        "description": "Satu-satunya frontend engineer untuk tiga produk AI — Knowledge Chat, IDP (Intelligent Document Processing), dan Credit Scoring — dan memegang arsitektur UI dari awal hingga akhir.\nMembangun dan memelihara design system bersama serta library komponen UI reusable (shadcn/ui, Tailwind CSS) yang dipakai di ketiga produk.\nMengembangkan UI aplikasi dengan React, Next.js (App Router), TypeScript, dan TanStack Query, berkoordinasi erat dengan tim backend, produk, dan QA untuk merilis fitur yang maintainable dan teruji.\nMenyiapkan observability aplikasi (OpenTelemetry SDK, OpenObserve, structured logging dengan Pino) yang mencakup distributed tracing, RUM, dan metrik produk kustom; mempresentasikan hasilnya ke seluruh tim engineering.\nMengintegrasikan vector database Qdrant untuk fitur knowledge base/RAG, termasuk ingestion dokumen, pencarian terfilter, dan alur pembersihan data."
+      },
       "medira": {
         "title": "Frontend Developer (Paruh Waktu)",
-        "description": "Mengembangkan dan memelihara aplikasi web yang ramah pengguna menggunakan React dan RemixJS, dengan performa yang mulus dan responsif di berbagai perangkat. Berkolaborasi dengan tim lintas fungsi untuk merancang dan mengimplementasikan fitur baru yang meningkatkan pengalaman dan keterlibatan pengguna. Menggunakan TypeScript untuk meningkatkan kualitas dan kemudahan pemeliharaan kode, sehingga arsitektur aplikasi menjadi lebih kokoh. Berpartisipasi dalam code review dan berkontribusi pada best practice, menumbuhkan budaya perbaikan berkelanjutan di dalam tim pengembang."
+        "description": "Membangun frontend Medira, platform rekrutmen kerja & magang yang menghubungkan kandidat dengan perusahaan terpercaya, menggunakan React Router v7 dalam framework mode.\nBerkontribusi pada Medira SaaS, platform rekrutmen berbasis AI yang memungkinkan organisasi membuat alur asesmen video otomatis yang dapat dikustomisasi dengan AI kelas enterprise.\nMengimplementasikan routing inti, data loading, serta alur autentikasi/login untuk platform (app.medira.id).\nMengerjakan fitur sebagai kontributor paruh waktu independen di samping pekerjaan full-time."
       },
       "infomedia": {
-        "title": "Frontend Developer",
-        "description": "Mengembangkan dan memelihara aplikasi web yang ramah pengguna menggunakan React dan Next.js, dengan performa yang mulus dan responsif di berbagai perangkat. Berkolaborasi dengan tim lintas fungsi untuk merancang dan mengimplementasikan fitur baru yang meningkatkan pengalaman dan keterlibatan pengguna. Menggunakan TypeScript untuk meningkatkan kualitas dan kemudahan pemeliharaan kode, sehingga arsitektur aplikasi menjadi lebih kokoh. Berpartisipasi dalam code review dan berkontribusi pada best practice, menumbuhkan budaya perbaikan berkelanjutan di dalam tim pengembang."
+        "title": "Frontend Web Developer",
+        "description": "Menerjemahkan desain UI/UX menjadi antarmuka web yang responsif dan siap produksi menggunakan React, TypeScript, Tailwind CSS, dan Ant Design.\nMembangun aplikasi interaktif yang scalable dengan React dan TypeScript, mengelola state global dengan Redux dan Zustand.\nMenerapkan praktik Agile/Scrum, berkolaborasi erat dengan backend developer dan desainer UI/UX agar pengiriman tetap sesuai jadwal.\nMengintegrasikan REST API untuk memastikan alur data end-to-end yang andal di seluruh aplikasi."
       },
       "puti": {
-        "title": "Web Developer",
-        "description": "Berkolaborasi dengan system analyst, technical writer, dan database manager untuk membangun solusi web yang fungsional dan efisien. Mengidentifikasi dan memperbaiki bug aplikasi sekaligus mengimplementasikan fitur baru untuk meningkatkan pengalaman pengguna. Menggunakan CodeIgniter 3 (PHP) dan version control SVN untuk mengelola alur kerja pengembangan. Berfokus menjaga standar kegunaan dan fungsionalitas yang tinggi melalui pengujian dan pembaruan secara iteratif."
+        "title": "Frontend Web Developer",
+        "description": "Berkolaborasi dengan System Analyst, Technical Writer, dan Database Manager untuk membangun dan memelihara website produksi sesuai cakupan dan jadwal.\nMengembangkan fitur dan memperbaiki bug pada aplikasi web berbasis CodeIgniter 3 (PHP), menggunakan SVN untuk version control."
+      },
+      "upana": {
+        "title": "Frontend Web Developer (Freelance)",
+        "description": "Mengimplementasikan desain UI/UX menjadi website React + TypeScript dengan Redux untuk manajemen state global.\nBekerja langsung dengan backend developer dan desainer UI/UX dalam Agile/Scrum, mulai dari integrasi REST API hingga deployment."
       },
       "amoeba": {
-        "title": "Frontend Developer (Magang)",
-        "description": "Menerjemahkan desain UI/UX menjadi antarmuka web yang mulus menggunakan ReactJS dengan JavaScript. Meningkatkan performa aplikasi dan pengalaman pengguna dengan merapikan kode JavaScript dan CSS. Mengimplementasikan Redux untuk manajemen state global yang efisien di berbagai aplikasi. Berkolaborasi dengan system analyst, backend developer, dan desainer UI/UX dalam lingkungan pengembangan Agile. Mengintegrasikan REST API untuk interaksi data dan fungsionalitas yang andal."
+        "title": "Frontend Web Developer (Magang)",
+        "description": "Mengimplementasikan desain UI/UX dan memimpin adopsi Redux untuk manajemen state global, meningkatkan skalabilitas aplikasi.\nBerkolaborasi dengan backend developer, system analyst, dan desainer untuk mengintegrasikan RESTful API dan men-deploy produk."
+      },
+      "vutura": {
+        "title": "Frontend Web Developer (Magang)",
+        "description": "Membangun website dan chat widget menggunakan jQuery, JavaScript, Vue.js, Materialize, dan Vuetify.\nBekerja dalam tim Agile/Scrum bersama backend, QA, dan UI/UX untuk mencapai milestone lebih cepat dari jadwal."
       }
     },
     "education": {

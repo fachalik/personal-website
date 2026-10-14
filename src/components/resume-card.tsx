@@ -19,7 +19,9 @@ interface ResumeCardProps {
   href?: string;
   badges?: readonly string[];
   period: string;
+  /** One bullet per line. */
   description?: string;
+  defaultExpanded?: boolean;
 }
 export const ResumeCard = ({
   logoUrl,
@@ -30,8 +32,10 @@ export const ResumeCard = ({
   badges,
   period,
   description,
+  defaultExpanded = false,
 }: ResumeCardProps) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const bullets = description?.split("\n").filter(Boolean) ?? [];
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     if (description) {
@@ -95,7 +99,11 @@ export const ResumeCard = ({
           </CardHeader>
           {description && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
+              initial={
+                defaultExpanded
+                  ? { opacity: 1, height: "auto" }
+                  : { opacity: 0, height: 0 }
+              }
               animate={{
                 opacity: isExpanded ? 1 : 0,
 
@@ -105,9 +113,17 @@ export const ResumeCard = ({
                 duration: 0.7,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="mt-2 text-xs sm:text-sm"
+              className="mt-2 overflow-hidden text-xs sm:text-sm"
             >
-              {description}
+              {bullets.length > 1 ? (
+                <ul className="list-disc space-y-1 pl-4">
+                  {bullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+              ) : (
+                description
+              )}
             </motion.div>
           )}
         </div>

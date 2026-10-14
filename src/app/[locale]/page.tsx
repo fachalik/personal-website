@@ -24,10 +24,10 @@ export default async function Page({
       <HeroSection />
       <AboutSection />
       <WorkSection />
-      <EducationSection />
+      <ProjectsSection />
       <SkillsSection />
       <GithubSection />
-      <ProjectsSection />
+      <EducationSection />
       <ContactSection />
       <Credits />
     </main>
