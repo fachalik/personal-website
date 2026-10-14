@@ -23,6 +23,8 @@ ARG GITHUB_TOKEN
 RUN GITHUB_TOKEN=${GITHUB_TOKEN} pnpm build
 
 FROM base AS runner
+# Lets the pre-push hook prune only this project's stale images.
+LABEL org.opencontainers.image.title="fachalik-portfolio"
 ENV NODE_ENV=production \
   NEXT_TELEMETRY_DISABLED=1 \
   PORT=3000 \

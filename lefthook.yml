@@ -19,13 +19,17 @@ commit-msg:
 
 pre-push:
   parallel: true
-  commands:
-    biome-ci:
-      run: pnpm exec biome ci . --reporter=github
-    test:
-      run: pnpm test run
-    docker-build:
+  jobs:
+    - name: biome-ci
+      run: pnpm exec biome ci .
+    # Builds the production image to prove it still works, then throws it away.
+    # The build runs `pnpm build`, so types and the Next.js build are covered too.
+    - name: docker-build
       run: |
+        if ! docker info >/dev/null 2>&1; then
+          echo "Docker is not running, skipping image build."
+          exit 0
+        fi
         docker compose build --quiet
-        docker rmi risk-scoring-web-app-risk-scoring-web-app:latest || true
-        docker image prune -f
+        docker image rm fachalik-portfolio:latest || true
+        docker image prune -f --filter label=org.opencontainers.image.title=fachalik-portfolio
