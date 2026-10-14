@@ -1,19 +1,31 @@
 # https://lefthook.dev/configuration/
 pre-commit:
+  parallel: true
   jobs:
+    # Only staged files, so unrelated work in progress is never rewritten.
     - name: biome
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
       run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
-
-pre-push:
-  jobs:
     - name: typecheck
-      run: pnpm exec tsc --noEmit
-    - name: build
-      run: pnpm build
+      run: pnpm run typecheck
+    - name: unused-code
+      run: pnpm run check:unused
 
 commit-msg:
   jobs:
     - name: commitlint
       run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  parallel: true
+  commands:
+    biome-ci:
+      run: pnpm exec biome ci . --reporter=github
+    test:
+      run: pnpm test run
+    docker-build:
+      run: |
+        docker compose build --quiet
+        docker rmi risk-scoring-web-app-risk-scoring-web-app:latest || true
+        docker image prune -f

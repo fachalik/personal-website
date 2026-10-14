@@ -3,6 +3,7 @@
 import {
   AnimatePresence,
   motion,
+  type UseInViewOptions,
   useInView,
   type Variants,
 } from "framer-motion";
@@ -19,7 +20,7 @@ interface BlurFadeProps {
   delay?: number;
   yOffset?: number;
   inView?: boolean;
-  inViewMargin?: undefined | string;
+  inViewMargin?: UseInViewOptions["margin"];
   blur?: string;
 }
 const BlurFade = ({
@@ -36,7 +37,7 @@ const BlurFade = ({
   const ref = useRef(null);
   const inViewResult = useInView(ref, {
     once: true,
-    margin: inViewMargin as any,
+    margin: inViewMargin,
   });
 
   const isInView = !inView || inViewResult;

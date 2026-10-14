@@ -51,7 +51,7 @@ export function ProjectCard({
     >
       <Card
         className={
-          "flex flex-col overflow-hidden border hover:shadow-lg transition-all duration-300 ease-out h-full"
+          "flex h-full flex-col overflow-hidden border transition-all duration-300 ease-out hover:shadow-lg"
         }
       >
         <Link
@@ -92,7 +92,7 @@ export function ProjectCard({
                 .replace("www.", "")
                 .replace("/", "")}
             </div>
-            <Markdown className="prose max-w-full text-pretty font-sans text-xs text-muted-foreground dark:prose-invert">
+            <Markdown className="prose dark:prose-invert max-w-full text-pretty font-sans text-muted-foreground text-xs">
               {description}
             </Markdown>
           </div>
@@ -115,9 +115,9 @@ export function ProjectCard({
         <CardFooter className="px-2 pb-2">
           {links && links.length > 0 && (
             <div className="flex flex-row flex-wrap items-start gap-1">
-              {links?.map((link, idx) => (
-                <Link href={link?.href} key={idx} target="_blank">
-                  <Badge key={idx} className="flex gap-2 px-2 py-1 text-[10px]">
+              {links?.map((link) => (
+                <Link href={link.href} key={link.href} target="_blank">
+                  <Badge className="flex gap-2 px-2 py-1 text-[10px]">
                     {link.icon}
                     {link.type}
                   </Badge>

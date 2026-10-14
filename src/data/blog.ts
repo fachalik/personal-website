@@ -26,6 +26,8 @@ type Metadata = {
   publishedAt: string;
   summary: string;
   image?: string;
+  /** Lowercase, URL-safe topics, e.g. `["go", "typescript"]`. */
+  tags?: string[];
 };
 
 export type Heading = { id: string; text: string; level: 2 | 3 };
@@ -157,4 +159,17 @@ export async function getBlogPosts(locale: Locale = routing.defaultLocale) {
         new Date(b.metadata.publishedAt).getTime() -
         new Date(a.metadata.publishedAt).getTime(),
     );
+}
+
+/** Every tag used by these posts with its post count, most used first. */
+export function getTags(posts: Post[]) {
+  const counts = new Map<string, number>();
+  for (const post of posts) {
+    for (const tag of post.metadata.tags ?? []) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return [...counts]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }

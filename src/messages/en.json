@@ -10,8 +10,11 @@
     "blog": "Blog",
     "downloadCv": "Download CV",
     "theme": "Theme",
-    "language": "Bahasa Indonesia",
-    "switchTo": "ID"
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "language": "Language",
+    "backToTop": "Back to top"
   },
   "Hero": {
     "openToWork": "Open to frontend & fullstack roles",
@@ -27,7 +30,7 @@
   },
   "About": {
     "title": "About",
-    "summary": "I'm {name}, a frontend-focused fullstack developer based in South Jakarta with **{years}+ years** of professional experience. I'm currently the **sole frontend engineer across three AI products** — Knowledge Chat, Intelligent Document Processing and Credit Scoring — owning the UI architecture, the shared design system and the observability setup. Part-time, I build the frontend for **Medira**, an AI hiring platform. Before that I spent three years at **Infomedia Nusantara** (Telkom Indonesia group) building enterprise web apps.\n\nMy core is **React, Next.js and TypeScript**, and I work across the stack with **Node.js, NestJS, PostgreSQL, Qdrant and Docker** when a feature needs it. I also published an **IEEE paper** on CNN image classification, so I'm comfortable working alongside ML and data teams."
+    "summary": "I'm {name}, a frontend-focused fullstack developer based in South Jakarta with **{years}+ years** of professional experience. I'm currently the **sole frontend engineer across three AI products** — Knowledge Chat, Intelligent Document Processing and Credit Scoring — owning the UI architecture, the shared design system and the observability setup. Part-time, I build the frontend for **Medira**, an AI hiring platform. Before that I spent three years at **Infomedia Nusantara** (Telkom Indonesia group) building enterprise web apps.\n\nMy core is **React, Next.js and TypeScript**, and I work across the stack with **Node.js, NestJS, PostgreSQL and Docker** when a feature needs it. I also published an **IEEE paper** on CNN image classification, so I'm comfortable working alongside ML and data teams."
   },
   "Work": {
     "title": "Work Experience",
@@ -38,7 +41,15 @@
     "title": "Education"
   },
   "Skills": {
-    "title": "Skills"
+    "title": "Skills",
+    "groups": {
+      "frontend": "Frontend",
+      "ui": "UI & styling",
+      "state": "Data, forms & validation",
+      "backend": "Backend",
+      "data": "Databases & data",
+      "devops": "DevOps & tooling"
+    }
   },
   "Github": {
     "title": "GitHub Activity",
@@ -58,11 +69,15 @@
     "description": "I've worked on a variety of projects, from simple websites to complex web applications. Here are a few of my favorites."
   },
   "Contact": {
-    "badge": "Contact",
+    "badge": "Available for new roles",
     "title": "Hiring? Let's talk.",
-    "description": "I'm open to frontend and fullstack roles — full-time, remote or in Jakarta. Email me at {email} or message me <link>on LinkedIn</link>.",
+    "description": "I'm open to frontend and fullstack roles — full-time, remote or in Jakarta.",
     "cta": "Email me",
-    "ctaSecondary": "Message on LinkedIn"
+    "ctaSecondary": "Message on LinkedIn",
+    "copyEmail": "Copy email address",
+    "emailCopied": "Copied to clipboard",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "Credits": {
     "text": "Built with <magic>Magic UI</magic>. Shout out to <dillion>dillionverma</dillion>!"
@@ -87,7 +102,12 @@
     "copyCode": "Copy code",
     "notTranslated": "This post isn't available in English yet.",
     "readIn": "Also available in <link>Bahasa Indonesia</link>.",
-    "fallbackNotice": "This post is only available in English."
+    "fallbackNotice": "This post is only available in English.",
+    "rss": "RSS feed",
+    "tags": "Tags",
+    "allTags": "All",
+    "tagTitle": "Posts tagged #{tag}",
+    "tagDescription": "Everything I've written about {tag}."
   },
   "Resume": {
     "work": {
@@ -155,5 +175,17 @@
       "source": "Source",
       "paper": "Paper"
     }
+  },
+  "NotFound": {
+    "title": "This page wandered off.",
+    "description": "The link may be broken or the page may have moved. Try the homepage or have a look at the blog.",
+    "home": "Back home",
+    "blog": "Read the blog"
+  },
+  "Error": {
+    "title": "Something went wrong.",
+    "description": "An unexpected error stopped this page from loading. Trying again usually fixes it.",
+    "retry": "Try again",
+    "home": "Back home"
   }
 }

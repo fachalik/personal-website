@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-const MotionCard = motion(Card);
+const MotionCard = motion.create(Card);
 
 interface ResumeCardProps {
   logoUrl: string;
@@ -53,10 +53,10 @@ export const ResumeCard = ({
       <MotionCard
         whileHover={{ scale: 1.01 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className="flex bg-transparent hover:bg-accent/40 transition-colors"
+        className="flex bg-transparent transition-colors hover:bg-accent/40"
       >
         <div className="flex-none">
-          <Avatar className="border size-12 m-auto bg-muted-background dark:bg-foreground">
+          <Avatar className="m-auto size-12 border bg-muted-background dark:bg-foreground">
             <AvatarImage
               src={logoUrl}
               alt={altText}
@@ -65,10 +65,10 @@ export const ResumeCard = ({
             <AvatarFallback>{altText[0]}</AvatarFallback>
           </Avatar>
         </div>
-        <div className="flex-grow ml-4 items-center flex-col group">
+        <div className="group ml-4 flex-grow flex-col items-center">
           <CardHeader>
-            <div className="flex flex-col gap-x-2 gap-y-0.5 sm:flex-row sm:items-center sm:justify-between text-base">
-              <h3 className="inline-flex items-center justify-start font-semibold leading-none text-xs sm:text-sm">
+            <div className="flex flex-col gap-x-2 gap-y-0.5 text-base sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="inline-flex items-center justify-start font-semibold text-xs leading-none sm:text-sm">
                 {title}
                 {badges && (
                   <span className="inline-flex gap-x-1">
@@ -91,7 +91,7 @@ export const ResumeCard = ({
                   )}
                 />
               </h3>
-              <div className="shrink-0 whitespace-nowrap text-xs sm:text-sm tabular-nums text-muted-foreground sm:text-right">
+              <div className="shrink-0 whitespace-nowrap text-muted-foreground text-xs tabular-nums sm:text-right sm:text-sm">
                 {period}
               </div>
             </div>

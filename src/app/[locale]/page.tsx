@@ -23,11 +23,11 @@ export default async function Page({
       <PersonStructuredData />
       <HeroSection />
       <AboutSection />
-      <WorkSection />
-      <ProjectsSection />
       <SkillsSection />
-      <GithubSection />
+      <WorkSection />
       <EducationSection />
+      <ProjectsSection />
+      <GithubSection />
       <ContactSection />
       <Credits />
     </main>

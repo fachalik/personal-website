@@ -1,8 +1,145 @@
-import { HomeIcon, NotebookIcon } from "lucide-react";
+import {
+  Activity,
+  BookOpenText,
+  Dog,
+  FileInput,
+  HomeIcon,
+  KeyRound,
+  ListChecks,
+  type LucideIcon,
+  NotebookIcon,
+} from "lucide-react";
+import {
+  type SimpleIcon,
+  siAntdesign,
+  siBetterauth,
+  siBiome,
+  siChakraui,
+  siCommitlint,
+  siDocker,
+  siDrizzle,
+  siExpress,
+  siFastapi,
+  siFormik,
+  siGrafana,
+  siJavascript,
+  siJenkins,
+  siKnip,
+  siLefthook,
+  siMui,
+  siMysql,
+  siNestjs,
+  siNextdotjs,
+  siNodedotjs,
+  siOpentelemetry,
+  siPino,
+  siPostgresql,
+  siPrisma,
+  siReact,
+  siReacthookform,
+  siReactquery,
+  siReactrouter,
+  siReacttable,
+  siRemix,
+  siShadcnui,
+  siSvelte,
+  siTailwindcss,
+  siTypescript,
+  siVite,
+  siZod,
+} from "simple-icons";
 import { Icons } from "@/components/icons";
 
 const professionalStart = 2021;
 const totalYearsExperience = new Date().getFullYear() - professionalStart;
+
+// `key` is a label in the "Skills.groups" message namespace. `core` marks the
+// day-to-day stack. Spell names the same way as `projects[].technologies`.
+const skillGroups = [
+  {
+    key: "frontend",
+    items: [
+      { name: "React", icon: siReact, core: true },
+      { name: "Next.js", icon: siNextdotjs, core: true },
+      { name: "TypeScript", icon: siTypescript, core: true },
+      { name: "JavaScript", icon: siJavascript },
+      { name: "RemixJS", icon: siRemix },
+      { name: "React Router", icon: siReactrouter },
+      { name: "Svelte", icon: siSvelte },
+      // No brand mark in simple-icons, so a generic docs glyph stands in.
+      { name: "Fumadocs", icon: BookOpenText },
+      // No brand mark in simple-icons; a generic glyph stands in.
+      { name: "NextAuth.js", icon: KeyRound },
+      { name: "Better Auth", icon: siBetterauth },
+    ],
+  },
+  {
+    key: "ui",
+    items: [
+      { name: "Tailwind CSS", icon: siTailwindcss },
+      { name: "shadcn/ui", icon: siShadcnui },
+      // Port of shadcn/ui, so it shares the mark.
+      { name: "shadcn-svelte", icon: siShadcnui },
+      { name: "Chakra UI", icon: siChakraui },
+      { name: "Material UI", icon: siMui },
+      { name: "Ant Design", icon: siAntdesign },
+    ],
+  },
+  {
+    key: "state",
+    items: [
+      { name: "TanStack Query", icon: siReactquery },
+      { name: "TanStack Table", icon: siReacttable },
+      { name: "React Hook Form", icon: siReacthookform },
+      { name: "Formik", icon: siFormik },
+      // No brand mark in simple-icons; a generic glyph stands in.
+      { name: "Superforms", icon: FileInput },
+      { name: "Zod", icon: siZod },
+      // No brand mark in simple-icons; a generic glyph stands in.
+      { name: "Yup", icon: ListChecks },
+    ],
+  },
+  {
+    key: "backend",
+    items: [
+      { name: "Node.js", icon: siNodedotjs },
+      { name: "Express.js", icon: siExpress },
+      { name: "NestJS", icon: siNestjs },
+      { name: "FastAPI", icon: siFastapi },
+    ],
+  },
+  {
+    key: "data",
+    items: [
+      { name: "PostgreSQL", icon: siPostgresql },
+      { name: "MySQL", icon: siMysql },
+      { name: "Drizzle", icon: siDrizzle },
+      { name: "Prisma", icon: siPrisma },
+    ],
+  },
+  {
+    key: "devops",
+    items: [
+      { name: "Docker", icon: siDocker },
+      { name: "Jenkins", icon: siJenkins },
+      { name: "OpenTelemetry", icon: siOpentelemetry },
+      { name: "Grafana", icon: siGrafana },
+      // No brand mark in simple-icons; a generic glyph stands in.
+      { name: "OpenObserve", icon: Activity },
+      { name: "pino", icon: siPino },
+      { name: "Vite", icon: siVite },
+      { name: "Biome", icon: siBiome },
+      { name: "Knip", icon: siKnip },
+      { name: "commitlint", icon: siCommitlint },
+      { name: "Lefthook", icon: siLefthook },
+      // No brand mark in simple-icons; Husky's mascot is a dog.
+      { name: "Husky", icon: Dog },
+    ],
+  },
+] satisfies {
+  key: string;
+  items: { name: string; icon: SimpleIcon | LucideIcon; core?: boolean }[];
+}[];
 
 export const DATA = {
   name: "FA Chalik",
@@ -20,20 +157,8 @@ export const DATA = {
   publicationUrl: "https://ieeexplore.ieee.org/document/9650199",
   // Every GitHub identity to merge into one contribution graph.
   githubAccounts: ["fachalik", "chalikfa", "fachalikA"],
-  skills: [
-    "React",
-    "Next.js",
-    "Nest.js",
-    "RemixJS",
-    "JavaScript",
-    "Typescript",
-    "Node.js",
-    "Python",
-    "MySQL",
-    "Postgres",
-    "Docker",
-    "Jenkins",
-  ],
+  skills: skillGroups.flatMap((group) => group.items.map((s) => s.name)),
+  skillGroups,
   // `label` is a key in the "Nav" message namespace.
   navbar: [
     { href: "/", icon: HomeIcon, label: "home" },
@@ -159,9 +284,9 @@ export const DATA = {
         "Tauri v2",
         "Rust",
         "React",
-        "Typescript",
-        "TailwindCSS",
-        "Shadcn UI",
+        "TypeScript",
+        "Tailwind CSS",
+        "shadcn/ui",
       ],
       links: [
         {
@@ -179,7 +304,7 @@ export const DATA = {
       href: "https://aliran.app",
       start: "2026-05",
       active: true,
-      technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
+      technologies: ["Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui"],
       links: [],
       image: "/aliran.png",
       video: "",
@@ -192,9 +317,9 @@ export const DATA = {
       active: true,
       technologies: [
         "Next.js",
-        "Typescript",
-        "TailwindCSS",
-        "Shadcn UI",
+        "TypeScript",
+        "Tailwind CSS",
+        "shadcn/ui",
         "Drizzle",
       ],
       links: [],
@@ -208,7 +333,7 @@ export const DATA = {
       start: "2025-11",
       ongoing: true,
       active: true,
-      technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
+      technologies: ["Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui"],
       links: [],
       image: "/credit-scoring.png",
       video: "",
@@ -220,7 +345,7 @@ export const DATA = {
       start: "2025-10",
       ongoing: true,
       active: true,
-      technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
+      technologies: ["Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui"],
       links: [],
       image: "/idp.png",
       video: "",
@@ -232,7 +357,7 @@ export const DATA = {
       start: "2025-10",
       ongoing: true,
       active: true,
-      technologies: ["React Router", "Typescript", "TailwindCSS", "Shadcn UI"],
+      technologies: ["React Router", "TypeScript", "Tailwind CSS", "shadcn/ui"],
       links: [],
       image: "/idp-cms.png",
       video: "",

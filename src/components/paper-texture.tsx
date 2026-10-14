@@ -19,8 +19,11 @@ const RULING: Record<Exclude<PaperVariant, "plain">, string> = {
 };
 
 export function PaperTexture({ variant = "genkoyoshi" }: PaperTextureProps) {
+  // Rendered as <aside> rather than <div>: browser extensions (e.g. Scrnli)
+  // inject stray <div>s into <body> before hydration. React skips unexpected
+  // body children of a different tag, but tries to hydrate a same-tag one.
   return (
-    <div
+    <aside
       aria-hidden
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden print:hidden"
     >
@@ -32,8 +35,8 @@ export function PaperTexture({ variant = "genkoyoshi" }: PaperTextureProps) {
           )}
         />
       )}
-      <div className="absolute inset-0 paper-grain opacity-[0.055] dark:opacity-[0.09]" />
-      <div className="absolute inset-0 paper-vignette" />
-    </div>
+      <div className="paper-grain absolute inset-0 opacity-[0.055] dark:opacity-[0.09]" />
+      <div className="paper-vignette absolute inset-0" />
+    </aside>
   );
 }

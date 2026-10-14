@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { BackToTop } from "@/components/back-to-top";
 import Navbar from "@/components/navbar";
 import { PaperTexture } from "@/components/paper-texture";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -16,6 +17,7 @@ import { DATA } from "@/data/resume";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
 import {
   absoluteUrl,
+  feedAlternate,
   languageAlternates,
   localizedPath,
   ogImageUrl,
@@ -76,6 +78,7 @@ export async function generateMetadata({
     alternates: {
       canonical: localizedPath("/", locale),
       languages: languageAlternates("/"),
+      types: feedAlternate(locale),
     },
     openGraph: {
       title: siteTitle,
@@ -148,13 +151,14 @@ export default async function LocaleLayout({
         )}
       >
         <NextIntlClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="light">
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <TooltipProvider delayDuration={0}>
               <PaperTexture variant="genkoyoshi" />
               {children}
               <Analytics />
               <SpeedInsights />
               <Navbar />
+              <BackToTop />
             </TooltipProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

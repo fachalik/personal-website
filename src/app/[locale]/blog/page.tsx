@@ -1,19 +1,19 @@
-import { ArrowUpRight, Globe } from "lucide-react";
+import { Rss } from "lucide-react";
 import type { Metadata } from "next";
-import { hasLocale, useLocale, useTranslations } from "next-intl";
+import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PostList, TagFilter } from "@/components/blog/post-list";
 import BlurFade from "@/components/magicui/blur-fade";
-import { getBlogPosts, type Post } from "@/data/blog";
-import { Link } from "@/i18n/navigation";
+import { getBlogPosts, getTags } from "@/data/blog";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
   absoluteUrl,
+  feedAlternate,
   languageAlternates,
   localizedPath,
   ogImageUrl,
 } from "@/lib/seo";
-import { formatDate } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -32,6 +32,7 @@ export async function generateMetadata({
     alternates: {
       canonical: localizedPath("/blog", locale),
       languages: languageAlternates("/blog"),
+      types: feedAlternate(locale),
     },
     openGraph: {
       title,
@@ -52,81 +53,6 @@ export async function generateMetadata({
   };
 }
 
-function PostMeta({ post }: { post: Post }) {
-  const t = useTranslations("Blog");
-  const locale = useLocale();
-
-  return (
-    <div className="flex items-center gap-2 text-muted-foreground text-xs">
-      <time dateTime={post.metadata.publishedAt}>
-        {formatDate(post.metadata.publishedAt, locale, "short")}
-      </time>
-      <span aria-hidden>·</span>
-      <span>{t("minRead", { minutes: post.readingTime })}</span>
-      {post.isFallback && (
-        <>
-          <span aria-hidden>·</span>
-          <span className="inline-flex items-center gap-1">
-            <Globe className="size-3" />
-            {t("englishOnly")}
-          </span>
-        </>
-      )}
-    </div>
-  );
-}
-
-function FeaturedPost({ post }: { post: Post }) {
-  const t = useTranslations("Blog");
-
-  return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group relative block overflow-hidden rounded-xl border bg-card/60 p-6 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-lg"
-    >
-      <div className="mb-4 flex items-center justify-between">
-        <span className="inline-block rounded-md bg-foreground px-2 py-0.5 text-background text-xs">
-          {t("latest")}
-        </span>
-        <ArrowUpRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
-      </div>
-      <h2 className="font-bold text-xl tracking-tight sm:text-2xl">
-        {post.metadata.title}
-      </h2>
-      {post.metadata.summary && (
-        <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
-          {post.metadata.summary}
-        </p>
-      )}
-      <div className="mt-5">
-        <PostMeta post={post} />
-      </div>
-    </Link>
-  );
-}
-
-function PostRow({ post }: { post: Post }) {
-  return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group -mx-3 flex items-start justify-between gap-4 rounded-lg px-3 py-4 transition-colors hover:bg-foreground/[0.04]"
-    >
-      <div className="min-w-0 space-y-1.5">
-        <h3 className="font-medium tracking-tight underline-offset-4 group-hover:underline">
-          {post.metadata.title}
-        </h3>
-        {post.metadata.summary && (
-          <p className="line-clamp-2 text-muted-foreground text-sm">
-            {post.metadata.summary}
-          </p>
-        )}
-        <PostMeta post={post} />
-      </div>
-      <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:opacity-100" />
-    </Link>
-  );
-}
-
 export default async function BlogPage({
   params,
 }: {
@@ -138,16 +64,6 @@ export default async function BlogPage({
 
   const t = await getTranslations("Blog");
   const posts = await getBlogPosts(locale);
-  const [featured, ...rest] = posts;
-
-  const byYear = rest.reduce<Record<string, Post[]>>((acc, post) => {
-    const year = post.metadata.publishedAt.slice(0, 4);
-    acc[year] ??= [];
-    acc[year].push(post);
-    return acc;
-  }, {});
-  const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a));
-
   return (
     <section className="space-y-12">
       <BlurFade delay={BLUR_FADE_DELAY}>
@@ -164,32 +80,21 @@ export default async function BlogPage({
               {t("postCount", { count: posts.length })}
             </span>
           </p>
+          <a
+            href={localizedPath("/feed.xml", locale)}
+            className="inline-flex items-center gap-1.5 text-muted-foreground text-sm underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            <Rss className="size-3.5" />
+            {t("rss")}
+          </a>
         </div>
       </BlurFade>
 
-      {featured && (
-        <BlurFade delay={BLUR_FADE_DELAY * 2}>
-          <FeaturedPost post={featured} />
-        </BlurFade>
-      )}
+      <BlurFade delay={BLUR_FADE_DELAY * 2}>
+        <TagFilter tags={getTags(posts)} />
+      </BlurFade>
 
-      {years.map((year, yi) => (
-        <BlurFade key={year} delay={BLUR_FADE_DELAY * 3 + yi * 0.05}>
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-muted-foreground text-sm">
-                {year}
-              </span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <div className="divide-y divide-border/60">
-              {byYear[year].map((post) => (
-                <PostRow key={post.slug} post={post} />
-              ))}
-            </div>
-          </div>
-        </BlurFade>
-      ))}
+      <PostList posts={posts} featured delay={BLUR_FADE_DELAY * 3} />
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getBlogPosts } from "@/data/blog";
+import { getBlogPosts, getTags } from "@/data/blog";
 import { type Locale, routing } from "@/i18n/routing";
 import { absoluteUrl, languageAlternates, localizedPath } from "@/lib/seo";
 
@@ -44,6 +44,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         0.6,
         post.availableLocales,
       ),
+    ),
+    ...getTags(posts).flatMap(({ tag }) =>
+      entry(`/blog/tag/${tag}`, latestPost, "weekly", 0.4),
     ),
   ];
 }

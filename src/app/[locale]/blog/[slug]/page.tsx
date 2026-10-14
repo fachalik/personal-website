@@ -19,6 +19,7 @@ import { LOCALE_TAGS, type Locale, routing } from "@/i18n/routing";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
   absoluteUrl,
+  feedAlternate,
   languageAlternates,
   localizedPath,
   ogImageUrl,
@@ -68,6 +69,7 @@ export async function generateMetadata({
     alternates: {
       canonical,
       languages: languageAlternates(path, post.availableLocales),
+      types: feedAlternate(locale),
     },
     authors: [{ name: DATA.name, url: SITE_URL }],
     openGraph: {
@@ -110,6 +112,7 @@ function structuredData(
         datePublished: post.metadata.publishedAt,
         dateModified: post.metadata.publishedAt,
         description: post.metadata.summary,
+        keywords: post.metadata.tags,
         image,
         url,
         inLanguage: LOCALE_TAGS[post.contentLocale].lang,
@@ -247,6 +250,21 @@ export default async function BlogPost({ params }: { params: Params }) {
             <p className="text-pretty text-lg text-muted-foreground leading-relaxed">
               {post.metadata.summary}
             </p>
+          </BlurFade>
+        )}
+        {post.metadata.tags && post.metadata.tags.length > 0 && (
+          <BlurFade delay={BLUR_FADE_DELAY * 3}>
+            <div className="flex flex-wrap gap-2">
+              {post.metadata.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/blog/tag/${tag}`}
+                  className="rounded-full border bg-card/60 px-3 py-1 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
+                >
+                  #{tag}
+                </Link>
+              ))}
+            </div>
           </BlurFade>
         )}
         <BlurFade delay={BLUR_FADE_DELAY * 4}>

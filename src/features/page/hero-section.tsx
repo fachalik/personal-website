@@ -2,6 +2,7 @@ import { DownloadIcon, MailIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import BlurFade from "@/components/magicui/blur-fade";
 import BlurFadeText from "@/components/magicui/blur-fade-text";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { DATA } from "@/data/resume";
@@ -17,9 +18,9 @@ export function HeroSection() {
   const t = useTranslations("Hero");
 
   const stats = [
-    { value: `${DATA.yearsOfExperience}+`, label: t("stats.years") },
-    { value: `${DATA.work.length}`, label: t("stats.companies") },
-    { value: `${builtProjects}`, label: t("stats.projects") },
+    { value: DATA.yearsOfExperience, suffix: "+", label: t("stats.years") },
+    { value: DATA.work.length, label: t("stats.companies") },
+    { value: builtProjects, label: t("stats.projects") },
   ];
 
   return (
@@ -85,9 +86,12 @@ export function HeroSection() {
           <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border">
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col bg-background p-3">
-                <span className="font-bold font-display text-2xl tracking-tight">
-                  {stat.value}
-                </span>
+                <NumberTicker
+                  value={stat.value}
+                  suffix={stat.suffix}
+                  delay={BLUR_FADE_DELAY * 2.5}
+                  className="font-bold font-display text-2xl tracking-tight"
+                />
                 <span className="text-muted-foreground text-xs">
                   {stat.label}
                 </span>

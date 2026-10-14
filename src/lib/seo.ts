@@ -51,3 +51,8 @@ export function languageAlternates(
     "x-default": localizedPath(path, routing.defaultLocale),
   };
 }
+
+/** `alternates.types` entry so feed readers can discover the blog's RSS feed. */
+export function feedAlternate(locale: Locale) {
+  return { "application/rss+xml": localizedPath("/feed.xml", locale) };
+}

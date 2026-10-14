@@ -1,6 +1,6 @@
 {
   "Metadata": {
-    "siteDescription": "{name} adalah Fullstack Developer dengan fokus frontend di {location}, membangun aplikasi web produksi untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
+    "siteDescription": "{name} adalah Fullstack Developer yang fokus di frontend, tinggal di {location}. Membangun aplikasi web untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
     "ogSubtitle": "Frontend & Fullstack Developer · Jakarta Selatan, Indonesia",
     "jobTitle": "Frontend & Fullstack Developer",
     "location": "Jakarta Selatan, Indonesia"
@@ -10,35 +10,46 @@
     "blog": "Blog",
     "downloadCv": "Unduh CV",
     "theme": "Tema",
-    "language": "English",
-    "switchTo": "EN"
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "themeSystem": "Sistem",
+    "language": "Bahasa",
+    "backToTop": "Kembali ke atas"
   },
   "Hero": {
-    "openToWork": "Terbuka untuk posisi frontend & fullstack",
-    "greeting": "Halo, saya {name} 👋",
-    "description": "Fullstack Developer dengan fokus frontend yang membangun aplikasi web produksi untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
+    "openToWork": "Sedang terbuka untuk posisi frontend & fullstack",
+    "greeting": "Hai, saya {name} 👋",
+    "description": "Fullstack Developer yang fokus di frontend. Saya membangun aplikasi web untuk produk fintech dan AI dengan React, Next.js, TypeScript, dan Node.js.",
     "downloadCv": "Unduh CV",
     "email": "Kirim email",
     "stats": {
       "years": "Tahun pengalaman",
       "companies": "Perusahaan",
-      "projects": "Proyek dibangun"
+      "projects": "Proyek dikerjakan"
     }
   },
   "About": {
     "title": "Tentang",
-    "summary": "Saya {name}, fullstack developer dengan fokus frontend yang berbasis di Jakarta Selatan dengan pengalaman profesional **{years}+ tahun**. Saat ini saya **satu-satunya frontend engineer untuk tiga produk AI** — Knowledge Chat, Intelligent Document Processing, dan Credit Scoring — dan memegang arsitektur UI, design system bersama, serta setup observability. Secara paruh waktu, saya membangun frontend **Medira**, platform rekrutmen berbasis AI. Sebelumnya saya tiga tahun di **Infomedia Nusantara** (grup Telkom Indonesia) membangun aplikasi web enterprise.\n\nKeahlian utama saya **React, Next.js, dan TypeScript**, dan saya juga bekerja di sisi backend dengan **Node.js, NestJS, PostgreSQL, Qdrant, dan Docker** saat fitur membutuhkannya. Saya juga mempublikasikan **makalah IEEE** tentang klasifikasi citra dengan CNN, sehingga terbiasa bekerja bersama tim ML dan data."
+    "summary": "Saya {name}, fullstack developer yang fokus di frontend dan tinggal di Jakarta Selatan, dengan **{years}+ tahun** pengalaman profesional. Sekarang saya **satu-satunya frontend engineer di tiga produk AI**: Knowledge Chat, Intelligent Document Processing, dan Credit Scoring. Arsitektur UI, design system yang dipakai bersama, dan setup observability-nya saya yang pegang. Di luar itu, saya mengerjakan frontend **Medira**, platform rekrutmen berbasis AI, secara part-time. Sebelumnya, saya tiga tahun di **Infomedia Nusantara** (Telkom Indonesia Group) membangun aplikasi web enterprise.\n\nSehari-hari saya kerja dengan **React, Next.js, dan TypeScript**, tapi saya juga turun ke backend dengan **Node.js, NestJS, PostgreSQL, dan Docker** kalau fiturnya butuh. Saya juga pernah menerbitkan **paper di IEEE** tentang klasifikasi citra dengan CNN, jadi saya terbiasa kerja bareng tim ML dan data."
   },
   "Work": {
     "title": "Pengalaman Kerja",
     "present": "Sekarang",
-    "confidential": "Perusahaan dirahasiakan"
+    "confidential": "Nama perusahaan dirahasiakan"
   },
   "Education": {
     "title": "Pendidikan"
   },
   "Skills": {
-    "title": "Keahlian"
+    "title": "Keahlian",
+    "groups": {
+      "frontend": "Frontend",
+      "ui": "UI & styling",
+      "state": "Data, form & validasi",
+      "backend": "Backend",
+      "data": "Database & data",
+      "devops": "DevOps & tooling"
+    }
   },
   "Github": {
     "title": "Aktivitas GitHub",
@@ -49,33 +60,37 @@
     "less": "Sedikit",
     "more": "Banyak",
     "days": "{count} hari",
-    "summary": "{total} kontribusi GitHub antara {start} dan {end}, digabung dari {accounts} akun.",
+    "summary": "{total} kontribusi GitHub dari {start} sampai {end}, gabungan dari {accounts} akun.",
     "dayTooltip": "{count, plural, =0 {Tidak ada kontribusi} other {# kontribusi}} pada {date}"
   },
   "Projects": {
-    "badge": "Proyek Saya",
-    "title": "Lihat karya terbaru saya",
-    "description": "Saya sudah mengerjakan berbagai proyek, dari website sederhana hingga aplikasi web yang kompleks. Berikut beberapa favorit saya."
+    "badge": "Proyek",
+    "title": "Proyek terbaru saya",
+    "description": "Mulai dari website sederhana sampai aplikasi web yang kompleks. Ini beberapa yang paling saya suka."
   },
   "Contact": {
-    "badge": "Kontak",
-    "title": "Sedang mencari kandidat? Mari ngobrol.",
-    "description": "Saya terbuka untuk posisi frontend dan fullstack — full-time, remote, atau di Jakarta. Email saya di {email} atau kirim pesan <link>di LinkedIn</link>.",
+    "badge": "Terbuka untuk peluang baru",
+    "title": "Sedang cari developer? Yuk, ngobrol.",
+    "description": "Saya terbuka untuk posisi frontend maupun fullstack, full-time, bisa remote atau di Jakarta.",
     "cta": "Kirim email",
-    "ctaSecondary": "Pesan via LinkedIn"
+    "ctaSecondary": "Hubungi di LinkedIn",
+    "copyEmail": "Salin alamat email",
+    "emailCopied": "Disalin ke clipboard",
+    "copy": "Salin",
+    "copied": "Disalin"
   },
   "Credits": {
-    "text": "Dibuat dengan <magic>Magic UI</magic>. Terima kasih untuk <dillion>dillionverma</dillion>!"
+    "text": "Dibuat dengan <magic>Magic UI</magic>. Shout out buat <dillion>dillionverma</dillion>!"
   },
   "Blog": {
     "metaTitle": "Blog",
-    "metaDescription": "Catatan saya tentang pengembangan software, kehidupan, dan lainnya.",
+    "metaDescription": "Catatan saya soal software development, kehidupan, dan hal-hal lainnya.",
     "badge": "Blog",
-    "title": "Catatan & tulisan",
-    "postCount": "{count} tulisan sejauh ini.",
+    "title": "Tulisan & catatan",
+    "postCount": "Sejauh ini ada {count} tulisan.",
     "latest": "Terbaru",
     "minRead": "{minutes} menit baca",
-    "englishOnly": "Hanya bahasa Inggris",
+    "englishOnly": "Hanya dalam bahasa Inggris",
     "backToBlog": "Semua tulisan",
     "onThisPage": "Di halaman ini",
     "backToTop": "Kembali ke atas",
@@ -83,41 +98,46 @@
     "next": "Berikutnya",
     "share": "Bagikan tulisan ini",
     "copyLink": "Salin tautan",
-    "copied": "Tersalin!",
+    "copied": "Disalin!",
     "copyCode": "Salin kode",
     "notTranslated": "Tulisan ini belum tersedia dalam bahasa Inggris.",
-    "readIn": "Juga tersedia dalam <link>English</link>.",
-    "fallbackNotice": "Tulisan ini baru tersedia dalam bahasa Inggris."
+    "readIn": "Tersedia juga dalam <link>bahasa Inggris</link>.",
+    "fallbackNotice": "Tulisan ini baru ada dalam bahasa Inggris.",
+    "rss": "Feed RSS",
+    "tags": "Tag",
+    "allTags": "Semua",
+    "tagTitle": "Tulisan dengan tag #{tag}",
+    "tagDescription": "Semua tulisan saya tentang {tag}."
   },
   "Resume": {
     "work": {
       "current": {
         "title": "Frontend Developer",
-        "description": "Satu-satunya frontend engineer untuk tiga produk AI — Knowledge Chat, IDP (Intelligent Document Processing), dan Credit Scoring — dan memegang arsitektur UI dari awal hingga akhir.\nMembangun dan memelihara design system bersama serta library komponen UI reusable (shadcn/ui, Tailwind CSS) yang dipakai di ketiga produk.\nMengembangkan UI aplikasi dengan React, Next.js (App Router), TypeScript, dan TanStack Query, berkoordinasi erat dengan tim backend, produk, dan QA untuk merilis fitur yang maintainable dan teruji.\nMenyiapkan observability aplikasi (OpenTelemetry SDK, OpenObserve, structured logging dengan Pino) yang mencakup distributed tracing, RUM, dan metrik produk kustom; mempresentasikan hasilnya ke seluruh tim engineering.\nMengintegrasikan vector database Qdrant untuk fitur knowledge base/RAG, termasuk ingestion dokumen, pencarian terfilter, dan alur pembersihan data."
+        "description": "Satu-satunya frontend engineer di tiga produk AI: Knowledge Chat, IDP (Intelligent Document Processing), dan Credit Scoring. Bertanggung jawab penuh atas arsitektur UI-nya.\nMembangun dan merawat design system serta library komponen UI (shadcn/ui, Tailwind CSS) yang dipakai bersama di ketiga produk.\nMengembangkan UI aplikasi dengan React, Next.js (App Router), TypeScript, dan TanStack Query, berkoordinasi erat dengan tim backend, produk, dan QA supaya fitur yang dirilis mudah di-maintain dan teruji dengan baik.\nMenyiapkan observability aplikasi (OpenTelemetry SDK, OpenObserve, structured logging dengan Pino) yang mencakup distributed tracing, RUM, dan metrik produk custom, lalu mempresentasikan hasilnya ke seluruh tim engineering.\nMengintegrasikan vector database Qdrant untuk fitur knowledge base/RAG, mulai dari ingestion dokumen, pencarian dengan filter, sampai proses cleanup data."
       },
       "medira": {
-        "title": "Frontend Developer (Paruh Waktu)",
-        "description": "Membangun frontend Medira, platform rekrutmen kerja & magang yang menghubungkan kandidat dengan perusahaan terpercaya, menggunakan React Router v7 dalam framework mode.\nBerkontribusi pada Medira SaaS, platform rekrutmen berbasis AI yang memungkinkan organisasi membuat alur asesmen video otomatis yang dapat dikustomisasi dengan AI kelas enterprise.\nMengimplementasikan routing inti, data loading, serta alur autentikasi/login untuk platform (app.medira.id).\nMengerjakan fitur sebagai kontributor paruh waktu independen di samping pekerjaan full-time."
+        "title": "Frontend Developer (Part-time)",
+        "description": "Membangun frontend Medira, platform lowongan kerja dan magang yang mempertemukan kandidat dengan perusahaan terpercaya, dengan React Router v7 (framework mode).\nIkut mengembangkan Medira SaaS, platform rekrutmen berbasis AI tempat perusahaan bisa membuat alur asesmen video otomatis yang bisa disesuaikan sendiri, didukung AI kelas enterprise.\nMengimplementasikan routing inti, data loading, dan alur autentikasi/login untuk platform (app.medira.id).\nDikerjakan secara part-time sebagai kontributor independen, di luar pekerjaan full-time."
       },
       "infomedia": {
         "title": "Frontend Web Developer",
-        "description": "Menerjemahkan desain UI/UX menjadi antarmuka web yang responsif dan siap produksi menggunakan React, TypeScript, Tailwind CSS, dan Ant Design.\nMembangun aplikasi interaktif yang scalable dengan React dan TypeScript, mengelola state global dengan Redux dan Zustand.\nMenerapkan praktik Agile/Scrum, berkolaborasi erat dengan backend developer dan desainer UI/UX agar pengiriman tetap sesuai jadwal.\nMengintegrasikan REST API untuk memastikan alur data end-to-end yang andal di seluruh aplikasi."
+        "description": "Mengubah desain UI/UX menjadi antarmuka web yang responsif dan siap production dengan React, TypeScript, Tailwind CSS, dan Ant Design.\nMembangun aplikasi interaktif yang scalable dengan React dan TypeScript, dengan state global dikelola lewat Redux dan Zustand.\nBekerja dengan Agile/Scrum dan berkolaborasi erat dengan backend developer serta desainer UI/UX supaya rilis tetap sesuai jadwal.\nMengintegrasikan REST API supaya alur data di seluruh aplikasi berjalan andal dari ujung ke ujung."
       },
       "puti": {
         "title": "Frontend Web Developer",
-        "description": "Berkolaborasi dengan System Analyst, Technical Writer, dan Database Manager untuk membangun dan memelihara website produksi sesuai cakupan dan jadwal.\nMengembangkan fitur dan memperbaiki bug pada aplikasi web berbasis CodeIgniter 3 (PHP), menggunakan SVN untuk version control."
+        "description": "Berkolaborasi dengan System Analyst, Technical Writer, dan Database Manager untuk membangun dan merawat website production sesuai scope dan timeline.\nMengembangkan fitur dan memperbaiki bug di aplikasi web berbasis CodeIgniter 3 (PHP), dengan SVN untuk version control."
       },
       "upana": {
         "title": "Frontend Web Developer (Freelance)",
-        "description": "Mengimplementasikan desain UI/UX menjadi website React + TypeScript dengan Redux untuk manajemen state global.\nBekerja langsung dengan backend developer dan desainer UI/UX dalam Agile/Scrum, mulai dari integrasi REST API hingga deployment."
+        "description": "Mengubah desain UI/UX menjadi website React + TypeScript, dengan Redux untuk state global.\nBekerja langsung dengan backend developer dan desainer UI/UX dalam tim Agile/Scrum, dari integrasi REST API sampai deployment."
       },
       "amoeba": {
         "title": "Frontend Web Developer (Magang)",
-        "description": "Mengimplementasikan desain UI/UX dan memimpin adopsi Redux untuk manajemen state global, meningkatkan skalabilitas aplikasi.\nBerkolaborasi dengan backend developer, system analyst, dan desainer untuk mengintegrasikan RESTful API dan men-deploy produk."
+        "description": "Mengimplementasikan desain UI/UX dan memimpin penerapan Redux untuk state global, sehingga aplikasi lebih mudah dikembangkan saat skalanya bertambah.\nBerkolaborasi dengan backend developer, system analyst, dan desainer untuk mengintegrasikan RESTful API dan men-deploy produk."
       },
       "vutura": {
         "title": "Frontend Web Developer (Magang)",
-        "description": "Membangun website dan chat widget menggunakan jQuery, JavaScript, Vue.js, Materialize, dan Vuetify.\nBekerja dalam tim Agile/Scrum bersama backend, QA, dan UI/UX untuk mencapai milestone lebih cepat dari jadwal."
+        "description": "Membangun website dan chat widget dengan jQuery, JavaScript, Vue.js, Materialize, dan Vuetify.\nBekerja dalam tim Agile/Scrum bersama backend, QA, dan UI/UX, dan berhasil menyelesaikan milestone lebih cepat dari jadwal."
       }
     },
     "education": {
@@ -127,33 +147,45 @@
     },
     "projects": {
       "gitSwitcher": {
-        "description": "Aplikasi menu bar macOS untuk mengelola beberapa identitas Git di satu mesin — kerja, pribadi, klien. Sepenuhnya lokal: tanpa akun, tanpa koneksi jaringan, tanpa telemetri."
+        "description": "Aplikasi menu bar macOS untuk mengatur beberapa identitas Git di satu perangkat, misalnya untuk kerja, pribadi, dan klien. Semuanya lokal: tanpa akun, tanpa koneksi internet, tanpa telemetri."
       },
       "aliran": {
-        "description": "Kebanyakan aplikasi keuangan hanya fokus pada satu hal, seperti pencatatan pengeluaran pribadi atau patungan tagihan. Mengelola langganan bersama seperti Netflix atau Spotify dengan teman masih rumit dan butuh pengingat serta pencatatan manual. Aplikasi kami menggabungkan pencatatan pengeluaran, langganan bersama yang berulang, patungan tagihan, dan pengingat pembayaran dalam satu platform yang sederhana dan mulus."
+        "description": "Kebanyakan aplikasi keuangan cuma fokus ke satu hal, misalnya mencatat pengeluaran pribadi atau patungan tagihan. Padahal, mengatur langganan bareng teman seperti Netflix atau Spotify masih ribet karena harus saling mengingatkan dan mencatat manual. Aplikasi kami menggabungkan pencatatan pengeluaran, langganan bersama yang rutin, patungan tagihan, dan pengingat pembayaran dalam satu platform yang simpel."
       },
       "ppgSerdik": {
-        "description": "Aplikasi web untuk menampilkan Sertifikasi Guru PPG dan menginformasikan bahwa pengguna telah lulus sertifikasi."
+        "description": "Aplikasi web untuk menampilkan sertifikasi guru PPG dan memberi tahu pengguna bahwa mereka sudah lulus sertifikasi."
       },
       "creditScoring": {
-        "description": "Sistem credit scoring berbasis AI yang menilai kelayakan kredit individu maupun bisnis dengan menganalisis berbagai data keuangan dan perilaku menggunakan algoritma machine learning tingkat lanjut."
+        "description": "Sistem credit scoring berbasis AI untuk menilai kelayakan kredit individu maupun bisnis, dengan menganalisis berbagai data keuangan dan perilaku memakai algoritma machine learning."
       },
       "idp": {
-        "description": "Sistem pemrosesan dokumen berbasis AI yang mengotomatiskan ekstraksi, klasifikasi, dan validasi data dari berbagai jenis dokumen menggunakan algoritma machine learning tingkat lanjut."
+        "description": "Sistem pemrosesan dokumen berbasis AI yang mengotomatiskan ekstraksi, klasifikasi, dan validasi data dari berbagai jenis dokumen memakai algoritma machine learning."
       },
       "idpCms": {
-        "description": "Content management system (CMS) untuk membuat, mengedit, dan mengelola alur kerja pemrosesan dokumen berbasis AI, sehingga pengguna dapat menyesuaikan dan mengoptimalkan proses penanganan dokumen mereka."
+        "description": "CMS untuk membuat, mengedit, dan mengelola alur kerja pemrosesan dokumen berbasis AI, sehingga pengguna bisa menyesuaikan dan mengoptimalkan cara dokumen mereka diproses."
       },
       "clovePaper": {
-        "description": "Pendeteksian kualitas cengkih di Indonesia masih mengandalkan tenaga manual, sehingga sering terjadi kesalahan saat menyortir cengkih. Kualitas cengkih bergantung pada cuaca yang baik: cuaca yang tidak menentu memperlama proses pengeringan dan membuat cengkih rusak serta berjamur. Dalam penelitian ini, kami menggunakan arsitektur CNN dengan beberapa kombinasi, yaitu jumlah konvolusi, jumlah dense layer, dan ukuran layer. Arsitektur CNN dilatih menggunakan beberapa variasi ruang warna dan beberapa variasi segmentasi citra untuk mengklasifikasikan kualitas cengkih. Penelitian ini menggunakan tiga ruang warna (RGB, HSV, dan YCbCr) serta dua metode segmentasi (segmentasi Otsu dan segmentasi warna HSV). Hasil terbaik diperoleh dengan ruang warna HSV, dataset asli, dan arsitektur E-5C-64LS-4D, dengan accuracy, precision, recall, dan F1-Score sebesar 96%. Untuk mendapatkan model yang lebih baik, kami menggunakan metode segmentasi citra yang tepat dan menyusun ruang warna yang sesuai untuk meningkatkan performa arsitektur CNN."
+        "description": "Pemeriksaan kualitas cengkih di Indonesia masih dilakukan secara manual, sehingga kesalahan sering terjadi saat penyortiran. Kualitas cengkih juga bergantung pada cuaca: cuaca yang tidak menentu memperlama proses pengeringan dan membuat cengkih rusak serta berjamur. Penelitian ini menggunakan arsitektur CNN dengan beberapa kombinasi jumlah lapisan konvolusi, jumlah dense layer, dan ukuran layer. Arsitektur tersebut dilatih dengan beberapa variasi ruang warna dan segmentasi citra untuk mengklasifikasikan kualitas cengkih. Ruang warna yang digunakan ada tiga (RGB, HSV, dan YCbCr), dengan dua metode segmentasi (segmentasi Otsu dan segmentasi warna HSV). Hasil terbaik diperoleh dengan ruang warna HSV, dataset asli, dan arsitektur E-5C-64LS-4D, dengan accuracy, precision, recall, dan F1-score sebesar 96%. Untuk mendapatkan model yang lebih baik, kami memilih metode segmentasi citra yang tepat dan ruang warna yang sesuai agar performa arsitektur CNN meningkat."
       },
       "orthophysio": {
         "description": "Website company profile untuk Orthophysio Brace, perusahaan penyedia brace ortopedi dan layanan fisioterapi."
       }
     },
     "links": {
-      "source": "Kode Sumber",
-      "paper": "Makalah"
+      "source": "Source Code",
+      "paper": "Paper"
     }
+  },
+  "NotFound": {
+    "title": "Halaman ini tidak ditemukan.",
+    "description": "Tautannya mungkin rusak atau halamannya sudah dipindah. Coba ke beranda atau lihat-lihat blog.",
+    "home": "Ke beranda",
+    "blog": "Baca blog"
+  },
+  "Error": {
+    "title": "Terjadi kesalahan.",
+    "description": "Ada error tak terduga yang membuat halaman ini gagal dimuat. Biasanya coba lagi sudah cukup.",
+    "retry": "Coba lagi",
+    "home": "Ke beranda"
   }
 }

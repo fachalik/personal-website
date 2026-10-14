@@ -12,7 +12,7 @@ export function WorkSection() {
   return (
     <section id="work">
       <div className="flex min-h-0 flex-col gap-y-3">
-        <BlurFade delay={BLUR_FADE_DELAY * 5}>
+        <BlurFade delay={BLUR_FADE_DELAY * 7}>
           <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
         </BlurFade>
         {DATA.work.map((work, id) => {
@@ -21,7 +21,7 @@ export function WorkSection() {
               ? t("confidential")
               : work.company;
           return (
-            <BlurFade key={work.key} delay={BLUR_FADE_DELAY * 6 + id * 0.05}>
+            <BlurFade key={work.key} delay={BLUR_FADE_DELAY * 8 + id * 0.05}>
               <ResumeCard
                 logoUrl={work.logoUrl}
                 altText={company}
