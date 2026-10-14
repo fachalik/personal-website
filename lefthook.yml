@@ -1,0 +1,19 @@
+# https://lefthook.dev/configuration/
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: typecheck
+      run: pnpm exec tsc --noEmit
+    - name: build
+      run: pnpm build
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
