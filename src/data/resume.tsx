@@ -1,5 +1,5 @@
-import { Icons } from "@/components/icons";
 import { HomeIcon, NotebookIcon } from "lucide-react";
+import { Icons } from "@/components/icons";
 
 const professionalStart = 2021;
 const totalYearsExperiance = new Date().getFullYear() - professionalStart;
@@ -12,7 +12,7 @@ export const DATA = {
   locationLink: "https://www.google.com/maps/place/south+jakarta",
   description:
     "Frontend Developer, want to be a Fullstack Developer, and love to learn new technology.",
-  summary: `I'm FA Chalik, a passionate Frontend Developer experienced in ${totalYearsExperiance} years based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way.`,
+  yearsOfExperience: totalYearsExperiance,
   avatarUrl: "/me.jpeg",
   // Every GitHub identity to merge into one contribution graph.
   githubAccounts: ["fachalik", "chalikfa", "fachalikA"],
@@ -30,9 +30,10 @@ export const DATA = {
     "Docker",
     "Jenkins",
   ],
+  // `label` is a key in the "Nav" message namespace.
   navbar: [
-    { href: "/", icon: HomeIcon, label: "Home" },
-    { href: "/blog", icon: NotebookIcon, label: "Blog" },
+    { href: "/", icon: HomeIcon, label: "home" },
+    { href: "/blog", icon: NotebookIcon, label: "blog" },
   ],
   contact: {
     email: "fachalik@gmail.com",
@@ -75,61 +76,52 @@ export const DATA = {
     },
   },
 
+  // Titles, descriptions and degrees live in the "Resume" message namespace,
+  // looked up by `key`. Dates are ISO (YYYY, YYYY-MM or YYYY-MM-DD) so they can
+  // be formatted per locale; a missing `end` means "Present".
   work: [
     {
+      key: "medira",
       company: "Medira Talenta Asia",
       badges: [],
       href: "https://www.medira.id",
-      location: "South Jakarta, Indonesia",
-      title: "Frontend Developer (Part Time)",
-      start: "Jun 2025",
       logoUrl: "",
-      end: "Present",
-      description:
-        "Developed and maintained user-friendly web applications using React and RemixJS, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
+      start: "2025-06",
+      end: undefined,
     },
     {
+      key: "infomedia",
       company: "Infomedia Nusantara",
       href: "https://www.infomedia.co.id",
       badges: [],
-      location: "South Jakarta, Indonesia",
-      title: "Frontend Developer",
       logoUrl: "/infomedia.webp",
-      start: "Oct 2022",
-      end: "Sep 2025",
-      description:
-        "Developed and maintained user-friendly web applications using React and Next.js, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team.",
+      start: "2022-10",
+      end: "2025-09",
     },
     {
+      key: "puti",
       company: "Telkom University PUTI",
       badges: [],
       href: "https://it.telkomuniversity.ac.id",
-      location: "Bandung, Indonesia",
-      title: "Web Developer",
       logoUrl: "/puti.png",
-      start: "Feb 2022",
-      end: "Sep 2022",
-      description:
-        "Collaborated with system analysts, technical writers, and database managers to develop functional and efficient web solutions. Identified and resolved application bugs while implementing new features to enhance user experience. Utilized CodeIgniter 3 (PHP) and SVN version control to manage development workflows. Focused on maintaining high standards of usability and functionality through iterative testing and updates.",
+      start: "2022-02",
+      end: "2022-09",
     },
     {
+      key: "amoeba",
       company: "Digital Amoeba",
       badges: [],
       href: "https://digitalamoeba.id/",
-      location: "Bandung, Indonesia",
-      title: "Frontend Developer Intern",
       logoUrl: "/amoeba.png",
-      start: "Sep 2021",
-      end: "Feb 2022",
-      description:
-        "Translated UI/UX designs into seamless web interfaces using ReactJS with JavaScript. Improved application performance and user experience by refining JavaScript and CSS codebases. Implemented Redux for efficient global state management across applications. Collaborated with system analysts, backend developers, and UI/UX designers in an Agile development environment. Integrated REST APIs for robust data interaction and functionality.",
+      start: "2021-09",
+      end: "2022-02",
     },
   ],
   education: [
     {
+      key: "telkom",
       school: "Telkom University",
       href: "https://telkomuniversity.ac.id",
-      degree: "Bachelor's Degree of Informatics Engineering (S1)",
       logoUrl: "/telu.png",
       start: "2017",
       end: "2021",
@@ -137,12 +129,11 @@ export const DATA = {
   ],
   projects: [
     {
+      key: "gitSwitcher",
       title: "Git Switcher",
       href: "https://github.com/fachalik/git-switch",
-      dates: "Sep 2026",
+      start: "2026-09",
       active: true,
-      description:
-        "A macOS menu bar app for juggling several Git identities on one machine — work, personal, a client. Local-only: no accounts, no network calls, no telemetry.",
       technologies: [
         "Tauri v2",
         "Rust",
@@ -153,7 +144,7 @@ export const DATA = {
       ],
       links: [
         {
-          type: "Source",
+          type: "source",
           href: "https://github.com/fachalik/git-switch",
           icon: <Icons.github className="size-3" />,
         },
@@ -162,24 +153,22 @@ export const DATA = {
       video: "/git-switch-demo.mp4",
     },
     {
+      key: "aliran",
       title: "Aliran App",
       href: "https://aliran.app",
-      dates: "May 2026",
+      start: "2026-05",
       active: true,
-      description:
-        "Most finance apps only focus on one thing, such as personal expense tracking or bill splitting. Managing shared subscriptions like Netflix or Spotify with friends is still complicated and requires manual reminders and tracking. Our app combines expense tracking, recurring shared subscriptions, bill splitting, and payment reminders into one simple and seamless platform.",
       technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
       links: [],
       image: "/aliran.png",
       video: "",
     },
     {
+      key: "ppgSerdik",
       title: "PPG Serdik",
       href: "https://ppg-serdik.solong.tech/",
-      dates: "Januari 2026",
+      start: "2026-01",
       active: true,
-      description:
-        "A web application designed to show the PPG Teacher Certification and inform that the user has passed the certification.",
       technologies: [
         "Next.js",
         "Typescript",
@@ -192,53 +181,53 @@ export const DATA = {
       video: "",
     },
     {
+      key: "creditScoring",
       title: "Credit Scoring",
       href: "",
-      dates: "November 2025 - Present",
+      start: "2025-11",
+      ongoing: true,
       active: true,
-      description:
-        "An AI-powered credit scoring system that evaluates the creditworthiness of individuals and businesses by analyzing various financial and behavioral data points using advanced machine learning algorithms.",
       technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
       links: [],
       image: "/credit-scoring.png",
       video: "",
     },
     {
+      key: "idp",
       title: "Intelligent Document Processing",
       href: "",
-      dates: "October 2025 - Present",
+      start: "2025-10",
+      ongoing: true,
       active: true,
-      description:
-        "An AI-powered document processing system that automates data extraction, classification, and validation from various document types using advanced machine learning algorithms.",
       technologies: ["Next.js", "Typescript", "TailwindCSS", "Shadcn UI"],
       links: [],
       image: "/idp.png",
       video: "",
     },
     {
+      key: "idpCms",
       title: "Intelligent Document Processing CMS",
       href: "",
-      dates: "October 2025 - Present",
+      start: "2025-10",
+      ongoing: true,
       active: true,
-      description:
-        "A content management system (CMS) designed to facilitate the creation, editing, and management of AI-driven document processing workflows, enabling users to customize and optimize their document handling processes.",
       technologies: ["React Router", "Typescript", "TailwindCSS", "Shadcn UI"],
       links: [],
       image: "/idp-cms.png",
       video: "",
     },
     {
+      key: "clovePaper",
+      // Published paper title; kept in English everywhere.
       title:
         "Classification of Dried Clove Flower Quality using Convolutional Neural Network",
       href: "https://ieeexplore.ieee.org/document/9650199",
-      dates: "11 November 2021",
+      start: "2021-11-11",
       active: true,
-      description:
-        "Detecting cloves quality in Indonesia still uses man- ual labor. Therefore, errors often occur in sorting cloves. The quality of cloves depends on good weather. Unpredictable weather will prolong the clove drying process and make the cloves damaged and moldy. In this study, we use the CNN architecture with several combinations, namely the number of convolutions, the number of dense layers, and the size of the layers. The CNN architecture is trained using several variations of the color space and several variations of image segmentation to classify the clove quality. This study used three color spaces (RGB, HSV, and YCbCr) and two segmentation methods (Otsu segmented and HSV color segmentation). The best accuracy is obtained by using the HSV color space, original dataset, and E-5C-64LS-4D architecture that is 96% accuracy, precision, recall, and F1-Score. To get a better model, we use the proper image segmentation method and composing the suitable color space to improve the CNN architectural performance.",
       technologies: ["Python", "Keras", "TensorFlow", "OpenCV"],
       links: [
         {
-          type: "Paper",
+          type: "paper",
           href: "https://ieeexplore.ieee.org/document/9650199",
           icon: <Icons.globe className="size-3" />,
         },
@@ -247,12 +236,11 @@ export const DATA = {
       video: "",
     },
     {
+      key: "orthophysio",
       title: "Orthophysio Brace - Company Profile",
       href: "https://orthophysiobrace.com",
-      dates: "2021",
+      start: "2021",
       active: true,
-      description:
-        "Company Profile website for Orthophysio Brace, a company that provides orthopedic braces and physiotherapy services.",
       technologies: ["React", "React Router", "Chakra UI"],
       links: [],
       image: "/orthophysio.png",

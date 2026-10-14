@@ -1,0 +1,137 @@
+{
+  "Metadata": {
+    "siteDescription": "{name} adalah Frontend Developer di {location} yang membangun aplikasi web cepat dan ramah pengguna dengan React, Next.js, dan TypeScript.",
+    "ogSubtitle": "Frontend Developer di Jakarta Selatan, Indonesia",
+    "jobTitle": "Frontend Developer",
+    "location": "Jakarta Selatan, Indonesia"
+  },
+  "Nav": {
+    "home": "Beranda",
+    "blog": "Blog",
+    "downloadCv": "Unduh CV",
+    "theme": "Tema",
+    "language": "English",
+    "switchTo": "EN"
+  },
+  "Hero": {
+    "greeting": "Halo, saya {name} 👋",
+    "description": "Frontend Developer yang ingin menjadi Fullstack Developer, dan senang mempelajari teknologi baru."
+  },
+  "About": {
+    "title": "Tentang",
+    "summary": "Saya {name}, Frontend Developer yang bersemangat dengan pengalaman {years} tahun, berbasis di Jakarta Selatan, Indonesia. Dengan fondasi yang kuat di teknologi web, saya fokus membangun pengalaman digital yang menarik dan mudah digunakan. Tujuan saya adalah terus mengembangkan kemampuan dan beralih ke peran Fullstack Developer, sambil menyambut tantangan dan teknologi baru."
+  },
+  "Work": {
+    "title": "Pengalaman Kerja",
+    "present": "Sekarang"
+  },
+  "Education": {
+    "title": "Pendidikan"
+  },
+  "Skills": {
+    "title": "Keahlian"
+  },
+  "Github": {
+    "title": "Aktivitas GitHub",
+    "contributions": "Kontribusi",
+    "currentStreak": "Streak saat ini",
+    "longestStreak": "Streak terpanjang",
+    "bestDay": "Hari terbaik",
+    "less": "Sedikit",
+    "more": "Banyak",
+    "days": "{count} hari",
+    "summary": "{total} kontribusi GitHub antara {start} dan {end}, digabung dari {accounts} akun.",
+    "dayTooltip": "{count, plural, =0 {Tidak ada kontribusi} other {# kontribusi}} pada {date}"
+  },
+  "Projects": {
+    "badge": "Proyek Saya",
+    "title": "Lihat karya terbaru saya",
+    "description": "Saya sudah mengerjakan berbagai proyek, dari website sederhana hingga aplikasi web yang kompleks. Berikut beberapa favorit saya."
+  },
+  "Contact": {
+    "badge": "Kontak",
+    "title": "Hubungi Saya",
+    "description": "Mau ngobrol? Kirim saja DM <link>di LinkedIn</link> dan saya akan membalas secepatnya. Penawaran/promosi tidak akan saya tanggapi.",
+    "cta": "Sapa saya di LinkedIn"
+  },
+  "Credits": {
+    "text": "Dibuat dengan <magic>Magic UI</magic>. Terima kasih untuk <dillion>dillionverma</dillion>!"
+  },
+  "Blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "Catatan saya tentang pengembangan software, kehidupan, dan lainnya.",
+    "badge": "Blog",
+    "title": "Catatan & tulisan",
+    "postCount": "{count} tulisan sejauh ini.",
+    "latest": "Terbaru",
+    "minRead": "{minutes} menit baca",
+    "englishOnly": "Hanya bahasa Inggris",
+    "backToBlog": "Semua tulisan",
+    "onThisPage": "Di halaman ini",
+    "backToTop": "Kembali ke atas",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "share": "Bagikan tulisan ini",
+    "copyLink": "Salin tautan",
+    "copied": "Tersalin!",
+    "copyCode": "Salin kode",
+    "notTranslated": "Tulisan ini belum tersedia dalam bahasa Inggris.",
+    "readIn": "Juga tersedia dalam <link>English</link>.",
+    "fallbackNotice": "Tulisan ini baru tersedia dalam bahasa Inggris."
+  },
+  "Resume": {
+    "work": {
+      "medira": {
+        "title": "Frontend Developer (Paruh Waktu)",
+        "description": "Mengembangkan dan memelihara aplikasi web yang ramah pengguna menggunakan React dan RemixJS, dengan performa yang mulus dan responsif di berbagai perangkat. Berkolaborasi dengan tim lintas fungsi untuk merancang dan mengimplementasikan fitur baru yang meningkatkan pengalaman dan keterlibatan pengguna. Menggunakan TypeScript untuk meningkatkan kualitas dan kemudahan pemeliharaan kode, sehingga arsitektur aplikasi menjadi lebih kokoh. Berpartisipasi dalam code review dan berkontribusi pada best practice, menumbuhkan budaya perbaikan berkelanjutan di dalam tim pengembang."
+      },
+      "infomedia": {
+        "title": "Frontend Developer",
+        "description": "Mengembangkan dan memelihara aplikasi web yang ramah pengguna menggunakan React dan Next.js, dengan performa yang mulus dan responsif di berbagai perangkat. Berkolaborasi dengan tim lintas fungsi untuk merancang dan mengimplementasikan fitur baru yang meningkatkan pengalaman dan keterlibatan pengguna. Menggunakan TypeScript untuk meningkatkan kualitas dan kemudahan pemeliharaan kode, sehingga arsitektur aplikasi menjadi lebih kokoh. Berpartisipasi dalam code review dan berkontribusi pada best practice, menumbuhkan budaya perbaikan berkelanjutan di dalam tim pengembang."
+      },
+      "puti": {
+        "title": "Web Developer",
+        "description": "Berkolaborasi dengan system analyst, technical writer, dan database manager untuk membangun solusi web yang fungsional dan efisien. Mengidentifikasi dan memperbaiki bug aplikasi sekaligus mengimplementasikan fitur baru untuk meningkatkan pengalaman pengguna. Menggunakan CodeIgniter 3 (PHP) dan version control SVN untuk mengelola alur kerja pengembangan. Berfokus menjaga standar kegunaan dan fungsionalitas yang tinggi melalui pengujian dan pembaruan secara iteratif."
+      },
+      "amoeba": {
+        "title": "Frontend Developer (Magang)",
+        "description": "Menerjemahkan desain UI/UX menjadi antarmuka web yang mulus menggunakan ReactJS dengan JavaScript. Meningkatkan performa aplikasi dan pengalaman pengguna dengan merapikan kode JavaScript dan CSS. Mengimplementasikan Redux untuk manajemen state global yang efisien di berbagai aplikasi. Berkolaborasi dengan system analyst, backend developer, dan desainer UI/UX dalam lingkungan pengembangan Agile. Mengintegrasikan REST API untuk interaksi data dan fungsionalitas yang andal."
+      }
+    },
+    "education": {
+      "telkom": {
+        "degree": "Sarjana (S1) Teknik Informatika"
+      }
+    },
+    "projects": {
+      "gitSwitcher": {
+        "description": "Aplikasi menu bar macOS untuk mengelola beberapa identitas Git di satu mesin — kerja, pribadi, klien. Sepenuhnya lokal: tanpa akun, tanpa koneksi jaringan, tanpa telemetri."
+      },
+      "aliran": {
+        "description": "Kebanyakan aplikasi keuangan hanya fokus pada satu hal, seperti pencatatan pengeluaran pribadi atau patungan tagihan. Mengelola langganan bersama seperti Netflix atau Spotify dengan teman masih rumit dan butuh pengingat serta pencatatan manual. Aplikasi kami menggabungkan pencatatan pengeluaran, langganan bersama yang berulang, patungan tagihan, dan pengingat pembayaran dalam satu platform yang sederhana dan mulus."
+      },
+      "ppgSerdik": {
+        "description": "Aplikasi web untuk menampilkan Sertifikasi Guru PPG dan menginformasikan bahwa pengguna telah lulus sertifikasi."
+      },
+      "creditScoring": {
+        "description": "Sistem credit scoring berbasis AI yang menilai kelayakan kredit individu maupun bisnis dengan menganalisis berbagai data keuangan dan perilaku menggunakan algoritma machine learning tingkat lanjut."
+      },
+      "idp": {
+        "description": "Sistem pemrosesan dokumen berbasis AI yang mengotomatiskan ekstraksi, klasifikasi, dan validasi data dari berbagai jenis dokumen menggunakan algoritma machine learning tingkat lanjut."
+      },
+      "idpCms": {
+        "description": "Content management system (CMS) untuk membuat, mengedit, dan mengelola alur kerja pemrosesan dokumen berbasis AI, sehingga pengguna dapat menyesuaikan dan mengoptimalkan proses penanganan dokumen mereka."
+      },
+      "clovePaper": {
+        "description": "Pendeteksian kualitas cengkih di Indonesia masih mengandalkan tenaga manual, sehingga sering terjadi kesalahan saat menyortir cengkih. Kualitas cengkih bergantung pada cuaca yang baik: cuaca yang tidak menentu memperlama proses pengeringan dan membuat cengkih rusak serta berjamur. Dalam penelitian ini, kami menggunakan arsitektur CNN dengan beberapa kombinasi, yaitu jumlah konvolusi, jumlah dense layer, dan ukuran layer. Arsitektur CNN dilatih menggunakan beberapa variasi ruang warna dan beberapa variasi segmentasi citra untuk mengklasifikasikan kualitas cengkih. Penelitian ini menggunakan tiga ruang warna (RGB, HSV, dan YCbCr) serta dua metode segmentasi (segmentasi Otsu dan segmentasi warna HSV). Hasil terbaik diperoleh dengan ruang warna HSV, dataset asli, dan arsitektur E-5C-64LS-4D, dengan accuracy, precision, recall, dan F1-Score sebesar 96%. Untuk mendapatkan model yang lebih baik, kami menggunakan metode segmentasi citra yang tepat dan menyusun ruang warna yang sesuai untuk meningkatkan performa arsitektur CNN."
+      },
+      "orthophysio": {
+        "description": "Website company profile untuk Orthophysio Brace, perusahaan penyedia brace ortopedi dan layanan fisioterapi."
+      }
+    },
+    "links": {
+      "source": "Kode Sumber",
+      "paper": "Makalah"
+    }
+  }
+}

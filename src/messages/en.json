@@ -1,0 +1,137 @@
+{
+  "Metadata": {
+    "siteDescription": "{name} is a Frontend Developer in {location}, building fast, user-friendly web apps with React, Next.js and TypeScript.",
+    "ogSubtitle": "Frontend Developer in South Jakarta, Indonesia",
+    "jobTitle": "Frontend Developer",
+    "location": "South Jakarta, Indonesia"
+  },
+  "Nav": {
+    "home": "Home",
+    "blog": "Blog",
+    "downloadCv": "Download CV",
+    "theme": "Theme",
+    "language": "Bahasa Indonesia",
+    "switchTo": "ID"
+  },
+  "Hero": {
+    "greeting": "Hi, I'm {name} 👋",
+    "description": "Frontend Developer, want to be a Fullstack Developer, and love to learn new technology."
+  },
+  "About": {
+    "title": "About",
+    "summary": "I'm {name}, a passionate Frontend Developer with {years} years of experience, based in South Jakarta, Indonesia. With a strong foundation in web technologies, I specialize in creating engaging and user-friendly digital experiences. My goal is to continuously expand my skill set and transition into a Fullstack Developer role, embracing new challenges and technologies along the way."
+  },
+  "Work": {
+    "title": "Work Experience",
+    "present": "Present"
+  },
+  "Education": {
+    "title": "Education"
+  },
+  "Skills": {
+    "title": "Skills"
+  },
+  "Github": {
+    "title": "GitHub Activity",
+    "contributions": "Contributions",
+    "currentStreak": "Current streak",
+    "longestStreak": "Longest streak",
+    "bestDay": "Best day",
+    "less": "Less",
+    "more": "More",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "summary": "{total} GitHub contributions between {start} and {end}, merged across {accounts} accounts.",
+    "dayTooltip": "{count, plural, =0 {No contributions} one {# contribution} other {# contributions}} on {date}"
+  },
+  "Projects": {
+    "badge": "My Projects",
+    "title": "Check out my latest work",
+    "description": "I've worked on a variety of projects, from simple websites to complex web applications. Here are a few of my favorites."
+  },
+  "Contact": {
+    "badge": "Contact",
+    "title": "Get in Touch",
+    "description": "Want to chat? Just shoot me a DM <link>on LinkedIn</link> and I'll respond whenever I can. I will ignore all soliciting.",
+    "cta": "Say hello on LinkedIn"
+  },
+  "Credits": {
+    "text": "Built with <magic>Magic UI</magic>. Shout out to <dillion>dillionverma</dillion>!"
+  },
+  "Blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "My thoughts on software development, life, and more.",
+    "badge": "Blog",
+    "title": "Notes & writing",
+    "postCount": "{count, plural, one {# post} other {# posts}} so far.",
+    "latest": "Latest",
+    "minRead": "{minutes} min read",
+    "englishOnly": "English only",
+    "backToBlog": "All posts",
+    "onThisPage": "On this page",
+    "backToTop": "Back to top",
+    "previous": "Previous",
+    "next": "Next",
+    "share": "Share this post",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "copyCode": "Copy code",
+    "notTranslated": "This post isn't available in English yet.",
+    "readIn": "Also available in <link>Bahasa Indonesia</link>.",
+    "fallbackNotice": "This post is only available in English."
+  },
+  "Resume": {
+    "work": {
+      "medira": {
+        "title": "Frontend Developer (Part Time)",
+        "description": "Developed and maintained user-friendly web applications using React and RemixJS, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team."
+      },
+      "infomedia": {
+        "title": "Frontend Developer",
+        "description": "Developed and maintained user-friendly web applications using React and Next.js, ensuring seamless performance and responsiveness across devices. Collaborated with cross-functional teams to design and implement new features, enhancing user experience and engagement. Utilized TypeScript to improve code quality and maintainability, resulting in a more robust application architecture. Participated in code reviews and contributed to best practices, fostering a culture of continuous improvement within the development team."
+      },
+      "puti": {
+        "title": "Web Developer",
+        "description": "Collaborated with system analysts, technical writers, and database managers to develop functional and efficient web solutions. Identified and resolved application bugs while implementing new features to enhance user experience. Utilized CodeIgniter 3 (PHP) and SVN version control to manage development workflows. Focused on maintaining high standards of usability and functionality through iterative testing and updates."
+      },
+      "amoeba": {
+        "title": "Frontend Developer Intern",
+        "description": "Translated UI/UX designs into seamless web interfaces using ReactJS with JavaScript. Improved application performance and user experience by refining JavaScript and CSS codebases. Implemented Redux for efficient global state management across applications. Collaborated with system analysts, backend developers, and UI/UX designers in an Agile development environment. Integrated REST APIs for robust data interaction and functionality."
+      }
+    },
+    "education": {
+      "telkom": {
+        "degree": "Bachelor's Degree of Informatics Engineering (S1)"
+      }
+    },
+    "projects": {
+      "gitSwitcher": {
+        "description": "A macOS menu bar app for juggling several Git identities on one machine — work, personal, a client. Local-only: no accounts, no network calls, no telemetry."
+      },
+      "aliran": {
+        "description": "Most finance apps only focus on one thing, such as personal expense tracking or bill splitting. Managing shared subscriptions like Netflix or Spotify with friends is still complicated and requires manual reminders and tracking. Our app combines expense tracking, recurring shared subscriptions, bill splitting, and payment reminders into one simple and seamless platform."
+      },
+      "ppgSerdik": {
+        "description": "A web application designed to show the PPG Teacher Certification and inform that the user has passed the certification."
+      },
+      "creditScoring": {
+        "description": "An AI-powered credit scoring system that evaluates the creditworthiness of individuals and businesses by analyzing various financial and behavioral data points using advanced machine learning algorithms."
+      },
+      "idp": {
+        "description": "An AI-powered document processing system that automates data extraction, classification, and validation from various document types using advanced machine learning algorithms."
+      },
+      "idpCms": {
+        "description": "A content management system (CMS) designed to facilitate the creation, editing, and management of AI-driven document processing workflows, enabling users to customize and optimize their document handling processes."
+      },
+      "clovePaper": {
+        "description": "Detecting clove quality in Indonesia still relies on manual labor, so errors often occur when sorting cloves. The quality of cloves depends on good weather: unpredictable weather prolongs the drying process and leaves the cloves damaged and moldy. In this study, we use a CNN architecture with several combinations, namely the number of convolutions, the number of dense layers, and the size of the layers. The CNN architecture is trained using several variations of the color space and several variations of image segmentation to classify clove quality. This study used three color spaces (RGB, HSV, and YCbCr) and two segmentation methods (Otsu segmentation and HSV color segmentation). The best result is obtained using the HSV color space, the original dataset, and the E-5C-64LS-4D architecture, reaching 96% accuracy, precision, recall, and F1-Score. To get a better model, we use the proper image segmentation method and compose a suitable color space to improve the CNN architecture's performance."
+      },
+      "orthophysio": {
+        "description": "Company profile website for Orthophysio Brace, a company that provides orthopedic braces and physiotherapy services."
+      }
+    },
+    "links": {
+      "source": "Source",
+      "paper": "Paper"
+    }
+  }
+}

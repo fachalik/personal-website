@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { GithubActivityGraph } from "@/components/github-activity";
 import BlurFade from "@/components/magicui/blur-fade";
 import { DATA } from "@/data/resume";
@@ -5,6 +6,7 @@ import { BLUR_FADE_DELAY } from "@/lib/constants";
 import { getMergedGithubActivity } from "@/lib/github";
 
 export async function GithubSection() {
+  const t = await getTranslations("Github");
   const activity = await getMergedGithubActivity(DATA.githubAccounts);
 
   // GitHub being unreachable should cost a section, not the page.
@@ -14,7 +16,7 @@ export async function GithubSection() {
     <section id="github">
       <div className="flex min-h-0 flex-col gap-y-3">
         <BlurFade delay={BLUR_FADE_DELAY * 11}>
-          <h2 className="text-2xl font-bold tracking-tight">GitHub Activity</h2>
+          <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
         </BlurFade>
         <BlurFade delay={BLUR_FADE_DELAY * 11.5}>
           <GithubActivityGraph data={activity} />

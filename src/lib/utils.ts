@@ -5,33 +5,41 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string) {
-  const currentDate = new Date().getTime();
-  if (!date.includes("T")) {
-    date = `${date}T00:00:00`;
-  }
-  const targetDate = new Date(date).getTime();
-  const timeDifference = Math.abs(currentDate - targetDate);
-  const daysAgo = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-
-  const fullDate = new Date(date).toLocaleString("en-us", {
-    month: "long",
+export function formatDate(
+  date: string,
+  locale = "en",
+  month: "short" | "long" = "long",
+) {
+  // Date-only strings parse as UTC; pin the zone so the day never shifts.
+  return new Date(`${date.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, {
+    timeZone: "UTC",
+    month,
     day: "numeric",
     year: "numeric",
   });
+}
 
-  if (daysAgo < 1) {
-    return "Today";
-  } else if (daysAgo < 7) {
-    return `${fullDate} (${daysAgo}d ago)`;
-  } else if (daysAgo < 30) {
-    const weeksAgo = Math.floor(daysAgo / 7);
-    return `${fullDate} (${weeksAgo}w ago)`;
-  } else if (daysAgo < 365) {
-    const monthsAgo = Math.floor(daysAgo / 30);
-    return `${fullDate} (${monthsAgo}mo ago)`;
-  } else {
-    const yearsAgo = Math.floor(daysAgo / 365);
-    return `${fullDate} (${yearsAgo}y ago)`;
-  }
+/** Formats "2021", "2025-06" or "2021-11-11" at the precision it was written in. */
+export function formatPartialDate(date: string, locale = "en") {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(
+    Date.UTC(year, (month || 1) - 1, day || 1),
+  ).toLocaleDateString(locale, {
+    timeZone: "UTC",
+    year: "numeric",
+    month: month ? (day ? "long" : "short") : undefined,
+    day: day ? "numeric" : undefined,
+  });
+}
+
+/** "Jun 2025 - Present"; pass `present` for an open-ended range, omit both for a single date. */
+export function formatPeriod(
+  start: string,
+  end: string | undefined,
+  locale: string,
+  present?: string,
+) {
+  const from = formatPartialDate(start, locale);
+  const to = end ? formatPartialDate(end, locale) : present;
+  return to ? `${from} - ${to}` : from;
 }

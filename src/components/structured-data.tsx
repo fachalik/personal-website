@@ -1,13 +1,15 @@
+import { useTranslations } from "next-intl";
 import { DATA } from "@/data/resume";
 import { absoluteUrl, SITE_URL, SOCIAL_PROFILES } from "@/lib/seo";
 
-const currentRoles = DATA.work.filter((job) => job.end === "Present");
+const currentRoles = DATA.work.filter((job) => !job.end);
 
 /**
  * schema.org graph for the home page: who the site is about, and what the site
  * itself is. Helps search engines build a knowledge panel and pick a site name.
  */
 export function PersonStructuredData() {
+  const t = useTranslations();
   const graph = {
     "@context": "https://schema.org",
     "@graph": [
@@ -17,8 +19,11 @@ export function PersonStructuredData() {
         name: DATA.name,
         url: SITE_URL,
         image: absoluteUrl(DATA.avatarUrl),
-        jobTitle: "Frontend Developer",
-        description: DATA.summary,
+        jobTitle: t("Metadata.jobTitle"),
+        description: t("About.summary", {
+          name: DATA.name,
+          years: DATA.yearsOfExperience,
+        }),
         email: `mailto:${DATA.contact.email}`,
         address: {
           "@type": "PostalAddress",
@@ -43,7 +48,7 @@ export function PersonStructuredData() {
         "@id": `${SITE_URL}/#website`,
         url: SITE_URL,
         name: DATA.name,
-        description: DATA.description,
+        description: t("Hero.description"),
         inLanguage: "en-US",
         publisher: { "@id": `${SITE_URL}/#person` },
       },

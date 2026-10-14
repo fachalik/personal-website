@@ -1,0 +1,553 @@
+---
+title: "Go untuk Frontend Developer: Apa yang Sama dan Apa yang Berbeda dari JS/TS"
+publishedAt: "2026-10-14"
+summary: "Saya baru mulai belajar Go. Ini perbandingan JavaScript, TypeScript, dan Go yang ramah pemula, supaya sesama frontend developer bisa memetakan apa yang sudah mereka tahu dan cepat menguasainya."
+---
+
+Saya sudah bertahun-tahun menulis JavaScript dan TypeScript, kebanyakan di sisi frontend. Belakangan saya mulai belajar **Go** (sering disebut Golang), dan ternyata jauh lebih tidak menakutkan dari yang saya kira.
+
+Banyak hal yang kamu tahu dari JS/TS langsung berlaku di Go. Beberapa hal berbeda, dan ada juga yang bakal bikin kaget. Tulisan ini menjejerkan ketiga bahasa tersebut, supaya kamu bisa melihat mana yang sama dan mana yang baru.
+
+Kalau kamu bisa menulis TypeScript, kamu bisa belajar Go. Ayo mulai 🚀
+
+## Kenapa frontend dev perlu belajar Go?
+
+- **Backend dan API yang cepat.** Go populer untuk web server, microservice, dan CLI.
+- **Bahasanya sederhana.** Go punya sangat sedikit keyword. Biasanya hanya ada satu cara yang jelas untuk melakukan sesuatu.
+- **Tooling yang sudah kamu pakai.** esbuild (bundler yang dipakai Vite di balik layar) ditulis dengan Go. Begitu juga Docker, Kubernetes, dan Hugo.
+- **Satu binary.** `go build` menghasilkan satu file yang bisa dijalankan di mana saja. Tanpa `node_modules` 😅
+
+## Gambaran besarnya
+
+| Topik | JavaScript | TypeScript | Go |
+| --- | --- | --- | --- |
+| Tipe | Dinamis | Statis (dicek saat build, hilang saat runtime) | Statis (dicek saat compile, tetap ada saat runtime) |
+| Cara berjalan | Interpreted / JIT (Node, browser) | Dikompilasi ke JS, lalu sama seperti JS | Dikompilasi ke native binary |
+| Package manager | npm / pnpm / yarn | npm / pnpm / yarn | Bawaan: `go mod` |
+| Formatter | Prettier / Biome | Prettier / Biome | Bawaan: `go fmt` |
+| Titik koma | Opsional | Opsional | Tidak perlu |
+| Class | Ada | Ada | Tidak ada (pakai struct + method) |
+| Penanganan error | `try / catch` | `try / catch` | Error dikembalikan sebagai nilai |
+| Async | `Promise`, `async/await` | `Promise`, `async/await` | Goroutine dan channel |
+| `null` / `undefined` | Keduanya | Keduanya | Hanya `nil` |
+
+Jangan khawatir kalau beberapa baris terlihat aneh. Kita akan bahas satu per satu.
+
+## 1. Hello World
+
+**JavaScript / TypeScript**
+
+```ts
+console.log("Hello, World!");
+```
+
+**Go**
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, World!")
+}
+```
+
+**Apa yang berbeda**
+
+- Setiap file Go diawali dengan `package`. Program yang bisa dijalankan selalu memakai `package main`.
+- Program dimulai dari `func main()`. Anggap saja seperti entry file di konfigurasi bundler kamu.
+- `fmt` adalah package bawaan untuk mencetak output. `fmt.Println` ≈ `console.log`.
+
+Jalankan dengan:
+
+```bash
+go run main.go
+```
+
+## 2. Variabel
+
+**JavaScript**
+
+```js
+let name = "Fachalik";
+const age = 25;
+```
+
+**TypeScript**
+
+```ts
+let name: string = "Fachalik";
+const age: number = 25;
+```
+
+**Go**
+
+```go
+var name string = "Fachalik" // bentuk lengkap
+var city = "Jakarta"          // tipe ditebak otomatis
+age := 25                      // bentuk singkat, hanya di dalam fungsi
+
+const pi = 3.14
+```
+
+**Apa yang sama**
+
+- Type inference bekerja seperti di TypeScript. Go menebak tipe dari nilainya.
+- `const` berarti nilainya tidak bisa diubah.
+
+**Apa yang berbeda**
+
+- Tipe ditulis **setelah** nama, seperti TS, tapi **tanpa titik dua**: `name string`, bukan `name: string`.
+- `:=` adalah shortcut yang paling sering kamu pakai. Artinya "deklarasikan dan isi".
+- `const` di Go hanya untuk nilai sederhana (angka, string, boolean). Kamu tidak bisa menulis `const user = { ... }`.
+- **Variabel yang tidak dipakai adalah compile error.** Go tidak mau build kalau kamu mendeklarasikan sesuatu tapi tidak pernah memakainya. Awalnya menyebalkan, tapi ini membuat kode tetap bersih.
+
+### Zero value sebagai pengganti `undefined`
+
+Di JS, variabel yang belum diisi bernilai `undefined`. Di Go, setiap tipe punya **zero value**:
+
+```go
+var count int     // 0
+var title string  // "" (string kosong)
+var done bool     // false
+```
+
+Artinya kamu tidak akan pernah dapat "cannot read property of undefined" dari angka atau string biasa. 🎉
+
+## 3. Tipe data
+
+| TypeScript | Go |
+| --- | --- |
+| `string` | `string` |
+| `number` | `int`, `int64`, `float64`, ... |
+| `boolean` | `bool` |
+| `string[]` | `[]string` (sebuah slice) |
+| `Record<string, number>` | `map[string]int` |
+| `interface User { ... }` / `type User = { ... }` | `type User struct { ... }` |
+| `any` / `unknown` | `any` (alias dari `interface{}`) |
+
+Perubahan terbesar: **Go punya tipe terpisah untuk bilangan bulat dan desimal.** `int` untuk bilangan bulat, `float64` untuk desimal. Kamu tidak bisa menjumlahkan keduanya tanpa konversi:
+
+```go
+a := 10      // int
+b := 2.5     // float64
+sum := float64(a) + b // harus dikonversi secara eksplisit
+```
+
+TypeScript akan membiarkan kamu menulis `a + b` begitu saja. Go memaksamu menyatakan maksudmu dengan jelas.
+
+## 4. Fungsi
+
+**JavaScript**
+
+```js
+function add(a, b) {
+  return a + b;
+}
+
+const multiply = (a, b) => a * b;
+```
+
+**TypeScript**
+
+```ts
+function add(a: number, b: number): number {
+  return a + b;
+}
+```
+
+**Go**
+
+```go
+func add(a int, b int) int {
+	return a + b
+}
+
+// tipe yang sama bisa dikelompokkan
+func multiply(a, b int) int {
+	return a * b
+}
+```
+
+**Apa yang sama:** parameter bertipe, tipe return, dan `return`. Bacanya hampir seperti TypeScript.
+
+**Apa yang berbeda**
+
+- Keyword-nya `func`, dan tipe return tidak pakai titik dua.
+- **Tidak ada arrow function**. Tapi kamu tetap bisa menyimpan fungsi di variabel dan mengopernya ke mana-mana:
+
+```go
+greet := func(name string) string {
+	return "Hi, " + name
+}
+fmt.Println(greet("Gopher"))
+```
+
+### Beberapa nilai return
+
+Ini hal baru dan kamu pasti suka. Fungsi Go bisa mengembalikan lebih dari satu nilai:
+
+```go
+func divide(a, b float64) (float64, error) {
+	if b == 0 {
+		return 0, errors.New("cannot divide by zero")
+	}
+	return a / b, nil
+}
+
+result, err := divide(10, 2)
+```
+
+Rasanya seperti array destructuring di JS (`const [result, err] = divide(10, 2)`), tapi sudah jadi bagian dari bahasanya.
+
+## 5. Object → Struct
+
+Go **tidak punya class**. Sebagai gantinya kamu memakai `struct` (bentuk datanya) lalu menempelkan method ke situ.
+
+**TypeScript**
+
+```ts
+class User {
+  constructor(
+    public name: string,
+    public age: number,
+  ) {}
+
+  greet() {
+    return `Hi, I'm ${this.name}`;
+  }
+}
+
+const user = new User("Fachalik", 25);
+user.greet();
+```
+
+**Go**
+
+```go
+type User struct {
+	Name string
+	Age  int
+}
+
+func (u User) Greet() string {
+	return "Hi, I'm " + u.Name
+}
+
+user := User{Name: "Fachalik", Age: 25}
+user.Greet()
+```
+
+**Apa yang berbeda**
+
+- `(u User)` sebelum nama method disebut **receiver**. Mirip `this`, tapi kamu yang memberi namanya.
+- Tidak ada `new`, tidak ada constructor. Cukup tulis `User{...}`. Secara konvensi, orang membuat fungsi seperti `NewUser(...)` kalau butuh logika inisialisasi.
+- **Huruf kapital = public, huruf kecil = private.** `Name` bisa dipakai dari package lain; `name` tidak bisa. Tidak ada keyword `export`, tidak ada keyword `private`.
+
+### Interface (bagian yang familiar)
+
+Kabar baiknya: interface di Go terasa mirip structural typing di TypeScript. Kamu tidak perlu menulis `implements`. Kalau sebuah tipe punya method yang sesuai, tipe itu otomatis cocok dengan interface-nya.
+
+```go
+type Greeter interface {
+	Greet() string
+}
+
+func sayHello(g Greeter) {
+	fmt.Println(g.Greet())
+}
+
+sayHello(user) // jalan, karena User punya Greet()
+```
+
+Ini ide "kalau kelihatan seperti bebek" yang sama dengan yang sudah kamu kenal dari TS.
+
+## 6. Array, slice, dan map
+
+**JavaScript / TypeScript**
+
+```ts
+const fruits: string[] = ["apple", "banana"];
+fruits.push("mango");
+
+const scores: Record<string, number> = { alice: 90 };
+scores.bob = 80;
+```
+
+**Go**
+
+```go
+fruits := []string{"apple", "banana"}
+fruits = append(fruits, "mango") // catatan: hasilnya di-assign ulang
+
+scores := map[string]int{"alice": 90}
+scores["bob"] = 80
+
+value, ok := scores["charlie"] // ok bernilai false kalau key-nya tidak ada
+```
+
+- `[]string` adalah **slice**. Pakai seperti array di JS.
+- `append` mengembalikan slice baru, jadi kamu selalu menulis `fruits = append(fruits, ...)`.
+- Pola `value, ok :=` adalah cara mengecek apakah sebuah key ada. Lebih aman daripada mendapat `undefined`.
+
+### Tidak ada `.map()`, `.filter()`, `.reduce()` ... cukup `for`
+
+Ini momen "lho, kok?" terbesar buat saya. Go tidak punya method array bawaan seperti itu. Kamu menulis loop:
+
+**JavaScript**
+
+```js
+const evens = numbers.filter((n) => n % 2 === 0);
+```
+
+**Go**
+
+```go
+var evens []int
+for _, n := range numbers {
+	if n%2 == 0 {
+		evens = append(evens, n)
+	}
+}
+```
+
+Barisnya lebih banyak, tapi sangat mudah dibaca. (Package `slices` di standard library membantu untuk tugas umum seperti `slices.Contains` dan `slices.Sort`.)
+
+## 7. Loop dan kondisi
+
+Go **hanya punya satu keyword loop: `for`**. Semuanya ditangani olehnya.
+
+```go
+// loop klasik, seperti for (let i = 0; i < 5; i++)
+for i := 0; i < 5; i++ {
+	fmt.Println(i)
+}
+
+// seperti while (count < 3)
+count := 0
+for count < 3 {
+	count++
+}
+
+// seperti for...of / forEach
+for index, fruit := range fruits {
+	fmt.Println(index, fruit)
+}
+
+// tidak butuh index? pakai _
+for _, fruit := range fruits {
+	fmt.Println(fruit)
+}
+```
+
+`if` terlihat familiar, hanya saja **tanpa tanda kurung** (tapi kurung kurawal wajib):
+
+```go
+if age >= 18 {
+	fmt.Println("adult")
+} else {
+	fmt.Println("minor")
+}
+```
+
+Perbedaan kecil lainnya:
+
+- Tidak ada `===`. Go hanya punya `==`, dan selalu ketat karena tipenya harus sama.
+- Tidak ada ternary `a ? b : c`. Pakai `if` biasa.
+- `switch` tidak fall through, jadi kamu tidak perlu `break` di setiap case.
+
+## 8. Penanganan error: tanpa try/catch
+
+**JavaScript / TypeScript**
+
+```ts
+try {
+  const data = JSON.parse(text);
+} catch (err) {
+  console.error(err);
+}
+```
+
+**Go**
+
+```go
+var data map[string]any
+err := json.Unmarshal([]byte(text), &data)
+if err != nil {
+	fmt.Println("failed:", err)
+	return
+}
+```
+
+Di Go, **error hanyalah nilai yang dikembalikan oleh fungsi**. Kamu langsung mengeceknya dengan `if err != nil`. Kamu akan menulis baris ini *sangat sering*.
+
+Awalnya terasa berulang-ulang. Lama-lama saya mulai suka: kamu selalu tahu persis baris mana yang bisa gagal, dan tidak ada yang tiba-tiba di-throw "entah dari mana".
+
+## 9. `null` / `undefined` → `nil`, dan pointer
+
+JS punya dua nilai "kosong". Go hanya punya satu: `nil`. Dipakai untuk pointer, slice, map, interface, dan error.
+
+Go juga punya **pointer**. Jangan panik, ini lebih sederhana daripada di C. Idenya:
+
+- Nilai biasa adalah **salinan**.
+- Pointer (`*User`) adalah **referensi** ke aslinya.
+
+```go
+func birthday(u *User) {
+	u.Age++ // mengubah data aslinya
+}
+
+user := User{Name: "Fachalik", Age: 25}
+birthday(&user) // & artinya "berikan pointer ke ini"
+fmt.Println(user.Age) // 26
+```
+
+Di JS, object selalu dioper sebagai referensi, jadi kamu tidak pernah memikirkan ini. Di Go, struct disalin secara default, dan kamu memakai pointer kalau ingin mengubah aslinya. Hanya itu yang perlu kamu tahu untuk memulai.
+
+## 10. Async: Promise vs goroutine
+
+**JavaScript / TypeScript**
+
+```ts
+async function fetchAll() {
+  const [users, posts] = await Promise.all([getUsers(), getPosts()]);
+}
+```
+
+**Go**
+
+```go
+func fetchAll() {
+	var wg sync.WaitGroup
+	var users []User
+	var posts []Post
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		users = getUsers()
+	}()
+	go func() {
+		defer wg.Done()
+		posts = getPosts()
+	}()
+
+	wg.Wait() // seperti await Promise.all
+}
+```
+
+- `go someFunction()` menjalankan sebuah **goroutine**: tugas yang sangat ringan dan berjalan bersamaan dengan sisa kode kamu.
+- `sync.WaitGroup` menunggu semuanya selesai, seperti `Promise.all`.
+- `defer` menjalankan sebuah baris saat fungsi selesai, seperti `finally` versi mini.
+
+Tidak ada keyword `async` / `await`. Di Go, kode biasa cukup **memblokir dan menunggu**, dan itu tidak masalah karena Go menjalankan banyak goroutine sekaligus. Kamu tidak perlu "mewarnai" fungsi sebagai async.
+
+Untuk mengirim data antar goroutine, Go punya **channel**. Bayangkan seperti pipa:
+
+```go
+ch := make(chan string)
+
+go func() {
+	ch <- "done!" // kirim ke dalam pipa
+}()
+
+msg := <-ch // tunggu dan terima dari pipa
+fmt.Println(msg)
+```
+
+## 11. Package dan import
+
+**JavaScript / TypeScript**
+
+```ts
+import { readFile } from "fs/promises";
+import express from "express";
+```
+
+**Go**
+
+```go
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+```
+
+| Dunia npm | Dunia Go |
+| --- | --- |
+| `package.json` | `go.mod` |
+| `pnpm-lock.yaml` | `go.sum` |
+| `pnpm init` | `go mod init my-app` |
+| `pnpm add express` | `go get github.com/gin-gonic/gin` |
+| `node_modules/` | Module cache bersama (tidak di dalam project) |
+| Keyword `export` | Huruf pertama kapital |
+
+Standard library Go itu besar. Kamu bisa membuat HTTP server lengkap dengan `net/http` tanpa package pihak ketiga:
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello from Go!")
+	})
+	http.ListenAndServe(":3000", nil)
+}
+```
+
+Bandingkan dengan menyiapkan Express. Lumayan, kan?
+
+## 12. Contekan tooling
+
+| Yang kamu lakukan di JS/TS | Di Go |
+| --- | --- |
+| `node index.js` / `tsx index.ts` | `go run .` |
+| `tsc` / `vite build` | `go build` |
+| Prettier / Biome | `go fmt ./...` |
+| ESLint | `go vet ./...` |
+| Jest / Vitest | `go test ./...` |
+
+Formatting, testing, dan linting semuanya sudah bawaan. Tidak ada file konfigurasi yang perlu diperdebatkan. 😄
+
+## Ringkasan singkat
+
+**Hal-hal yang akan terasa familiar**
+
+- Static type dan type inference (seperti TypeScript)
+- Interface yang dicocokkan berdasarkan bentuk, tanpa `implements` (seperti TypeScript)
+- Fungsi sebagai nilai, closure
+- `if`, `for`, `switch`, kurung kurawal
+- Import package dan file modul
+
+**Hal-hal yang baru**
+
+- Dikompilasi jadi satu binary, tanpa runtime seperti Node
+- Tidak ada class: pakai struct + method
+- Huruf kapital berarti di-export
+- Error dikembalikan, bukan di-throw
+- Beberapa nilai return
+- Pointer (`*` dan `&`)
+- Goroutine dan channel sebagai pengganti Promise
+- Hanya satu jenis loop: `for`
+- Tidak ada `.map()` / `.filter()`: pakai loop
+- Variabel dan import yang tidak dipakai tidak bisa di-compile
+
+## Tips saya untuk memulai
+
+1. Ikuti [Tour of Go](https://go.dev/tour/) resmi. Jalan di browser dan cukup satu sore.
+2. Bangun ulang sesuatu yang kecil dan sudah kamu kenal, misalnya REST API todo, dengan `net/http`.
+3. Jangan melawan `if err != nil`. Terima saja.
+4. Biarkan `go fmt` merapikan kode kamu dan berhenti memikirkan gaya penulisan.
+5. Baca [Go by Example](https://gobyexample.com/) kalau lupa sintaks sesuatu.
+
+Saya masih di awal perjalanan belajar Go, tapi berangkat dari TypeScript membuatnya jauh lebih mudah dari yang saya bayangkan. Kalau kamu frontend developer yang penasaran dengan backend, Go adalah tempat yang bagus untuk memulai.
+
+Selamat ngoding, sesama gopher! 🐹

@@ -1,4 +1,5 @@
 import { DATA } from "@/data/resume";
+import { LOCALE_TAGS, type Locale, routing } from "@/i18n/routing";
 
 /**
  * Canonical origin with no trailing slash, so joining paths never yields `//`.
@@ -20,12 +21,6 @@ export const SOCIAL_PROFILES = Object.values(DATA.contact.social)
   .filter((social) => social.navbar)
   .map((social) => social.url);
 
-/**
- * Search-snippet length (~155 chars). DATA.summary is far too long to survive
- * Google's truncation, so the page body and the meta tag say different things.
- */
-export const SITE_DESCRIPTION = `${DATA.name} is a Frontend Developer in ${DATA.location}, building fast, user-friendly web apps with React, Next.js and TypeScript.`;
-
 export const SITE_KEYWORDS = [
   DATA.name,
   "Fachalik",
@@ -37,3 +32,22 @@ export const SITE_KEYWORDS = [
   "Software Engineer Jakarta",
   ...DATA.skills,
 ];
+
+/** `/blog` → `/id/blog` for Indonesian; English keeps the unprefixed URL. */
+export function localizedPath(path: string, locale: Locale) {
+  const clean = path === "/" ? "" : path;
+  return locale === routing.defaultLocale ? clean || "/" : `/${locale}${clean}`;
+}
+
+/** hreflang map for `alternates.languages`, including x-default. */
+export function languageAlternates(
+  path: string,
+  locales: readonly Locale[] = routing.locales,
+) {
+  return {
+    ...Object.fromEntries(
+      locales.map((l) => [LOCALE_TAGS[l].lang, localizedPath(path, l)]),
+    ),
+    "x-default": localizedPath(path, routing.defaultLocale),
+  };
+}

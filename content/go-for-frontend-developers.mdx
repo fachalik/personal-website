@@ -1,0 +1,553 @@
+---
+title: "Go for Frontend Developers: What's the Same and What's Different from JS/TS"
+publishedAt: "2026-10-14"
+summary: "I just started learning Go. Here's a beginner-friendly side-by-side of JavaScript, TypeScript, and Go, so other frontend developers can map what they already know and pick it up fast."
+---
+
+I've written JavaScript and TypeScript for years, mostly on the frontend. Recently I started learning **Go** (also called Golang), and it turned out to be much less scary than I expected.
+
+A lot of what you know from JS/TS carries straight over to Go. Some things are different, and a few will surprise you. This post puts the three languages side by side, so you can see what's the same and what's new.
+
+If you can write TypeScript, you can learn Go. Let's go 🚀
+
+## Why would a frontend dev learn Go?
+
+- **Fast backends and APIs.** Go is popular for web servers, microservices, and CLIs.
+- **Simple language.** Go has very few keywords. There's usually one obvious way to do something.
+- **Tooling you already use.** esbuild (the bundler Vite uses under the hood) is written in Go. So are Docker, Kubernetes, and Hugo.
+- **One binary.** `go build` gives you a single file you can run anywhere. No `node_modules` 😅
+
+## The big picture
+
+| Topic | JavaScript | TypeScript | Go |
+| --- | --- | --- | --- |
+| Types | Dynamic | Static (checked at build, erased at runtime) | Static (checked at compile, real at runtime) |
+| How it runs | Interpreted / JIT (Node, browser) | Compiled to JS, then same as JS | Compiled to a native binary |
+| Package manager | npm / pnpm / yarn | npm / pnpm / yarn | Built in: `go mod` |
+| Formatter | Prettier / Biome | Prettier / Biome | Built in: `go fmt` |
+| Semicolons | Optional | Optional | Not needed |
+| Classes | Yes | Yes | No (uses structs + methods) |
+| Error handling | `try / catch` | `try / catch` | Errors are returned as values |
+| Async | `Promise`, `async/await` | `Promise`, `async/await` | Goroutines and channels |
+| `null` / `undefined` | Both | Both | Only `nil` |
+
+Don't worry if some rows look strange. We'll walk through each one.
+
+## 1. Hello World
+
+**JavaScript / TypeScript**
+
+```ts
+console.log("Hello, World!");
+```
+
+**Go**
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, World!")
+}
+```
+
+**What's different**
+
+- Every Go file starts with `package`. A runnable program always uses `package main`.
+- The program starts at `func main()`. Think of it like the entry file in your bundler config.
+- `fmt` is a built-in package for printing. `fmt.Println` ≈ `console.log`.
+
+Run it with:
+
+```bash
+go run main.go
+```
+
+## 2. Variables
+
+**JavaScript**
+
+```js
+let name = "Fachalik";
+const age = 25;
+```
+
+**TypeScript**
+
+```ts
+let name: string = "Fachalik";
+const age: number = 25;
+```
+
+**Go**
+
+```go
+var name string = "Fachalik" // full form
+var city = "Jakarta"          // type is inferred
+age := 25                      // short form, only inside functions
+
+const pi = 3.14
+```
+
+**What's the same**
+
+- Type inference works like TypeScript. Go figures out the type from the value.
+- `const` means the value can't change.
+
+**What's different**
+
+- The type comes **after** the name, like TS, but **without the colon**: `name string`, not `name: string`.
+- `:=` is the shortcut you'll use most. It means "declare and assign".
+- Go's `const` only works for simple values (numbers, strings, booleans). You can't do `const user = { ... }`.
+- **Unused variables are a compile error.** Go won't build if you declare something and never use it. Annoying at first, but it keeps code clean.
+
+### Zero values instead of `undefined`
+
+In JS, a variable you didn't assign is `undefined`. In Go, every type has a **zero value**:
+
+```go
+var count int     // 0
+var title string  // "" (empty string)
+var done bool     // false
+```
+
+This means you never get "cannot read property of undefined" from a plain number or string. 🎉
+
+## 3. Types
+
+| TypeScript | Go |
+| --- | --- |
+| `string` | `string` |
+| `number` | `int`, `int64`, `float64`, ... |
+| `boolean` | `bool` |
+| `string[]` | `[]string` (a slice) |
+| `Record<string, number>` | `map[string]int` |
+| `interface User { ... }` / `type User = { ... }` | `type User struct { ... }` |
+| `any` / `unknown` | `any` (alias of `interface{}`) |
+
+The biggest change: **Go has separate types for whole numbers and decimals.** `int` is for whole numbers, `float64` is for decimals. You can't add them together without converting:
+
+```go
+a := 10      // int
+b := 2.5     // float64
+sum := float64(a) + b // must convert explicitly
+```
+
+TypeScript would just let you do `a + b`. Go makes you say what you mean.
+
+## 4. Functions
+
+**JavaScript**
+
+```js
+function add(a, b) {
+  return a + b;
+}
+
+const multiply = (a, b) => a * b;
+```
+
+**TypeScript**
+
+```ts
+function add(a: number, b: number): number {
+  return a + b;
+}
+```
+
+**Go**
+
+```go
+func add(a int, b int) int {
+	return a + b
+}
+
+// same types can be grouped
+func multiply(a, b int) int {
+	return a * b
+}
+```
+
+**What's the same:** parameters with types, return type, `return`. It reads almost like TypeScript.
+
+**What's different**
+
+- The keyword is `func`, and the return type has no colon.
+- There are **no arrow functions**. But you can still store functions in variables and pass them around:
+
+```go
+greet := func(name string) string {
+	return "Hi, " + name
+}
+fmt.Println(greet("Gopher"))
+```
+
+### Multiple return values
+
+This one is new and you'll love it. A Go function can return more than one value:
+
+```go
+func divide(a, b float64) (float64, error) {
+	if b == 0 {
+		return 0, errors.New("cannot divide by zero")
+	}
+	return a / b, nil
+}
+
+result, err := divide(10, 2)
+```
+
+It feels like array destructuring in JS (`const [result, err] = divide(10, 2)`), but it's built into the language.
+
+## 5. Objects → Structs
+
+Go has **no classes**. Instead you use a `struct` (the shape of the data) and attach methods to it.
+
+**TypeScript**
+
+```ts
+class User {
+  constructor(
+    public name: string,
+    public age: number,
+  ) {}
+
+  greet() {
+    return `Hi, I'm ${this.name}`;
+  }
+}
+
+const user = new User("Fachalik", 25);
+user.greet();
+```
+
+**Go**
+
+```go
+type User struct {
+	Name string
+	Age  int
+}
+
+func (u User) Greet() string {
+	return "Hi, I'm " + u.Name
+}
+
+user := User{Name: "Fachalik", Age: 25}
+user.Greet()
+```
+
+**What's different**
+
+- The `(u User)` before the method name is called a **receiver**. It's like `this`, but you give it a name.
+- No `new`, no constructor. You just write `User{...}`. By convention, people write a function like `NewUser(...)` when they need setup logic.
+- **Capital letter = public, lowercase = private.** `Name` can be used from other packages; `name` can't. No `export` keyword, no `private` keyword.
+
+### Interfaces (the familiar part)
+
+Good news: Go interfaces feel a lot like TypeScript's structural typing. You don't write `implements`. If a type has the right methods, it fits the interface automatically.
+
+```go
+type Greeter interface {
+	Greet() string
+}
+
+func sayHello(g Greeter) {
+	fmt.Println(g.Greet())
+}
+
+sayHello(user) // works, because User has Greet()
+```
+
+That's the same "if it looks like a duck" idea you already know from TS.
+
+## 6. Arrays, slices, and maps
+
+**JavaScript / TypeScript**
+
+```ts
+const fruits: string[] = ["apple", "banana"];
+fruits.push("mango");
+
+const scores: Record<string, number> = { alice: 90 };
+scores.bob = 80;
+```
+
+**Go**
+
+```go
+fruits := []string{"apple", "banana"}
+fruits = append(fruits, "mango") // note: you reassign
+
+scores := map[string]int{"alice": 90}
+scores["bob"] = 80
+
+value, ok := scores["charlie"] // ok is false if the key doesn't exist
+```
+
+- `[]string` is a **slice**. Use it like a JS array.
+- `append` returns a new slice, so you always write `fruits = append(fruits, ...)`.
+- The `value, ok :=` pattern is how you check if a key exists. Safer than getting `undefined`.
+
+### No `.map()`, `.filter()`, `.reduce()` ... just `for`
+
+This was my biggest "wait, what?" moment. Go doesn't have those array methods built in. You write a loop:
+
+**JavaScript**
+
+```js
+const evens = numbers.filter((n) => n % 2 === 0);
+```
+
+**Go**
+
+```go
+var evens []int
+for _, n := range numbers {
+	if n%2 == 0 {
+		evens = append(evens, n)
+	}
+}
+```
+
+It's more lines, but it's very easy to read. (The `slices` package in the standard library helps with common tasks like `slices.Contains` and `slices.Sort`.)
+
+## 7. Loops and conditions
+
+Go has **only one loop keyword: `for`**. It covers everything.
+
+```go
+// classic loop, like for (let i = 0; i < 5; i++)
+for i := 0; i < 5; i++ {
+	fmt.Println(i)
+}
+
+// like while (count < 3)
+count := 0
+for count < 3 {
+	count++
+}
+
+// like for...of / forEach
+for index, fruit := range fruits {
+	fmt.Println(index, fruit)
+}
+
+// don't need the index? use _
+for _, fruit := range fruits {
+	fmt.Println(fruit)
+}
+```
+
+`if` looks familiar, just **no parentheses** (but the braces are required):
+
+```go
+if age >= 18 {
+	fmt.Println("adult")
+} else {
+	fmt.Println("minor")
+}
+```
+
+Other small differences:
+
+- No `===`. Go only has `==`, and it's always strict because types must match.
+- No ternary `a ? b : c`. Use a normal `if`.
+- `switch` doesn't fall through, so you don't need `break` in every case.
+
+## 8. Error handling: no try/catch
+
+**JavaScript / TypeScript**
+
+```ts
+try {
+  const data = JSON.parse(text);
+} catch (err) {
+  console.error(err);
+}
+```
+
+**Go**
+
+```go
+var data map[string]any
+err := json.Unmarshal([]byte(text), &data)
+if err != nil {
+	fmt.Println("failed:", err)
+	return
+}
+```
+
+In Go, **errors are just values that a function returns**. You check them right away with `if err != nil`. You'll write this line *a lot*.
+
+At first it feels repetitive. After a while, I started to like it: you always know exactly which line can fail, and nothing gets thrown "from somewhere".
+
+## 9. `null` / `undefined` → `nil`, and pointers
+
+JS has two "empty" values. Go has one: `nil`. It's used for pointers, slices, maps, interfaces, and errors.
+
+Go also has **pointers**. Don't panic, they're simpler than in C. The idea:
+
+- A normal value is a **copy**.
+- A pointer (`*User`) is a **reference** to the original.
+
+```go
+func birthday(u *User) {
+	u.Age++ // changes the original
+}
+
+user := User{Name: "Fachalik", Age: 25}
+birthday(&user) // & means "give me a pointer to this"
+fmt.Println(user.Age) // 26
+```
+
+In JS, objects are always passed by reference, so you never think about this. In Go, structs are copied by default, and you use a pointer when you want to change the original. That's really all you need to know to start.
+
+## 10. Async: Promises vs goroutines
+
+**JavaScript / TypeScript**
+
+```ts
+async function fetchAll() {
+  const [users, posts] = await Promise.all([getUsers(), getPosts()]);
+}
+```
+
+**Go**
+
+```go
+func fetchAll() {
+	var wg sync.WaitGroup
+	var users []User
+	var posts []Post
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		users = getUsers()
+	}()
+	go func() {
+		defer wg.Done()
+		posts = getPosts()
+	}()
+
+	wg.Wait() // like await Promise.all
+}
+```
+
+- `go someFunction()` starts a **goroutine**: a very lightweight task that runs at the same time as the rest of your code.
+- `sync.WaitGroup` waits for all of them to finish, like `Promise.all`.
+- `defer` runs a line when the function ends, like a mini `finally`.
+
+There's no `async` / `await` keyword. In Go, normal code just **blocks and waits**, and that's fine, because Go runs many goroutines at once. You don't need to "color" functions as async.
+
+For sending data between goroutines, Go has **channels**. Think of them as a pipe:
+
+```go
+ch := make(chan string)
+
+go func() {
+	ch <- "done!" // send into the pipe
+}()
+
+msg := <-ch // wait and receive from the pipe
+fmt.Println(msg)
+```
+
+## 11. Packages and imports
+
+**JavaScript / TypeScript**
+
+```ts
+import { readFile } from "fs/promises";
+import express from "express";
+```
+
+**Go**
+
+```go
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+```
+
+| npm world | Go world |
+| --- | --- |
+| `package.json` | `go.mod` |
+| `pnpm-lock.yaml` | `go.sum` |
+| `pnpm init` | `go mod init my-app` |
+| `pnpm add express` | `go get github.com/gin-gonic/gin` |
+| `node_modules/` | Shared module cache (not in your project) |
+| `export` keyword | Capital first letter |
+
+Go's standard library is big. You can build a full HTTP server with `net/http` and no third-party packages:
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello from Go!")
+	})
+	http.ListenAndServe(":3000", nil)
+}
+```
+
+Compare that to setting up Express. Pretty nice.
+
+## 12. Tooling cheat sheet
+
+| What you do in JS/TS | In Go |
+| --- | --- |
+| `node index.js` / `tsx index.ts` | `go run .` |
+| `tsc` / `vite build` | `go build` |
+| Prettier / Biome | `go fmt ./...` |
+| ESLint | `go vet ./...` |
+| Jest / Vitest | `go test ./...` |
+
+Formatting, testing, and linting are all built in. No config files to argue about. 😄
+
+## Quick summary
+
+**Things that will feel familiar**
+
+- Static types and type inference (like TypeScript)
+- Interfaces that match by shape, no `implements` (like TypeScript)
+- Functions as values, closures
+- `if`, `for`, `switch`, curly braces
+- Package imports and a module file
+
+**Things that are new**
+
+- Compiled to a single binary, no runtime like Node
+- No classes: structs + methods instead
+- Capital letter means exported
+- Errors are returned, not thrown
+- Multiple return values
+- Pointers (`*` and `&`)
+- Goroutines and channels instead of Promises
+- Only one loop: `for`
+- No `.map()` / `.filter()`: use loops
+- Unused variables and imports don't compile
+
+## My tips for getting started
+
+1. Do the official [Tour of Go](https://go.dev/tour/). It runs in the browser and takes an afternoon.
+2. Rebuild something small you already know, like a todo REST API, with `net/http`.
+3. Don't fight `if err != nil`. Embrace it.
+4. Let `go fmt` format your code and stop thinking about style.
+5. Read [Go by Example](https://gobyexample.com/) when you forget the syntax for something.
+
+I'm still early in my Go journey, but coming from TypeScript has made it way easier than I thought. If you're a frontend developer who's curious about the backend, Go is a great place to start.
+
+Happy coding, fellow gopher! 🐹
