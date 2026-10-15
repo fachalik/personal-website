@@ -1,0 +1,820 @@
+---
+title: "Python & FastAPI 101 for Frontend Developers: From JS/TS to Your First API"
+publishedAt: "2026-10-15"
+summary: "A beginner-friendly guide for JavaScript and TypeScript developers learning Python and FastAPI. Syntax side by side with JS/TS, then a full todo API compared with Express and Zod."
+tags: ["python", "fastapi", "typescript", "javascript", "learning"]
+---
+
+After [learning Go](/blog/go-for-frontend-developers), I wanted to try the other backend language I keep running into: **Python**. And in Python land, the framework everyone seems to recommend for APIs right now is **FastAPI**.
+
+Good news for us frontend folks: FastAPI feels surprisingly familiar. If you've used Express for routes and Zod for validation, you already understand most of it. You just need to learn a bit of Python first.
+
+So this post has two parts:
+
+1. **Python for JS/TS developers**: the syntax you need, side by side.
+2. **FastAPI for Express developers**: building a small todo API, compared with what you'd write in Node.
+
+Let's go 🐍
+
+## Why would a frontend dev learn Python and FastAPI?
+
+- **AI and data live in Python.** Most AI, machine learning, and data libraries are Python first. If your app needs any of that, a small Python API is often the easiest bridge.
+- **FastAPI is fast to write.** You describe your data with type hints, and you get validation, error messages, and API docs for free.
+- **Free OpenAPI docs.** Every FastAPI app gets an interactive docs page at `/docs`. You can even generate TypeScript types for your frontend from it.
+- **Python is easy to read.** It was designed to look almost like plain English.
+
+## The big picture
+
+| Topic | JavaScript / TypeScript | Python |
+| --- | --- | --- |
+| Types | Dynamic (JS) / static, erased at runtime (TS) | Dynamic, with optional type hints |
+| How it runs | Node, Bun, or the browser | The Python interpreter |
+| Package manager | npm / pnpm / yarn | pip, or the newer **uv** |
+| Formatter / linter | Prettier, Biome, ESLint | Ruff (does both, and it's very fast) |
+| Code blocks | Curly braces `{ }` | **Indentation** |
+| Semicolons | Optional | Not used |
+| "Nothing" value | `null` and `undefined` | Only `None` |
+| Booleans | `true` / `false` | `True` / `False` |
+| Async | `async/await` everywhere | `async/await` exists, but sync code is normal |
+| Web framework | Express, Hono, Fastify | FastAPI, Flask, Django |
+| Validation | Zod, Valibot | Pydantic (built into FastAPI) |
+
+## Part 1: Python for JS/TS developers
+
+### 1. Setting up a project
+
+In the JS world, you'd run `pnpm init` and `pnpm add express`. In Python, I recommend **[uv](https://docs.astral.sh/uv/)**. It feels just like pnpm: fast, one tool, and a lockfile.
+
+```bash
+# install uv once (macOS / Linux)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+uv init todo-api
+cd todo-api
+uv add "fastapi[standard]"
+```
+
+| npm world | Python world (with uv) |
+| --- | --- |
+| `package.json` | `pyproject.toml` |
+| `pnpm-lock.yaml` | `uv.lock` |
+| `pnpm init` | `uv init` |
+| `pnpm add express` | `uv add fastapi` |
+| `pnpm add -D vitest` | `uv add --dev pytest` |
+| `node_modules/` | `.venv/` (a "virtual environment") |
+| `pnpm exec tsx index.ts` | `uv run main.py` |
+
+**What's a virtual environment?** It's Python's version of `node_modules`: a folder that holds the packages for *this* project only. uv creates `.venv/` for you and uses it automatically when you run `uv run`. Add it to `.gitignore`, same as `node_modules`.
+
+### 2. Variables
+
+**JavaScript**
+
+```js
+let name = "Fachalik";
+const age = 25;
+```
+
+**TypeScript**
+
+```ts
+let name: string = "Fachalik";
+const age: number = 25;
+```
+
+**Python**
+
+```python
+name = "Fachalik"
+age: int = 25  # type hint is optional
+
+MAX_TODOS = 100  # "constant" by convention only
+```
+
+**What's different**
+
+- No `let`, `const`, or `var`. You just write the name and assign it.
+- There's **no real `const`**. Using `UPPER_CASE` names is the convention that says "please don't change this".
+- Type hints look just like TypeScript (`name: str`), but **Python itself doesn't check them** when your code runs. Your editor and tools like Pyright or mypy do. Remember this, because FastAPI is the exception (more on that later).
+- Python uses `snake_case` for variables and functions, not `camelCase`: `user_name`, not `userName`.
+
+### 3. Indentation instead of curly braces
+
+This is the first thing that will feel weird. In Python, **indentation is the syntax**. There are no `{ }` around blocks.
+
+**JavaScript**
+
+```js
+if (age >= 18) {
+  console.log("Adult");
+} else if (age >= 13) {
+  console.log("Teen");
+} else {
+  console.log("Kid");
+}
+```
+
+**Python**
+
+```python
+if age >= 18:
+    print("Adult")
+elif age >= 13:
+    print("Teen")
+else:
+    print("Kid")
+```
+
+- A line that starts a block ends with a colon `:`.
+- Everything indented under it (4 spaces is the standard) is inside the block.
+- `else if` is spelled `elif`.
+- `console.log` ≈ `print`.
+
+Let your editor and Ruff handle the indentation, and you'll stop noticing it after a day.
+
+### 4. Types you already know
+
+| TypeScript | Python |
+| --- | --- |
+| `string` | `str` |
+| `number` | `int` (whole numbers) and `float` (decimals) |
+| `boolean` | `bool` (`True` / `False`) |
+| `null` / `undefined` | `None` |
+| `string[]` | `list[str]` |
+| `Record<string, number>` | `dict[str, int]` |
+| `[string, number]` (tuple) | `tuple[str, int]` |
+| `string \| null` | `str \| None` |
+| `any` | `Any` (from `typing`) |
+
+**Strings**: template literals become **f-strings**. Put an `f` before the quote:
+
+```ts
+const greeting = `Hello, ${name}! You are ${age} years old.`;
+```
+
+```python
+greeting = f"Hello, {name}! You are {age} years old."
+```
+
+**Logic operators** are words, not symbols:
+
+| JS / TS | Python |
+| --- | --- |
+| `&&` | `and` |
+| `\|\|` | `or` |
+| `!` | `not` |
+| `===` | `==` |
+| `!==` | `!=` |
+| `x === null` | `x is None` |
+
+Python's `==` doesn't do weird type coercion like JS's `==`, so there's no need for `===`. 🎉
+
+### 5. Arrays and objects → lists and dicts
+
+**JavaScript**
+
+```js
+const fruits = ["apple", "banana"];
+fruits.push("cherry");
+console.log(fruits.length);
+
+const user = { name: "Fachalik", age: 25 };
+console.log(user.name);
+```
+
+**Python**
+
+```python
+fruits = ["apple", "banana"]
+fruits.append("cherry")
+print(len(fruits))
+
+user = {"name": "Fachalik", "age": 25}
+print(user["name"])
+print(user.get("email"))  # None instead of a KeyError if missing
+```
+
+- `push` → `append`, `.length` → `len(...)`.
+- A `dict` is like a JS object, but keys **must be quoted**, and you read them with `user["name"]`, not `user.name`.
+- `user["email"]` on a missing key **throws an error**. Use `user.get("email")` when the key might not exist. It's like `user?.email`.
+
+### 6. `.map()` and `.filter()` → comprehensions
+
+Python has `map()` and `filter()`, but most people write **list comprehensions** instead. They read like a sentence.
+
+**JavaScript**
+
+```js
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map((n) => n * 2);
+const evens = numbers.filter((n) => n % 2 === 0);
+```
+
+**Python**
+
+```python
+numbers = [1, 2, 3, 4, 5]
+doubled = [n * 2 for n in numbers]
+evens = [n for n in numbers if n % 2 == 0]
+```
+
+Read it as: "give me `n * 2` **for** each `n` **in** `numbers`". You can do the same with dicts:
+
+```python
+prices = {"apple": 1.0, "banana": 0.5}
+discounted = {name: price * 0.9 for name, price in prices.items()}
+```
+
+### 7. Loops
+
+**JavaScript**
+
+```js
+for (const fruit of fruits) {
+  console.log(fruit);
+}
+
+fruits.forEach((fruit, i) => console.log(i, fruit));
+
+for (let i = 0; i < 5; i++) {
+  console.log(i);
+}
+```
+
+**Python**
+
+```python
+for fruit in fruits:
+    print(fruit)
+
+for i, fruit in enumerate(fruits):
+    print(i, fruit)
+
+for i in range(5):  # 0, 1, 2, 3, 4
+    print(i)
+```
+
+Python's `for ... in` works like JS's `for ... of`. Careful: in JS, `for ... in` loops over *keys*, which is a common mix-up.
+
+### 8. Functions
+
+**TypeScript**
+
+```ts
+function greet(name: string, greeting = "Hello"): string {
+  return `${greeting}, ${name}!`;
+}
+
+const add = (a: number, b: number) => a + b;
+
+greet("Fachalik");
+greet("Fachalik", "Hi");
+```
+
+**Python**
+
+```python
+def greet(name: str, greeting: str = "Hello") -> str:
+    return f"{greeting}, {name}!"
+
+add = lambda a, b: a + b  # rarely used, prefer def
+
+greet("Fachalik")
+greet("Fachalik", greeting="Hi")  # keyword argument
+```
+
+- `function` → `def`, and the return type goes after `->`.
+- **Keyword arguments** are a superpower. You can pass any argument by name: `greeting="Hi"`. It's like passing an options object in JS, but built into the language.
+- `lambda` is Python's arrow function, but it can only hold one expression. Most of the time you'll just use `def`.
+
+### 9. Classes
+
+Python has classes, and they look a lot like JS classes:
+
+**TypeScript**
+
+```ts
+class User {
+  constructor(
+    public name: string,
+    public age: number,
+  ) {}
+
+  greet() {
+    return `Hi, I'm ${this.name}`;
+  }
+}
+```
+
+**Python**
+
+```python
+class User:
+    def __init__(self, name: str, age: int):
+        self.name = name
+        self.age = age
+
+    def greet(self) -> str:
+        return f"Hi, I'm {self.name}"
+
+
+user = User("Fachalik", 25)  # no `new` keyword
+```
+
+- `constructor` → `__init__`.
+- `this` → `self`, and you must write `self` as the **first parameter** of every method.
+- No `new` keyword. You call the class like a function.
+
+In FastAPI you won't write many classes like this. You'll mostly write **Pydantic models**, which are classes that describe data. We'll see them in Part 2.
+
+### 10. Error handling
+
+**JavaScript**
+
+```js
+try {
+  const data = JSON.parse(text);
+} catch (err) {
+  console.error(err);
+} finally {
+  console.log("done");
+}
+```
+
+**Python**
+
+```python
+import json
+
+try:
+    data = json.loads(text)
+except json.JSONDecodeError as err:
+    print(err)
+finally:
+    print("done")
+```
+
+Same idea: `try` / `except` / `finally`. `throw` is spelled `raise`. One nice difference: you can catch **specific error types**, so you don't accidentally swallow bugs you didn't expect.
+
+### 11. Imports
+
+```ts
+import { readFile } from "node:fs/promises";
+import express from "express";
+import { formatDate } from "./utils";
+```
+
+```python
+from pathlib import Path
+from fastapi import FastAPI
+from utils import format_date  # utils.py in the same project
+```
+
+There's no `export` keyword. **Everything at the top level of a file can be imported.** Names starting with `_` are "private" by convention.
+
+### Python gotchas for JS developers
+
+A few things that tripped me up:
+
+- **Empty lists and dicts are falsy.** In JS, `[]` and `{}` are truthy. In Python, `if []:` is `False`. Handy, but surprising at first.
+- **Don't use a list or dict as a default argument.** `def add(item, items=[])` shares the *same* list between every call. Use `items: list | None = None` and create the list inside.
+- **Integer division**: `7 / 2` is `3.5`, and `7 // 2` is `3`.
+- **No `++`**. Use `count += 1`.
+
+## Part 2: FastAPI for Express developers
+
+Now the fun part. Let's build a small **todo API** and compare it with Express.
+
+### 12. Hello, API
+
+**Express (TypeScript)**
+
+```ts
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.json({ message: "Hello from Express!" });
+});
+
+app.listen(3000);
+```
+
+**FastAPI (Python)**
+
+```python
+# main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+def home():
+    return {"message": "Hello from FastAPI!"}
+```
+
+Run it:
+
+```bash
+uv run fastapi dev main.py
+```
+
+Open [http://localhost:8000](http://localhost:8000) and you'll see your JSON. `fastapi dev` reloads on save, just like `nodemon` or `tsx watch`.
+
+**What's different**
+
+- `@app.get("/")` is a **decorator**. Think of it as "register this function as the handler for `GET /`".
+- You don't call `res.json()`. You just **return a dict**, and FastAPI turns it into JSON.
+- No `express.json()` needed. JSON bodies are parsed for you.
+
+### 13. Free API docs 🎁
+
+Now open [http://localhost:8000/docs](http://localhost:8000/docs).
+
+You get an interactive Swagger UI page for your API, generated from your code. You can send real requests from the browser. In Express, you'd need extra packages and hand-written specs for this. In FastAPI, it's just there.
+
+The raw OpenAPI spec lives at `/openapi.json`. Keep that in mind, we'll use it later to generate TypeScript types.
+
+### 14. Path and query parameters
+
+**Express**
+
+```ts
+// GET /todos/42
+app.get("/todos/:id", (req, res) => {
+  const id = Number(req.params.id); // it's a string, convert it yourself
+  res.json({ id });
+});
+
+// GET /todos?done=true&limit=5
+app.get("/todos", (req, res) => {
+  const done = req.query.done === "true";
+  const limit = Number(req.query.limit ?? 10);
+  res.json({ done, limit });
+});
+```
+
+**FastAPI**
+
+```python
+@app.get("/todos/{todo_id}")
+def get_todo(todo_id: int):
+    return {"id": todo_id}
+
+
+@app.get("/todos")
+def list_todos(done: bool | None = None, limit: int = 10):
+    return {"done": done, "limit": limit}
+```
+
+This is where FastAPI clicked for me. 🤯
+
+- `{todo_id}` in the path matches the `todo_id` parameter.
+- Any parameter that's **not** in the path becomes a **query parameter**.
+- The **type hints are used at runtime**. `todo_id: int` means FastAPI converts `"42"` to `42` for you. If someone calls `/todos/abc`, they get a clear **422 error** automatically. You wrote zero validation code.
+
+Remember when I said Python doesn't check type hints? FastAPI is the exception. It reads them and uses them to parse and validate requests.
+
+### 15. Request bodies: Zod → Pydantic
+
+**Express + Zod**
+
+```ts
+import { z } from "zod";
+
+const TodoCreate = z.object({
+  title: z.string().min(1).max(100),
+  done: z.boolean().default(false),
+});
+
+app.post("/todos", (req, res) => {
+  const result = TodoCreate.safeParse(req.body);
+  if (!result.success) {
+    return res.status(422).json(result.error);
+  }
+  const todo = result.data;
+  res.status(201).json(todo);
+});
+```
+
+**FastAPI + Pydantic**
+
+```python
+from pydantic import BaseModel, Field
+
+
+class TodoCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    done: bool = False
+
+
+@app.post("/todos", status_code=201)
+def create_todo(todo: TodoCreate):
+    return todo
+```
+
+- A **Pydantic model** is like a Zod schema and a TypeScript type in one.
+- Because `todo` has the type `TodoCreate`, FastAPI knows it comes from the **JSON body**, parses it, and validates it.
+- No `safeParse`, no `if (!result.success)`. If the body is invalid, FastAPI returns a 422 with details about which field is wrong.
+- Inside the function, `todo.title` is a real `str`. Your editor autocompletes it, just like `z.infer<typeof TodoCreate>`.
+
+| Zod | Pydantic |
+| --- | --- |
+| `z.object({ ... })` | `class Model(BaseModel): ...` |
+| `z.string().min(1)` | `str = Field(min_length=1)` |
+| `z.number().int().positive()` | `int = Field(gt=0)` |
+| `z.string().optional()` | `str \| None = None` |
+| `z.boolean().default(false)` | `bool = False` |
+| `z.string().email()` | `EmailStr` |
+| `z.infer<typeof Schema>` | The class itself is the type |
+| `Schema.parse(data)` | `Model.model_validate(data)` |
+| `JSON.stringify(obj)` | `obj.model_dump_json()` |
+
+### 16. Response models: control what you send back
+
+You often want the response to have a different shape than the input. For example, a todo in the response has an `id`, but the client shouldn't send one.
+
+```python
+class Todo(TodoCreate):  # inherits title and done
+    id: int
+
+
+@app.post("/todos", response_model=Todo, status_code=201)
+def create_todo(todo: TodoCreate):
+    return Todo(id=1, **todo.model_dump())
+```
+
+- `class Todo(TodoCreate)` is like `TodoCreate & { id: number }` in TypeScript.
+- `**todo.model_dump()` is Python's spread operator, like `{ id: 1, ...todo }`.
+- `response_model=Todo` makes FastAPI **filter the output** to only the fields in `Todo`. This is great for not leaking things like `password_hash` by accident.
+
+### 17. Errors: `res.status(404)` → `HTTPException`
+
+**Express**
+
+```ts
+app.get("/todos/:id", (req, res) => {
+  const todo = todos.get(Number(req.params.id));
+  if (!todo) {
+    return res.status(404).json({ detail: "Todo not found" });
+  }
+  res.json(todo);
+});
+```
+
+**FastAPI**
+
+```python
+from fastapi import HTTPException
+
+
+@app.get("/todos/{todo_id}", response_model=Todo)
+def get_todo(todo_id: int):
+    todo = todos.get(todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
+```
+
+You **raise** an `HTTPException`, and FastAPI turns it into a JSON response: `{"detail": "Todo not found"}` with status 404. You can raise it from anywhere, even from helper functions deep in your code.
+
+### 18. Middleware → dependencies
+
+In Express, shared logic like "check the auth token" usually goes in middleware that attaches something to `req`. FastAPI has a cleaner idea: **dependencies**.
+
+**Express**
+
+```ts
+function requireUser(req, res, next) {
+  if (req.headers.authorization !== "Bearer secret") {
+    return res.status(401).json({ detail: "Not authenticated" });
+  }
+  req.user = "fachalik";
+  next();
+}
+
+app.get("/me", requireUser, (req, res) => {
+  res.json({ user: req.user });
+});
+```
+
+**FastAPI**
+
+```python
+from typing import Annotated
+
+from fastapi import Depends, Header, HTTPException
+
+
+def get_current_user(authorization: Annotated[str | None, Header()] = None) -> str:
+    if authorization != "Bearer secret":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return "fachalik"
+
+
+@app.get("/me")
+def read_me(user: Annotated[str, Depends(get_current_user)]):
+    return {"user": user}
+```
+
+- `Depends(get_current_user)` means "run this function first and give me its result".
+- The dependency's return value comes in as a **typed parameter**. No more `req.user` with a type of `any`.
+- `Header()` reads the `Authorization` header for you.
+- Dependencies can depend on other dependencies. It's the standard way to share things like database sessions, the current user, or settings.
+
+If you've used React hooks, it's a bit like calling `useAuth()` at the top of a component: the route says what it needs, and the framework provides it.
+
+### 19. `async def` or `def`?
+
+You've probably noticed I wrote normal `def` functions. FastAPI supports both:
+
+```python
+import httpx
+
+
+@app.get("/github/{username}")
+async def github_user(username: str):
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"https://api.github.com/users/{username}")
+    return res.json()
+```
+
+Here's the simple rule:
+
+- Use **`async def`** when you `await` async libraries (like `httpx` for HTTP calls, or async database drivers).
+- Use **plain `def`** when you call normal, blocking libraries. FastAPI runs these in a thread pool, so they won't freeze your server.
+- **Don't** call slow blocking code inside an `async def`. It blocks the event loop, just like a giant `while` loop would block Node.
+
+Unlike JS, sync code is totally normal in Python. You don't have to make everything async.
+
+### 20. CORS: letting your frontend talk to it
+
+You'll hit this the first time your Next.js or Vite app calls the API. 😅
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Same idea as the `cors` package in Express. List only the origins you trust.
+
+### 21. Bonus: TypeScript types from your API
+
+Remember `/openapi.json`? With [openapi-typescript](https://openapi-ts.dev/), you can turn it into TypeScript types for your frontend:
+
+```bash
+npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts
+```
+
+Now your Pydantic models and your frontend types come from the same source. Change a field in Python, regenerate, and TypeScript tells you everywhere that broke. This is my favorite part of the whole setup. 💙
+
+## The full todo API
+
+Here's everything together. It's one file, with an in-memory "database" so you can focus on FastAPI itself.
+
+```python
+# main.py
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="Todo API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class TodoCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    done: bool = False
+
+
+class TodoUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    done: bool | None = None
+
+
+class Todo(TodoCreate):
+    id: int
+
+
+todos: dict[int, Todo] = {}
+next_id = 1
+
+
+def find_todo(todo_id: int) -> Todo:
+    todo = todos.get(todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
+
+
+@app.get("/todos", response_model=list[Todo])
+def list_todos(done: bool | None = None):
+    items = list(todos.values())
+    if done is not None:
+        items = [t for t in items if t.done == done]
+    return items
+
+
+@app.get("/todos/{todo_id}", response_model=Todo)
+def get_todo(todo_id: int):
+    return find_todo(todo_id)
+
+
+@app.post("/todos", response_model=Todo, status_code=201)
+def create_todo(data: TodoCreate):
+    global next_id
+    todo = Todo(id=next_id, **data.model_dump())
+    todos[todo.id] = todo
+    next_id += 1
+    return todo
+
+
+@app.patch("/todos/{todo_id}", response_model=Todo)
+def update_todo(todo_id: int, data: TodoUpdate):
+    todo = find_todo(todo_id)
+    # only the fields the client actually sent, like a partial update
+    updated = todo.model_copy(update=data.model_dump(exclude_unset=True))
+    todos[todo_id] = updated
+    return updated
+
+
+@app.delete("/todos/{todo_id}", status_code=204)
+def delete_todo(todo_id: int):
+    find_todo(todo_id)
+    del todos[todo_id]
+```
+
+Run `uv run fastapi dev main.py`, open `/docs`, and try every endpoint from the browser.
+
+A few things to notice:
+
+- `global next_id` is needed because we change a top-level variable inside a function. In a real app, your database would give you the id.
+- `model_dump(exclude_unset=True)` returns only the fields the client sent. That's how you do a `PATCH` without overwriting fields with `None`.
+- Next steps for a real project: a database (SQLModel, made by FastAPI's author, is a nice start), tests with `pytest`, and splitting routes into files with `APIRouter` (like `express.Router()`).
+
+## Tooling cheat sheet
+
+| What you do in JS/TS | In Python |
+| --- | --- |
+| `pnpm install` | `uv sync` |
+| `pnpm add zod` | `uv add pydantic` |
+| `node index.js` / `tsx index.ts` | `uv run main.py` |
+| `tsx watch` / `nodemon` | `uv run fastapi dev main.py` |
+| `tsc --noEmit` | `uvx pyright` or `uvx mypy .` |
+| Prettier / Biome format | `uvx ruff format` |
+| ESLint / Biome lint | `uvx ruff check` |
+| Vitest / Jest | `uv run pytest` |
+| `express.Router()` | `APIRouter()` |
+| `.env` + `dotenv` | `pydantic-settings` |
+
+`uvx` is like `npx`: it runs a tool without adding it to your project.
+
+## Quick summary
+
+**Things that will feel familiar**
+
+- Type hints that look like TypeScript
+- `async` / `await`
+- Classes, `try` / `except`, imports
+- FastAPI routes feel like Express routes
+- Pydantic feels like Zod
+- uv feels like pnpm
+
+**Things that are new**
+
+- Indentation instead of curly braces
+- `snake_case`, `True` / `False` / `None`
+- Type hints aren't checked by Python, but FastAPI **uses** them
+- List comprehensions instead of `.map()` / `.filter()`
+- Keyword arguments
+- Decorators (`@app.get`)
+- Return a dict instead of calling `res.json()`
+- Dependencies instead of middleware that mutates `req`
+- Sync code is normal, async is a choice
+
+## My tips for getting started
+
+1. Use **uv** from day one. It saves you from the confusing parts of Python packaging.
+2. Install the Python and Ruff extensions in VS Code, and turn on type checking. Type hints are much more useful when your editor checks them.
+3. Read the official [FastAPI tutorial](https://fastapi.tiangolo.com/tutorial/). It's one of the best framework docs I've read.
+4. Rebuild an API you already made in Express. Seeing the same thing in both languages is the fastest way to learn.
+5. Keep `/docs` open while you code. It's the quickest way to test your endpoints.
+
+I'm still new to Python too, but FastAPI made it feel like home much faster than I expected. If you know TypeScript, Express, and Zod, you're already most of the way there.
+
+Happy coding! 🐍

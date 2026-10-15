@@ -1,0 +1,820 @@
+---
+title: "Python & FastAPI 101 untuk Frontend Developer: Dari JS/TS ke API Pertamamu"
+publishedAt: "2026-10-15"
+summary: "Panduan ramah pemula untuk developer JavaScript dan TypeScript yang belajar Python dan FastAPI. Sintaks berdampingan dengan JS/TS, lalu todo API lengkap yang dibandingkan dengan Express dan Zod."
+tags: ["python", "fastapi", "typescript", "javascript", "learning"]
+---
+
+Setelah [belajar Go](/id/blog/go-for-frontend-developers), saya ingin mencoba bahasa backend lain yang terus saya temui: **Python**. Dan di dunia Python, framework yang paling sering direkomendasikan untuk API saat ini adalah **FastAPI**.
+
+Kabar baik untuk kita para frontend developer: FastAPI ternyata terasa sangat familiar. Kalau kamu pernah pakai Express untuk routing dan Zod untuk validasi, kamu sudah paham sebagian besarnya. Kamu cuma perlu belajar sedikit Python dulu.
+
+Jadi tulisan ini terbagi dua:
+
+1. **Python untuk developer JS/TS**: sintaks yang kamu butuhkan, berdampingan.
+2. **FastAPI untuk developer Express**: membangun todo API kecil, dibandingkan dengan yang biasa kamu tulis di Node.
+
+Ayo mulai 🐍
+
+## Kenapa frontend dev perlu belajar Python dan FastAPI?
+
+- **AI dan data hidup di Python.** Sebagian besar library AI, machine learning, dan data dibuat untuk Python lebih dulu. Kalau aplikasimu butuh salah satunya, API Python kecil sering jadi jembatan paling gampang.
+- **FastAPI cepat ditulis.** Kamu mendeskripsikan data dengan type hint, lalu dapat validasi, pesan error, dan dokumentasi API secara gratis.
+- **Dokumentasi OpenAPI gratis.** Setiap aplikasi FastAPI punya halaman dokumentasi interaktif di `/docs`. Kamu bahkan bisa generate tipe TypeScript untuk frontend dari situ.
+- **Python mudah dibaca.** Bahasa ini memang dirancang agar terlihat hampir seperti bahasa Inggris biasa.
+
+## Gambaran besarnya
+
+| Topik | JavaScript / TypeScript | Python |
+| --- | --- | --- |
+| Tipe | Dinamis (JS) / statis, hilang saat runtime (TS) | Dinamis, dengan type hint opsional |
+| Cara berjalan | Node, Bun, atau browser | Interpreter Python |
+| Package manager | npm / pnpm / yarn | pip, atau yang lebih baru: **uv** |
+| Formatter / linter | Prettier, Biome, ESLint | Ruff (bisa keduanya, dan sangat cepat) |
+| Blok kode | Kurung kurawal `{ }` | **Indentasi** |
+| Titik koma | Opsional | Tidak dipakai |
+| Nilai "kosong" | `null` dan `undefined` | Hanya `None` |
+| Boolean | `true` / `false` | `True` / `False` |
+| Async | `async/await` di mana-mana | `async/await` ada, tapi kode sync itu hal biasa |
+| Web framework | Express, Hono, Fastify | FastAPI, Flask, Django |
+| Validasi | Zod, Valibot | Pydantic (sudah bawaan FastAPI) |
+
+## Bagian 1: Python untuk developer JS/TS
+
+### 1. Menyiapkan project
+
+Di dunia JS, kamu akan menjalankan `pnpm init` dan `pnpm add express`. Di Python, saya merekomendasikan **[uv](https://docs.astral.sh/uv/)**. Rasanya mirip pnpm: cepat, satu tool, dan ada lockfile.
+
+```bash
+# install uv sekali saja (macOS / Linux)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+uv init todo-api
+cd todo-api
+uv add "fastapi[standard]"
+```
+
+| Dunia npm | Dunia Python (dengan uv) |
+| --- | --- |
+| `package.json` | `pyproject.toml` |
+| `pnpm-lock.yaml` | `uv.lock` |
+| `pnpm init` | `uv init` |
+| `pnpm add express` | `uv add fastapi` |
+| `pnpm add -D vitest` | `uv add --dev pytest` |
+| `node_modules/` | `.venv/` ("virtual environment") |
+| `pnpm exec tsx index.ts` | `uv run main.py` |
+
+**Apa itu virtual environment?** Ini versi Python dari `node_modules`: folder yang menyimpan package untuk project *ini* saja. uv membuat `.venv/` untukmu dan otomatis memakainya saat kamu menjalankan `uv run`. Tambahkan ke `.gitignore`, sama seperti `node_modules`.
+
+### 2. Variabel
+
+**JavaScript**
+
+```js
+let name = "Fachalik";
+const age = 25;
+```
+
+**TypeScript**
+
+```ts
+let name: string = "Fachalik";
+const age: number = 25;
+```
+
+**Python**
+
+```python
+name = "Fachalik"
+age: int = 25  # type hint itu opsional
+
+MAX_TODOS = 100  # "konstanta" hanya berdasarkan konvensi
+```
+
+**Apa yang berbeda**
+
+- Tidak ada `let`, `const`, atau `var`. Kamu cukup tulis namanya lalu isi nilainya.
+- **Tidak ada `const` sungguhan.** Nama `UPPER_CASE` adalah konvensi yang artinya "tolong jangan diubah".
+- Type hint terlihat seperti TypeScript (`name: str`), tapi **Python sendiri tidak mengeceknya** saat kode berjalan. Yang mengecek adalah editor dan tool seperti Pyright atau mypy. Ingat ini, karena FastAPI adalah pengecualiannya (nanti kita bahas).
+- Python memakai `snake_case` untuk variabel dan fungsi, bukan `camelCase`: `user_name`, bukan `userName`.
+
+### 3. Indentasi, bukan kurung kurawal
+
+Ini hal pertama yang bakal terasa aneh. Di Python, **indentasi adalah sintaksnya**. Tidak ada `{ }` di sekitar blok.
+
+**JavaScript**
+
+```js
+if (age >= 18) {
+  console.log("Adult");
+} else if (age >= 13) {
+  console.log("Teen");
+} else {
+  console.log("Kid");
+}
+```
+
+**Python**
+
+```python
+if age >= 18:
+    print("Adult")
+elif age >= 13:
+    print("Teen")
+else:
+    print("Kid")
+```
+
+- Baris yang memulai blok diakhiri titik dua `:`.
+- Semua yang diindentasi di bawahnya (standarnya 4 spasi) ada di dalam blok tersebut.
+- `else if` ditulis `elif`.
+- `console.log` ≈ `print`.
+
+Biarkan editor dan Ruff yang mengurus indentasi, dan dalam sehari kamu sudah tidak memperhatikannya lagi.
+
+### 4. Tipe yang sudah kamu kenal
+
+| TypeScript | Python |
+| --- | --- |
+| `string` | `str` |
+| `number` | `int` (bilangan bulat) dan `float` (desimal) |
+| `boolean` | `bool` (`True` / `False`) |
+| `null` / `undefined` | `None` |
+| `string[]` | `list[str]` |
+| `Record<string, number>` | `dict[str, int]` |
+| `[string, number]` (tuple) | `tuple[str, int]` |
+| `string \| null` | `str \| None` |
+| `any` | `Any` (dari `typing`) |
+
+**String**: template literal menjadi **f-string**. Taruh huruf `f` sebelum tanda kutip:
+
+```ts
+const greeting = `Hello, ${name}! You are ${age} years old.`;
+```
+
+```python
+greeting = f"Hello, {name}! You are {age} years old."
+```
+
+**Operator logika** berupa kata, bukan simbol:
+
+| JS / TS | Python |
+| --- | --- |
+| `&&` | `and` |
+| `\|\|` | `or` |
+| `!` | `not` |
+| `===` | `==` |
+| `!==` | `!=` |
+| `x === null` | `x is None` |
+
+`==` di Python tidak melakukan konversi tipe yang aneh seperti `==` di JS, jadi tidak perlu `===`. 🎉
+
+### 5. Array dan object → list dan dict
+
+**JavaScript**
+
+```js
+const fruits = ["apple", "banana"];
+fruits.push("cherry");
+console.log(fruits.length);
+
+const user = { name: "Fachalik", age: 25 };
+console.log(user.name);
+```
+
+**Python**
+
+```python
+fruits = ["apple", "banana"]
+fruits.append("cherry")
+print(len(fruits))
+
+user = {"name": "Fachalik", "age": 25}
+print(user["name"])
+print(user.get("email"))  # None, bukan KeyError, kalau tidak ada
+```
+
+- `push` → `append`, `.length` → `len(...)`.
+- `dict` mirip object di JS, tapi key-nya **wajib pakai tanda kutip**, dan dibaca dengan `user["name"]`, bukan `user.name`.
+- `user["email"]` untuk key yang tidak ada akan **melempar error**. Pakai `user.get("email")` kalau key-nya mungkin tidak ada. Mirip `user?.email`.
+
+### 6. `.map()` dan `.filter()` → comprehension
+
+Python punya `map()` dan `filter()`, tapi kebanyakan orang menulis **list comprehension**. Bacanya seperti kalimat.
+
+**JavaScript**
+
+```js
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map((n) => n * 2);
+const evens = numbers.filter((n) => n % 2 === 0);
+```
+
+**Python**
+
+```python
+numbers = [1, 2, 3, 4, 5]
+doubled = [n * 2 for n in numbers]
+evens = [n for n in numbers if n % 2 == 0]
+```
+
+Bacanya: "berikan `n * 2` **untuk** setiap `n` **di** `numbers`". Hal yang sama bisa dilakukan untuk dict:
+
+```python
+prices = {"apple": 1.0, "banana": 0.5}
+discounted = {name: price * 0.9 for name, price in prices.items()}
+```
+
+### 7. Perulangan
+
+**JavaScript**
+
+```js
+for (const fruit of fruits) {
+  console.log(fruit);
+}
+
+fruits.forEach((fruit, i) => console.log(i, fruit));
+
+for (let i = 0; i < 5; i++) {
+  console.log(i);
+}
+```
+
+**Python**
+
+```python
+for fruit in fruits:
+    print(fruit)
+
+for i, fruit in enumerate(fruits):
+    print(i, fruit)
+
+for i in range(5):  # 0, 1, 2, 3, 4
+    print(i)
+```
+
+`for ... in` di Python bekerja seperti `for ... of` di JS. Hati-hati: di JS, `for ... in` melakukan perulangan atas *key*, dan ini sering bikin bingung.
+
+### 8. Fungsi
+
+**TypeScript**
+
+```ts
+function greet(name: string, greeting = "Hello"): string {
+  return `${greeting}, ${name}!`;
+}
+
+const add = (a: number, b: number) => a + b;
+
+greet("Fachalik");
+greet("Fachalik", "Hi");
+```
+
+**Python**
+
+```python
+def greet(name: str, greeting: str = "Hello") -> str:
+    return f"{greeting}, {name}!"
+
+add = lambda a, b: a + b  # jarang dipakai, lebih baik pakai def
+
+greet("Fachalik")
+greet("Fachalik", greeting="Hi")  # keyword argument
+```
+
+- `function` → `def`, dan tipe return ditulis setelah `->`.
+- **Keyword argument** itu kekuatan super. Kamu bisa mengirim argumen apa pun berdasarkan namanya: `greeting="Hi"`. Mirip mengirim options object di JS, tapi sudah bawaan bahasa.
+- `lambda` adalah arrow function versi Python, tapi hanya bisa berisi satu ekspresi. Kebanyakan waktu kamu cukup pakai `def`.
+
+### 9. Class
+
+Python punya class, dan tampilannya mirip class di JS:
+
+**TypeScript**
+
+```ts
+class User {
+  constructor(
+    public name: string,
+    public age: number,
+  ) {}
+
+  greet() {
+    return `Hi, I'm ${this.name}`;
+  }
+}
+```
+
+**Python**
+
+```python
+class User:
+    def __init__(self, name: str, age: int):
+        self.name = name
+        self.age = age
+
+    def greet(self) -> str:
+        return f"Hi, I'm {self.name}"
+
+
+user = User("Fachalik", 25)  # tanpa keyword `new`
+```
+
+- `constructor` → `__init__`.
+- `this` → `self`, dan kamu wajib menulis `self` sebagai **parameter pertama** di setiap method.
+- Tidak ada keyword `new`. Kamu memanggil class seperti memanggil fungsi.
+
+Di FastAPI kamu tidak akan banyak menulis class seperti ini. Yang lebih sering kamu tulis adalah **model Pydantic**, yaitu class yang mendeskripsikan data. Kita akan melihatnya di Bagian 2.
+
+### 10. Penanganan error
+
+**JavaScript**
+
+```js
+try {
+  const data = JSON.parse(text);
+} catch (err) {
+  console.error(err);
+} finally {
+  console.log("done");
+}
+```
+
+**Python**
+
+```python
+import json
+
+try:
+    data = json.loads(text)
+except json.JSONDecodeError as err:
+    print(err)
+finally:
+    print("done")
+```
+
+Idenya sama: `try` / `except` / `finally`. `throw` ditulis `raise`. Satu perbedaan yang menyenangkan: kamu bisa menangkap **jenis error tertentu**, jadi kamu tidak tanpa sengaja menelan bug yang tidak kamu duga.
+
+### 11. Import
+
+```ts
+import { readFile } from "node:fs/promises";
+import express from "express";
+import { formatDate } from "./utils";
+```
+
+```python
+from pathlib import Path
+from fastapi import FastAPI
+from utils import format_date  # utils.py di project yang sama
+```
+
+Tidak ada keyword `export`. **Semua yang ada di level atas sebuah file bisa di-import.** Nama yang diawali `_` dianggap "private" berdasarkan konvensi.
+
+### Jebakan Python untuk developer JS
+
+Beberapa hal yang sempat bikin saya tersandung:
+
+- **List dan dict kosong bernilai falsy.** Di JS, `[]` dan `{}` itu truthy. Di Python, `if []:` bernilai `False`. Praktis, tapi awalnya mengejutkan.
+- **Jangan pakai list atau dict sebagai default argument.** `def add(item, items=[])` memakai list yang *sama* untuk setiap pemanggilan. Pakai `items: list | None = None` lalu buat list-nya di dalam fungsi.
+- **Pembagian bilangan bulat**: `7 / 2` hasilnya `3.5`, dan `7 // 2` hasilnya `3`.
+- **Tidak ada `++`**. Pakai `count += 1`.
+
+## Bagian 2: FastAPI untuk developer Express
+
+Sekarang bagian serunya. Kita bangun **todo API** kecil dan bandingkan dengan Express.
+
+### 12. Hello, API
+
+**Express (TypeScript)**
+
+```ts
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.json({ message: "Hello from Express!" });
+});
+
+app.listen(3000);
+```
+
+**FastAPI (Python)**
+
+```python
+# main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+def home():
+    return {"message": "Hello from FastAPI!"}
+```
+
+Jalankan:
+
+```bash
+uv run fastapi dev main.py
+```
+
+Buka [http://localhost:8000](http://localhost:8000) dan kamu akan melihat JSON-nya. `fastapi dev` otomatis reload saat file disimpan, sama seperti `nodemon` atau `tsx watch`.
+
+**Apa yang berbeda**
+
+- `@app.get("/")` adalah **decorator**. Anggap saja artinya "daftarkan fungsi ini sebagai handler untuk `GET /`".
+- Kamu tidak memanggil `res.json()`. Kamu cukup **return sebuah dict**, dan FastAPI mengubahnya menjadi JSON.
+- Tidak perlu `express.json()`. Body JSON sudah di-parse untukmu.
+
+### 13. Dokumentasi API gratis 🎁
+
+Sekarang buka [http://localhost:8000/docs](http://localhost:8000/docs).
+
+Kamu dapat halaman Swagger UI interaktif untuk API-mu, yang dibuat otomatis dari kode. Kamu bisa mengirim request sungguhan dari browser. Di Express, kamu butuh package tambahan dan spesifikasi yang ditulis manual. Di FastAPI, semuanya sudah tersedia.
+
+Spesifikasi OpenAPI mentahnya ada di `/openapi.json`. Ingat ini, nanti kita pakai untuk generate tipe TypeScript.
+
+### 14. Path parameter dan query parameter
+
+**Express**
+
+```ts
+// GET /todos/42
+app.get("/todos/:id", (req, res) => {
+  const id = Number(req.params.id); // tipenya string, konversi sendiri
+  res.json({ id });
+});
+
+// GET /todos?done=true&limit=5
+app.get("/todos", (req, res) => {
+  const done = req.query.done === "true";
+  const limit = Number(req.query.limit ?? 10);
+  res.json({ done, limit });
+});
+```
+
+**FastAPI**
+
+```python
+@app.get("/todos/{todo_id}")
+def get_todo(todo_id: int):
+    return {"id": todo_id}
+
+
+@app.get("/todos")
+def list_todos(done: bool | None = None, limit: int = 10):
+    return {"done": done, "limit": limit}
+```
+
+Di sinilah FastAPI akhirnya "klik" buat saya. 🤯
+
+- `{todo_id}` di path cocok dengan parameter `todo_id`.
+- Parameter apa pun yang **tidak** ada di path menjadi **query parameter**.
+- **Type hint dipakai saat runtime.** `todo_id: int` artinya FastAPI mengubah `"42"` menjadi `42` untukmu. Kalau ada yang memanggil `/todos/abc`, mereka otomatis dapat **error 422** yang jelas. Kamu tidak menulis satu baris pun kode validasi.
+
+Ingat waktu saya bilang Python tidak mengecek type hint? FastAPI adalah pengecualiannya. FastAPI membaca type hint dan memakainya untuk mem-parse dan memvalidasi request.
+
+### 15. Request body: Zod → Pydantic
+
+**Express + Zod**
+
+```ts
+import { z } from "zod";
+
+const TodoCreate = z.object({
+  title: z.string().min(1).max(100),
+  done: z.boolean().default(false),
+});
+
+app.post("/todos", (req, res) => {
+  const result = TodoCreate.safeParse(req.body);
+  if (!result.success) {
+    return res.status(422).json(result.error);
+  }
+  const todo = result.data;
+  res.status(201).json(todo);
+});
+```
+
+**FastAPI + Pydantic**
+
+```python
+from pydantic import BaseModel, Field
+
+
+class TodoCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    done: bool = False
+
+
+@app.post("/todos", status_code=201)
+def create_todo(todo: TodoCreate):
+    return todo
+```
+
+- **Model Pydantic** itu seperti schema Zod dan tipe TypeScript dalam satu paket.
+- Karena `todo` bertipe `TodoCreate`, FastAPI tahu datanya berasal dari **body JSON**, lalu mem-parse dan memvalidasinya.
+- Tidak ada `safeParse`, tidak ada `if (!result.success)`. Kalau body-nya tidak valid, FastAPI mengembalikan 422 beserta detail field mana yang salah.
+- Di dalam fungsi, `todo.title` adalah `str` sungguhan. Editor-mu bisa autocomplete, sama seperti `z.infer<typeof TodoCreate>`.
+
+| Zod | Pydantic |
+| --- | --- |
+| `z.object({ ... })` | `class Model(BaseModel): ...` |
+| `z.string().min(1)` | `str = Field(min_length=1)` |
+| `z.number().int().positive()` | `int = Field(gt=0)` |
+| `z.string().optional()` | `str \| None = None` |
+| `z.boolean().default(false)` | `bool = False` |
+| `z.string().email()` | `EmailStr` |
+| `z.infer<typeof Schema>` | Class-nya sendiri adalah tipenya |
+| `Schema.parse(data)` | `Model.model_validate(data)` |
+| `JSON.stringify(obj)` | `obj.model_dump_json()` |
+
+### 16. Response model: atur apa yang dikirim balik
+
+Sering kali kamu ingin bentuk response berbeda dari input. Contohnya, todo di response punya `id`, tapi client tidak boleh mengirimnya.
+
+```python
+class Todo(TodoCreate):  # mewarisi title dan done
+    id: int
+
+
+@app.post("/todos", response_model=Todo, status_code=201)
+def create_todo(todo: TodoCreate):
+    return Todo(id=1, **todo.model_dump())
+```
+
+- `class Todo(TodoCreate)` mirip `TodoCreate & { id: number }` di TypeScript.
+- `**todo.model_dump()` adalah spread operator versi Python, mirip `{ id: 1, ...todo }`.
+- `response_model=Todo` membuat FastAPI **menyaring output** hanya ke field yang ada di `Todo`. Ini bagus supaya hal seperti `password_hash` tidak bocor tanpa sengaja.
+
+### 17. Error: `res.status(404)` → `HTTPException`
+
+**Express**
+
+```ts
+app.get("/todos/:id", (req, res) => {
+  const todo = todos.get(Number(req.params.id));
+  if (!todo) {
+    return res.status(404).json({ detail: "Todo not found" });
+  }
+  res.json(todo);
+});
+```
+
+**FastAPI**
+
+```python
+from fastapi import HTTPException
+
+
+@app.get("/todos/{todo_id}", response_model=Todo)
+def get_todo(todo_id: int):
+    todo = todos.get(todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
+```
+
+Kamu **raise** sebuah `HTTPException`, dan FastAPI mengubahnya menjadi response JSON: `{"detail": "Todo not found"}` dengan status 404. Kamu bisa me-raise-nya dari mana saja, bahkan dari helper function yang letaknya jauh di dalam kode.
+
+### 18. Middleware → dependency
+
+Di Express, logika bersama seperti "cek token auth" biasanya ditaruh di middleware yang menempelkan sesuatu ke `req`. FastAPI punya ide yang lebih rapi: **dependency**.
+
+**Express**
+
+```ts
+function requireUser(req, res, next) {
+  if (req.headers.authorization !== "Bearer secret") {
+    return res.status(401).json({ detail: "Not authenticated" });
+  }
+  req.user = "fachalik";
+  next();
+}
+
+app.get("/me", requireUser, (req, res) => {
+  res.json({ user: req.user });
+});
+```
+
+**FastAPI**
+
+```python
+from typing import Annotated
+
+from fastapi import Depends, Header, HTTPException
+
+
+def get_current_user(authorization: Annotated[str | None, Header()] = None) -> str:
+    if authorization != "Bearer secret":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return "fachalik"
+
+
+@app.get("/me")
+def read_me(user: Annotated[str, Depends(get_current_user)]):
+    return {"user": user}
+```
+
+- `Depends(get_current_user)` artinya "jalankan fungsi ini dulu dan berikan hasilnya ke saya".
+- Nilai return dari dependency masuk sebagai **parameter yang bertipe**. Tidak ada lagi `req.user` dengan tipe `any`.
+- `Header()` membacakan header `Authorization` untukmu.
+- Dependency bisa bergantung pada dependency lain. Ini cara standar untuk berbagi hal seperti session database, user yang sedang login, atau konfigurasi.
+
+Kalau kamu pernah pakai React hooks, ini mirip memanggil `useAuth()` di bagian atas komponen: route menyebutkan apa yang dibutuhkan, dan framework yang menyediakannya.
+
+### 19. `async def` atau `def`?
+
+Mungkin kamu sadar saya menulis fungsi `def` biasa. FastAPI mendukung keduanya:
+
+```python
+import httpx
+
+
+@app.get("/github/{username}")
+async def github_user(username: str):
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"https://api.github.com/users/{username}")
+    return res.json()
+```
+
+Aturan sederhananya:
+
+- Pakai **`async def`** kalau kamu `await` library async (seperti `httpx` untuk HTTP call, atau driver database async).
+- Pakai **`def` biasa** kalau kamu memanggil library biasa yang blocking. FastAPI menjalankannya di thread pool, jadi server-mu tidak akan macet.
+- **Jangan** memanggil kode blocking yang lambat di dalam `async def`. Itu akan memblokir event loop, sama seperti `while` loop raksasa memblokir Node.
+
+Berbeda dengan JS, kode sync itu hal yang sangat normal di Python. Kamu tidak harus membuat semuanya async.
+
+### 20. CORS: supaya frontend-mu bisa mengakses API
+
+Kamu pasti bakal ketemu ini pertama kali aplikasi Next.js atau Vite-mu memanggil API. 😅
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Idenya sama dengan package `cors` di Express. Daftarkan hanya origin yang kamu percaya.
+
+### 21. Bonus: tipe TypeScript dari API-mu
+
+Ingat `/openapi.json`? Dengan [openapi-typescript](https://openapi-ts.dev/), kamu bisa mengubahnya menjadi tipe TypeScript untuk frontend:
+
+```bash
+npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts
+```
+
+Sekarang model Pydantic dan tipe di frontend berasal dari sumber yang sama. Ubah satu field di Python, generate ulang, dan TypeScript akan memberi tahu semua bagian yang rusak. Ini bagian favorit saya dari seluruh setup ini. 💙
+
+## Todo API lengkap
+
+Ini semuanya digabung. Hanya satu file, dengan "database" di memori supaya kamu bisa fokus ke FastAPI-nya.
+
+```python
+# main.py
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="Todo API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class TodoCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    done: bool = False
+
+
+class TodoUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    done: bool | None = None
+
+
+class Todo(TodoCreate):
+    id: int
+
+
+todos: dict[int, Todo] = {}
+next_id = 1
+
+
+def find_todo(todo_id: int) -> Todo:
+    todo = todos.get(todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
+
+
+@app.get("/todos", response_model=list[Todo])
+def list_todos(done: bool | None = None):
+    items = list(todos.values())
+    if done is not None:
+        items = [t for t in items if t.done == done]
+    return items
+
+
+@app.get("/todos/{todo_id}", response_model=Todo)
+def get_todo(todo_id: int):
+    return find_todo(todo_id)
+
+
+@app.post("/todos", response_model=Todo, status_code=201)
+def create_todo(data: TodoCreate):
+    global next_id
+    todo = Todo(id=next_id, **data.model_dump())
+    todos[todo.id] = todo
+    next_id += 1
+    return todo
+
+
+@app.patch("/todos/{todo_id}", response_model=Todo)
+def update_todo(todo_id: int, data: TodoUpdate):
+    todo = find_todo(todo_id)
+    # hanya field yang benar-benar dikirim client, seperti partial update
+    updated = todo.model_copy(update=data.model_dump(exclude_unset=True))
+    todos[todo_id] = updated
+    return updated
+
+
+@app.delete("/todos/{todo_id}", status_code=204)
+def delete_todo(todo_id: int):
+    find_todo(todo_id)
+    del todos[todo_id]
+```
+
+Jalankan `uv run fastapi dev main.py`, buka `/docs`, dan coba setiap endpoint dari browser.
+
+Beberapa hal yang perlu diperhatikan:
+
+- `global next_id` diperlukan karena kita mengubah variabel level atas dari dalam fungsi. Di aplikasi sungguhan, database yang akan memberikan id-nya.
+- `model_dump(exclude_unset=True)` hanya mengembalikan field yang dikirim client. Begitulah cara melakukan `PATCH` tanpa menimpa field lain dengan `None`.
+- Langkah selanjutnya untuk project sungguhan: database (SQLModel, buatan pembuat FastAPI, cocok untuk mulai), testing dengan `pytest`, dan memecah route ke beberapa file dengan `APIRouter` (mirip `express.Router()`).
+
+## Contekan tooling
+
+| Yang kamu lakukan di JS/TS | Di Python |
+| --- | --- |
+| `pnpm install` | `uv sync` |
+| `pnpm add zod` | `uv add pydantic` |
+| `node index.js` / `tsx index.ts` | `uv run main.py` |
+| `tsx watch` / `nodemon` | `uv run fastapi dev main.py` |
+| `tsc --noEmit` | `uvx pyright` atau `uvx mypy .` |
+| Format dengan Prettier / Biome | `uvx ruff format` |
+| Lint dengan ESLint / Biome | `uvx ruff check` |
+| Vitest / Jest | `uv run pytest` |
+| `express.Router()` | `APIRouter()` |
+| `.env` + `dotenv` | `pydantic-settings` |
+
+`uvx` mirip `npx`: menjalankan sebuah tool tanpa menambahkannya ke project.
+
+## Ringkasan singkat
+
+**Hal yang akan terasa familiar**
+
+- Type hint yang mirip TypeScript
+- `async` / `await`
+- Class, `try` / `except`, import
+- Route FastAPI terasa seperti route Express
+- Pydantic terasa seperti Zod
+- uv terasa seperti pnpm
+
+**Hal yang baru**
+
+- Indentasi, bukan kurung kurawal
+- `snake_case`, `True` / `False` / `None`
+- Type hint tidak dicek oleh Python, tapi FastAPI **memakainya**
+- List comprehension, bukan `.map()` / `.filter()`
+- Keyword argument
+- Decorator (`@app.get`)
+- Return dict, bukan memanggil `res.json()`
+- Dependency, bukan middleware yang mengubah `req`
+- Kode sync itu normal, async adalah pilihan
+
+## Tips saya untuk mulai
+
+1. Pakai **uv** sejak hari pertama. Ini menyelamatkanmu dari bagian packaging Python yang membingungkan.
+2. Install extension Python dan Ruff di VS Code, lalu aktifkan type checking. Type hint jauh lebih berguna kalau editor-mu mengeceknya.
+3. Baca [tutorial resmi FastAPI](https://fastapi.tiangolo.com/tutorial/). Ini salah satu dokumentasi framework terbaik yang pernah saya baca.
+4. Bangun ulang API yang pernah kamu buat dengan Express. Melihat hal yang sama di dua bahasa adalah cara tercepat untuk belajar.
+5. Biarkan `/docs` tetap terbuka saat ngoding. Ini cara tercepat untuk mengetes endpoint-mu.
+
+Saya juga masih baru di Python, tapi FastAPI membuatnya terasa seperti rumah sendiri jauh lebih cepat dari yang saya kira. Kalau kamu sudah paham TypeScript, Express, dan Zod, kamu sudah setengah jalan lebih.
+
+Selamat ngoding! 🐍
