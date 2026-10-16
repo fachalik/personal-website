@@ -1,0 +1,346 @@
+---
+title: "Biome vs ESLint + Prettier: Cukup Satu Tool Saja?"
+publishedAt: "2026-10-16"
+summary: "Perbandingan praktis antara Biome dan setup klasik ESLint + Prettier. Kecepatan, konfigurasi, rules, plugin, dan dukungan editor, plus cara migrasi dan kapan sebaiknya kamu tetap di setup lama."
+tags: ["biome", "eslint", "prettier", "tooling", "javascript", "typescript"]
+---
+
+Selama bertahun-tahun, setiap kali memulai project JavaScript, saya selalu memakai dua tool yang sama: **ESLint** untuk menemukan masalah dan **Prettier** untuk merapikan format kode. Setelah itu, biasanya 20 menit habis hanya untuk install plugin, menulis config, dan membereskan bentrokan di antara keduanya.
+
+Sekarang situs ini pakai **[Biome](https://biomejs.dev/)**. Satu tool, satu file config, dan saking cepatnya, saya sering lupa kalau dia sedang berjalan.
+
+Tapi urusannya tidak sesederhana "satu tool lebih baik dari dua". Di tulisan ini saya akan membandingkan keduanya secara jujur: apa kelebihan Biome, di mana ESLint + Prettier masih unggul, dan cara memilih yang tepat untuk project-mu.
+
+## Versi singkatnya
+
+- **Biome** adalah satu tool berbasis Rust yang mengerjakan formatting **dan** linting sekaligus (bonusnya, bisa mengurutkan import juga).
+- **ESLint** adalah linter. **Prettier** adalah formatter. Biasanya kamu butuh keduanya, ditambah beberapa config penghubung supaya keduanya akur.
+- Biome **jauh lebih cepat** dan **jauh lebih mudah di-setup**.
+- ESLint punya **ekosistem plugin yang jauh lebih besar**, dan Prettier mendukung **lebih banyak jenis file**.
+
+Kalau kamu memulai project JS/TS baru, Biome layak jadi pilihan utama. Kalau kamu bergantung pada plugin ESLint tertentu, atau sering memformat Markdown dan YAML, kombinasi klasik mungkin masih lebih cocok.
+
+## Apa yang sebenarnya dikerjakan tiap tool
+
+Sebelum membandingkan, ada baiknya kita samakan dulu pemahaman soal dua pekerjaan ini:
+
+| Pekerjaan | Pertanyaan yang dijawab | Contoh |
+| --- | --- | --- |
+| **Formatting** | "Kode ini seharusnya *terlihat* seperti apa?" | Tanda kutip, titik koma, indentasi, lebar baris |
+| **Linting** | "Apakah kode ini *salah* atau *berisiko*?" | Variabel tak terpakai, lupa `await`, hooks dipanggil di dalam loop |
+
+Di setup klasik, **Prettier** mengurus formatting dan **ESLint** mengurus linting. Sebenarnya ESLint juga *bisa* memformat, tapi kebanyakan tim mematikan rules itu supaya kedua tool tidak bentrok. Itulah gunanya `eslint-config-prettier`.
+
+Biome mengerjakan keduanya sekaligus dalam sekali jalan, dengan satu parser.
+
+## Gambaran besarnya
+
+| Topik | ESLint + Prettier | Biome |
+| --- | --- | --- |
+| Tool yang di-install | 2 tool, sering 5+ package | 1 package |
+| Bahasa | JavaScript | Rust |
+| Kecepatan | Oke di project kecil, lambat di project besar | Sangat cepat, multi-thread |
+| File config | `eslint.config.js` + `.prettierrc` (+ file ignore) | `biome.json` |
+| Hasil format | "Standar" yang ditiru semua orang | ~97% kompatibel dengan Prettier |
+| Lint rules | Sangat banyak, lewat plugin | 500+ rules bawaan, tanpa plugin npm |
+| Custom rules | Tulis plugin dengan JS | Plugin GritQL (lebih simpel, tapi lebih terbatas) |
+| Rules berbasis tipe | Ya, lewat `typescript-eslint` (lambat) | Sebagian, tanpa compiler TypeScript |
+| Jenis file | Prettier: JS, TS, CSS, HTML, Markdown, YAML, GraphQL, dan lainnya | JS, TS, JSX, JSON, CSS, GraphQL; HTML, Vue, Svelte, Astro masih eksperimental |
+| Urutkan import | Plugin tambahan | Bawaan |
+| Kematangan | 10+ tahun, dipakai di mana-mana | Lebih muda, tapi stabil dan berkembang cepat |
+
+Sekarang kita bahas bagian-bagian yang paling terasa dalam kerja sehari-hari.
+
+## 1. Setup
+
+**ESLint + Prettier**
+
+Untuk project TypeScript + React, perintah install-nya biasanya seperti ini:
+
+```bash
+pnpm add -D eslint @eslint/js typescript-eslint \
+  eslint-plugin-react-hooks \
+  prettier eslint-config-prettier
+```
+
+Lalu kamu menulis dua file config:
+
+```js
+// eslint.config.js
+import { defineConfig } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import prettier from "eslint-config-prettier";
+
+export default defineConfig(
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  reactHooks.configs.flat.recommended,
+  prettier, // harus paling akhir, mematikan rules yang bentrok dengan Prettier
+);
+```
+
+```json
+// .prettierrc
+{
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all"
+}
+```
+
+Setup ini memang jalan, tapi kamu harus tahu package mana yang perlu dipasang, bagaimana urutannya, dan kenapa `eslint-config-prettier` harus paling akhir.
+
+**Biome**
+
+```bash
+pnpm add -D -E @biomejs/biome
+pnpm exec biome init
+```
+
+Selesai. `biome init` membuat `biome.json` dengan pengaturan default yang masuk akal, dan rules rekomendasi langsung aktif sejak awal.
+
+Berikut versi ringkas config yang dipakai di situs ini:
+
+```json
+// biome.json
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "assist": {
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "linter": {
+    "domains": { "next": "recommended", "react": "recommended" },
+    "rules": { "preset": "recommended" }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  }
+}
+```
+
+Ada beberapa hal menarik di sini:
+
+- `"useIgnoreFile": true` artinya Biome membaca `.gitignore`-mu. Tidak perlu file ignore terpisah.
+- **Domains** mengaktifkan grup rules untuk framework tertentu. `"react": "recommended"` mengaktifkan rules hooks, dan `"next"` mengaktifkan rules Next.js. Semuanya tanpa install plugin.
+- Baris `$schema` membuat VS Code bisa memberi autocomplete saat kamu mengedit config.
+
+**Tips:** Install Biome dengan `-E` (versi exact). Hasil format bisa sedikit berubah antarversi, dan jangan sampai dua orang di tim mendapat hasil yang berbeda.
+
+## 2. Kecepatan
+
+Kecepatan adalah hal yang paling membuat Biome terkenal. Biome ditulis dengan Rust dan memakai semua core CPU-mu, sementara ESLint dan Prettier berjalan di Node.
+
+Di project kecil, kamu tidak akan terlalu merasakan bedanya. Keduanya selesai dalam satu atau dua detik. Di monorepo besar, ceritanya lain: ESLint dengan rules berbasis tipe bisa makan waktu **beberapa menit**, sementara Biome sering menyelesaikan codebase yang sama dalam **kurang dari satu detik**. Di benchmark milik tim Biome sendiri, memformat sekitar 171.000 baris kode kira-kira 35x lebih cepat dari Prettier.
+
+Kecepatan ini paling terasa di:
+
+- **Pre-commit hook.** Hook yang butuh 15 detik cenderung di-skip. Hook yang cuma 200 ms akan tetap dipakai.
+- **CI.** Waktu tunggu di setiap pull request jadi lebih singkat.
+- **Editor.** Format-on-save terasa instan, bahkan di file besar.
+
+Di situs ini, pre-commit hook menjalankan Biome hanya pada file yang di-stage, dan prosesnya nyaris tidak terasa:
+
+```yaml
+# lefthook.yml
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+```
+
+## 3. Perintah sehari-hari
+
+| Yang kamu mau | ESLint + Prettier | Biome |
+| --- | --- | --- |
+| Format file | `prettier --write .` | `biome format --write` |
+| Lint file | `eslint .` | `biome lint` |
+| Lint + perbaiki | `eslint . --fix` | `biome lint --write` |
+| Format + lint + urutkan import | `prettier --write . && eslint . --fix` | `biome check --write` |
+| Cek di CI (tanpa menulis) | `prettier --check . && eslint .` | `biome ci` |
+
+Perintah yang paling sering saya pakai adalah `biome check`: format, lint, dan merapikan import sekaligus.
+
+## 4. Hasil formatting
+
+Formatter Biome dibuat untuk menyamai Prettier, dan hasilnya memang sangat mirip: sekitar **97% kompatibel** di test suite milik Prettier sendiri. Dalam praktiknya, kebanyakan project bisa pindah nyaris tanpa perbedaan.
+
+Perbedaannya hanya muncul di kasus-kasus khusus (edge case), seperti cara memotong beberapa ekspresi yang panjang. Kalau timmu sudah terbiasa dengan hasil Prettier, kemungkinan besar perbedaannya tidak akan terasa.
+
+Opsinya juga mirip, hanya namanya sedikit berbeda:
+
+| Prettier | Biome |
+| --- | --- |
+| `semi: false` | `javascript.formatter.semicolons: "asNeeded"` |
+| `singleQuote: true` | `javascript.formatter.quoteStyle: "single"` |
+| `trailingComma: "all"` | `javascript.formatter.trailingCommas: "all"` |
+| `printWidth: 100` | `formatter.lineWidth: 100` |
+| `tabWidth: 2` | `formatter.indentWidth: 2` |
+
+## 5. Lint rules dan pesan error
+
+Biome hadir dengan **500+ rules**, banyak di antaranya diadaptasi dari ESLint, `typescript-eslint`, `eslint-plugin-react`, `jsx-a11y`, `unicorn`, dan lainnya. Rules dikelompokkan berdasarkan tujuan (`correctness`, `suspicious`, `style`, `a11y`, `performance`, `security`, `complexity`), bukan berdasarkan plugin.
+
+Pesan error-nya juga jelas. Biome menjelaskan *kenapa* sesuatu dianggap masalah, dan sering langsung menunjukkan cara memperbaikinya di terminal:
+
+```txt
+src/app/page.tsx:12:7 lint/correctness/noUnusedVariables  FIXABLE
+  ✖ This variable is unused.
+  > 12 │   const total = items.length;
+       │         ^^^^^
+  ℹ Unused variables are often the result of an incomplete refactoring.
+  ℹ Unsafe fix: If this is intentional, prepend total with an underscore.
+```
+
+Cara mengabaikan rule untuk satu baris mirip dengan ESLint, bedanya Biome mewajibkan kamu menulis alasan:
+
+**ESLint**
+
+```ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const data: any = await legacyClient.fetch();
+```
+
+**Biome**
+
+```ts
+// biome-ignore lint/suspicious/noExplicitAny: tipe dari library pihak ketiga salah
+const data: any = await legacyClient.fetch();
+```
+
+Saya suka aturan ini. Enam bulan kemudian, kamu masih tahu *kenapa* ignore itu ditulis.
+
+## 6. Linting berbasis tipe
+
+Beberapa rules yang paling berguna butuh informasi tipe dari kodemu. Contohnya `no-floating-promises`, yang menangkap promise yang lupa kamu `await`.
+
+- **ESLint** melakukannya lewat `typescript-eslint`, yang menjalankan compiler TypeScript asli. Hasilnya sangat akurat, tapi inilah juga alasan utama ESLint terasa lambat di project besar.
+- **Biome** (sejak v2) punya inferensi tipe sendiri, jadi bisa menjalankan rules seperti `noFloatingPromises` **tanpa** compiler TypeScript. Jauh lebih cepat, tapi belum mencakup semua kasus yang ditangani `typescript-eslint`.
+
+Kalau timmu sangat bergantung pada rules berbasis tipe yang ketat, bagian inilah yang paling perlu dicek sebelum pindah.
+
+## 7. Plugin dan ekosistem
+
+Di sinilah ESLint paling unggul.
+
+ESLint punya ribuan plugin: Tailwind, Testing Library, Storybook, Playwright, TanStack Query, batasan import, rules internal perusahaanmu, dan seterusnya. Hampir setiap library populer punya plugin ESLint-nya sendiri.
+
+Biome tidak bisa memuat plugin ESLint. Sebagai gantinya:
+
+- Banyak rules populer **sudah bawaan** (React, hooks, a11y, Next.js, pengurutan class Tailwind dengan `useSortedClasses`).
+- Kamu bisa menulis **custom rules dengan GritQL**, bahasa untuk mencocokkan pola kode. Cocok untuk rules sederhana seperti "jangan pakai API ini", tapi tidak sekuat plugin JS penuh.
+
+Jadi, coba tanyakan ke diri sendiri: *plugin ESLint mana yang benar-benar saya pakai, dan apakah Biome sudah mencakupnya?* Untuk banyak aplikasi, jawabannya ya. Untuk sebagian, belum.
+
+## 8. Jenis file
+
+Prettier bisa memformat hampir semua file di repo frontend, termasuk **Markdown, MDX, YAML, dan HTML**.
+
+Biome paling kuat di **JS, TS, JSX, JSON, dan CSS**, dan juga menangani GraphQL. Formatting HTML masih eksperimental dan harus kamu aktifkan sendiri. Dukungan Vue, Svelte, dan Astro juga masih eksperimental. Markdown dan YAML masih dalam pengerjaan, jadi Biome belum bisa memformatnya.
+
+Untuk situs ini, hal itu bukan masalah. Tulisan blog MDX saya tidak butuh formatter, dan sisanya TS, JSON, dan CSS. Kalau repo-mu punya banyak YAML atau dokumentasi Markdown, kamu bisa tetap pakai Prettier khusus untuk file-file itu dan biarkan Biome mengurus sisanya.
+
+## 9. Dukungan editor
+
+Keduanya berjalan baik di VS Code. Untuk Biome, install extension resminya dan jadikan sebagai formatter default:
+
+```json
+// .vscode/settings.json
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  }
+}
+```
+
+Ada juga extension untuk IDE JetBrains, Zed, Neovim, dan lainnya. ESLint dan Prettier didukung oleh hampir semua editor yang ada.
+
+## Migrasi dari ESLint + Prettier
+
+Biome punya perintah migrasi bawaan yang membaca config lamamu:
+
+```bash
+pnpm add -D -E @biomejs/biome
+pnpm exec biome init
+
+# salin opsi Prettier ke biome.json
+pnpm exec biome migrate prettier --write
+
+# ubah rules ESLint menjadi rules Biome (kalau ada padanannya)
+pnpm exec biome migrate eslint --write
+```
+
+Lalu:
+
+1. Jalankan `pnpm exec biome check --write` sekali dan commit hasilnya sebagai commit "format" tersendiri. Dengan begitu, perubahan kode yang sebenarnya tetap mudah di-review.
+2. Update script di `package.json`, pre-commit hook, dan CI untuk memakai Biome.
+3. Update `.vscode/settings.json` supaya editor memakai Biome.
+4. Hapus ESLint, Prettier, plugin-pluginnya, dan file config-nya.
+5. Opsional: tambahkan commit format tadi ke `.git-blame-ignore-revs` supaya `git blame` melewatinya.
+
+Perintah `migrate eslint` akan memberi tahu rules mana saja yang tidak punya padanan. Dari daftar itulah kamu bisa menjawab pertanyaan "bisa pindah atau tidak?"
+
+**Catatan untuk Next.js:** Next.js 16 menghapus perintah bawaan `next lint`, jadi sekarang linter dijalankan langsung lewat script sendiri. Ini membuat pindah ke Biome jadi makin mudah, dan `create-next-app` sudah menawarkan Biome sebagai pilihan.
+
+## Kapan memilih yang mana
+
+**Pilih Biome kalau:**
+
+- Kamu memulai **project baru**.
+- Kodemu kebanyakan **JS, TS, JSX, JSON, dan CSS**.
+- Kamu mau **satu file config** serta hook dan CI yang **cepat**.
+- Rules yang kamu butuhkan sudah bawaan (untuk aplikasi React dan Next.js, biasanya sudah).
+
+**Tetap di ESLint + Prettier kalau:**
+
+- Kamu bergantung pada **plugin ESLint tertentu** yang belum dicakup Biome.
+- Kamu butuh **rules berbasis tipe yang ketat** dari `typescript-eslint` di semua tempat.
+- Kamu sering memformat **Markdown, YAML, atau file framework** (Vue, Svelte, Astro) dan mau satu tool untuk semuanya.
+- Kamu punya setup besar yang sudah berjalan, dan tidak ada yang mengeluh soal kecepatan.
+
+**Atau campur keduanya.** Sah-sah saja memakai Biome untuk formatting dan sebagian besar linting, lalu mempertahankan config ESLint kecil untuk satu atau dua plugin yang tidak bisa kamu tinggalkan. Pastikan saja kedua tool tidak menjalankan rules yang sama.
+
+## Ringkasan cepat
+
+**Kenapa saya suka Biome**
+
+- Satu tool, satu config, satu perintah (`biome check --write`)
+- Sangat cepat, jadi hook dan CI tetap ringan
+- Formatting yang kompatibel dengan Prettier
+- Pesan error yang jelas, dan setiap ignore wajib disertai alasan
+- Rules React dan Next.js sudah bawaan, tanpa install plugin
+
+**Di mana ESLint + Prettier masih unggul**
+
+- Ekosistem plugin yang sangat besar
+- Linting berbasis tipe yang lebih kuat lewat `typescript-eslint`
+- Formatting yang sudah stabil untuk lebih banyak jenis file (Markdown, YAML, HTML, Vue, Svelte)
+- Kematangan dan dokumentasi bertahun-tahun
+
+## Tips dari saya
+
+1. **Coba di branch terpisah.** Jalankan `biome migrate` dan lihat berapa banyak rules yang tidak punya padanan. Satu daftar itu sudah menjawab sebagian besar yang perlu kamu tahu.
+2. **Kunci versinya** dengan `-E`, dan update dengan sengaja.
+3. **Jadikan perubahan format besar sebagai commit tersendiri**, supaya perubahan yang sebenarnya tidak tenggelam.
+4. **Jalankan hanya pada file yang di-stage** di pre-commit hook. Pakai `biome ci` di CI.
+5. **Jangan pindah hanya karena sedang tren.** Kalau setup-mu sekarang sudah cukup cepat dan berjalan baik, tidak ada salahnya tetap di sana.
+
+Buat saya, Biome menghilangkan satu pekerjaan yang dulu selalu menyita waktu: merawat konfigurasi tooling. Saya sama sekali tidak rindu mengurus dua config.
+
+Selamat ngoding! ⚡

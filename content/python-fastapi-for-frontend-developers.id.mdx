@@ -1,24 +1,24 @@
 ---
 title: "Python & FastAPI 101 untuk Frontend Developer: Dari JS/TS ke API Pertamamu"
 publishedAt: "2026-10-15"
-summary: "Panduan ramah pemula untuk developer JavaScript dan TypeScript yang belajar Python dan FastAPI. Sintaks berdampingan dengan JS/TS, lalu todo API lengkap yang dibandingkan dengan Express dan Zod."
+summary: "Panduan ramah pemula untuk developer JavaScript dan TypeScript yang belajar Python dan FastAPI. Sintaks Python dibandingkan langsung dengan JS/TS, lalu todo API lengkap yang dibandingkan dengan Express dan Zod."
 tags: ["python", "fastapi", "typescript", "javascript", "learning"]
 ---
 
-Setelah [belajar Go](/id/blog/go-for-frontend-developers), saya ingin mencoba bahasa backend lain yang terus saya temui: **Python**. Dan di dunia Python, framework yang paling sering direkomendasikan untuk API saat ini adalah **FastAPI**.
+Setelah [belajar Go](/id/blog/go-for-frontend-developers), saya ingin mencoba bahasa backend lain yang sering saya temui: **Python**. Dan di dunia Python, framework yang paling sering direkomendasikan untuk API saat ini adalah **FastAPI**.
 
 Kabar baik untuk kita para frontend developer: FastAPI ternyata terasa sangat familiar. Kalau kamu pernah pakai Express untuk routing dan Zod untuk validasi, kamu sudah paham sebagian besarnya. Kamu cuma perlu belajar sedikit Python dulu.
 
 Jadi tulisan ini terbagi dua:
 
-1. **Python untuk developer JS/TS**: sintaks yang kamu butuhkan, berdampingan.
+1. **Python untuk developer JS/TS**: sintaks yang kamu butuhkan, dibandingkan langsung dengan JS/TS.
 2. **FastAPI untuk developer Express**: membangun todo API kecil, dibandingkan dengan yang biasa kamu tulis di Node.
 
 Ayo mulai 🐍
 
 ## Kenapa frontend dev perlu belajar Python dan FastAPI?
 
-- **AI dan data hidup di Python.** Sebagian besar library AI, machine learning, dan data dibuat untuk Python lebih dulu. Kalau aplikasimu butuh salah satunya, API Python kecil sering jadi jembatan paling gampang.
+- **Dunia AI dan data berpusat di Python.** Sebagian besar library AI, machine learning, dan data dibuat untuk Python lebih dulu. Kalau aplikasimu butuh salah satunya, API Python kecil sering jadi jembatan paling gampang.
 - **FastAPI cepat ditulis.** Kamu mendeskripsikan data dengan type hint, lalu dapat validasi, pesan error, dan dokumentasi API secara gratis.
 - **Dokumentasi OpenAPI gratis.** Setiap aplikasi FastAPI punya halaman dokumentasi interaktif di `/docs`. Kamu bahkan bisa generate tipe TypeScript untuk frontend dari situ.
 - **Python mudah dibaca.** Bahasa ini memang dirancang agar terlihat hampir seperti bahasa Inggris biasa.
@@ -43,7 +43,7 @@ Ayo mulai 🐍
 
 ### 1. Menyiapkan project
 
-Di dunia JS, kamu akan menjalankan `pnpm init` dan `pnpm add express`. Di Python, saya merekomendasikan **[uv](https://docs.astral.sh/uv/)**. Rasanya mirip pnpm: cepat, satu tool, dan ada lockfile.
+Di dunia JS, biasanya kamu menjalankan `pnpm init` dan `pnpm add express`. Di Python, saya merekomendasikan **[uv](https://docs.astral.sh/uv/)**. Rasanya mirip pnpm: cepat, satu tool, dan ada lockfile.
 
 ```bash
 # install uv sekali saja (macOS / Linux)
@@ -100,7 +100,7 @@ MAX_TODOS = 100  # "konstanta" hanya berdasarkan konvensi
 
 ### 3. Indentasi, bukan kurung kurawal
 
-Ini hal pertama yang bakal terasa aneh. Di Python, **indentasi adalah sintaksnya**. Tidak ada `{ }` di sekitar blok.
+Ini hal pertama yang bakal terasa aneh. Di Python, **indentasi adalah sintaksnya**. Blok kode tidak dibungkus `{ }`.
 
 **JavaScript**
 
@@ -130,7 +130,7 @@ else:
 - `else if` ditulis `elif`.
 - `console.log` ≈ `print`.
 
-Biarkan editor dan Ruff yang mengurus indentasi, dan dalam sehari kamu sudah tidak memperhatikannya lagi.
+Biarkan editor dan Ruff yang mengurus indentasi, dan dalam sehari kamu pun sudah terbiasa.
 
 ### 4. Tipe yang sudah kamu kenal
 
@@ -200,7 +200,7 @@ print(user.get("email"))  # None, bukan KeyError, kalau tidak ada
 
 ### 6. `.map()` dan `.filter()` → comprehension
 
-Python punya `map()` dan `filter()`, tapi kebanyakan orang menulis **list comprehension**. Bacanya seperti kalimat.
+Python punya `map()` dan `filter()`, tapi kebanyakan orang menulis **list comprehension**. Cara bacanya mirip kalimat biasa.
 
 **JavaScript**
 
@@ -254,7 +254,7 @@ for i in range(5):  # 0, 1, 2, 3, 4
     print(i)
 ```
 
-`for ... in` di Python bekerja seperti `for ... of` di JS. Hati-hati: di JS, `for ... in` melakukan perulangan atas *key*, dan ini sering bikin bingung.
+`for ... in` di Python bekerja seperti `for ... of` di JS. Hati-hati: di JS, `for ... in` mengulang *key*-nya, dan ini sering bikin bingung.
 
 ### 8. Fungsi
 
@@ -284,8 +284,8 @@ greet("Fachalik", greeting="Hi")  # keyword argument
 ```
 
 - `function` → `def`, dan tipe return ditulis setelah `->`.
-- **Keyword argument** itu kekuatan super. Kamu bisa mengirim argumen apa pun berdasarkan namanya: `greeting="Hi"`. Mirip mengirim options object di JS, tapi sudah bawaan bahasa.
-- `lambda` adalah arrow function versi Python, tapi hanya bisa berisi satu ekspresi. Kebanyakan waktu kamu cukup pakai `def`.
+- **Keyword argument** sangat berguna. Kamu bisa mengirim argumen apa pun berdasarkan namanya: `greeting="Hi"`. Mirip mengirim options object di JS, tapi sudah bawaan bahasa.
+- `lambda` adalah arrow function versi Python, tapi hanya bisa berisi satu ekspresi. Biasanya kamu cukup pakai `def`.
 
 ### 9. Class
 
@@ -354,7 +354,7 @@ finally:
     print("done")
 ```
 
-Idenya sama: `try` / `except` / `finally`. `throw` ditulis `raise`. Satu perbedaan yang menyenangkan: kamu bisa menangkap **jenis error tertentu**, jadi kamu tidak tanpa sengaja menelan bug yang tidak kamu duga.
+Idenya sama: `try` / `except` / `finally`. `throw` ditulis `raise`. Satu perbedaan yang menyenangkan: kamu bisa menangkap **jenis error tertentu**, jadi kamu tidak sengaja menyembunyikan bug yang tidak kamu duga.
 
 ### 11. Import
 
@@ -470,11 +470,11 @@ def list_todos(done: bool | None = None, limit: int = 10):
     return {"done": done, "limit": limit}
 ```
 
-Di sinilah FastAPI akhirnya "klik" buat saya. 🤯
+Di bagian inilah saya akhirnya benar-benar paham kenapa FastAPI disukai banyak orang. 🤯
 
 - `{todo_id}` di path cocok dengan parameter `todo_id`.
 - Parameter apa pun yang **tidak** ada di path menjadi **query parameter**.
-- **Type hint dipakai saat runtime.** `todo_id: int` artinya FastAPI mengubah `"42"` menjadi `42` untukmu. Kalau ada yang memanggil `/todos/abc`, mereka otomatis dapat **error 422** yang jelas. Kamu tidak menulis satu baris pun kode validasi.
+- **Type hint dipakai saat runtime.** `todo_id: int` artinya FastAPI mengubah `"42"` menjadi `42` untukmu. Kalau ada yang memanggil `/todos/abc`, mereka otomatis dapat **error 422** yang jelas. Dan kamu tidak perlu menulis satu baris pun kode validasi.
 
 Ingat waktu saya bilang Python tidak mengecek type hint? FastAPI adalah pengecualiannya. FastAPI membaca type hint dan memakainya untuk mem-parse dan memvalidasi request.
 
@@ -622,14 +622,14 @@ def read_me(user: Annotated[str, Depends(get_current_user)]):
 
 - `Depends(get_current_user)` artinya "jalankan fungsi ini dulu dan berikan hasilnya ke saya".
 - Nilai return dari dependency masuk sebagai **parameter yang bertipe**. Tidak ada lagi `req.user` dengan tipe `any`.
-- `Header()` membacakan header `Authorization` untukmu.
+- `Header()` membaca header `Authorization` untukmu.
 - Dependency bisa bergantung pada dependency lain. Ini cara standar untuk berbagi hal seperti session database, user yang sedang login, atau konfigurasi.
 
 Kalau kamu pernah pakai React hooks, ini mirip memanggil `useAuth()` di bagian atas komponen: route menyebutkan apa yang dibutuhkan, dan framework yang menyediakannya.
 
 ### 19. `async def` atau `def`?
 
-Mungkin kamu sadar saya menulis fungsi `def` biasa. FastAPI mendukung keduanya:
+Mungkin kamu memperhatikan bahwa saya menulis fungsi `def` biasa. FastAPI mendukung keduanya:
 
 ```python
 import httpx
@@ -652,7 +652,7 @@ Berbeda dengan JS, kode sync itu hal yang sangat normal di Python. Kamu tidak ha
 
 ### 20. CORS: supaya frontend-mu bisa mengakses API
 
-Kamu pasti bakal ketemu ini pertama kali aplikasi Next.js atau Vite-mu memanggil API. 😅
+Kamu pasti bakal ketemu masalah ini begitu aplikasi Next.js atau Vite-mu pertama kali memanggil API. 😅
 
 ```python
 from fastapi.middleware.cors import CORSMiddleware
@@ -679,7 +679,7 @@ Sekarang model Pydantic dan tipe di frontend berasal dari sumber yang sama. Ubah
 
 ## Todo API lengkap
 
-Ini semuanya digabung. Hanya satu file, dengan "database" di memori supaya kamu bisa fokus ke FastAPI-nya.
+Berikut semuanya digabung jadi satu. Hanya satu file, dengan "database" di memori supaya kamu bisa fokus ke FastAPI-nya.
 
 ```python
 # main.py
@@ -765,7 +765,7 @@ Beberapa hal yang perlu diperhatikan:
 
 - `global next_id` diperlukan karena kita mengubah variabel level atas dari dalam fungsi. Di aplikasi sungguhan, database yang akan memberikan id-nya.
 - `model_dump(exclude_unset=True)` hanya mengembalikan field yang dikirim client. Begitulah cara melakukan `PATCH` tanpa menimpa field lain dengan `None`.
-- Langkah selanjutnya untuk project sungguhan: database (SQLModel, buatan pembuat FastAPI, cocok untuk mulai), testing dengan `pytest`, dan memecah route ke beberapa file dengan `APIRouter` (mirip `express.Router()`).
+- Langkah selanjutnya untuk project sungguhan: database (SQLModel, dibuat oleh pembuat FastAPI, cocok untuk memulai), testing dengan `pytest`, dan memecah route ke beberapa file dengan `APIRouter` (mirip `express.Router()`).
 
 ## Contekan tooling
 
@@ -815,6 +815,6 @@ Beberapa hal yang perlu diperhatikan:
 4. Bangun ulang API yang pernah kamu buat dengan Express. Melihat hal yang sama di dua bahasa adalah cara tercepat untuk belajar.
 5. Biarkan `/docs` tetap terbuka saat ngoding. Ini cara tercepat untuk mengetes endpoint-mu.
 
-Saya juga masih baru di Python, tapi FastAPI membuatnya terasa seperti rumah sendiri jauh lebih cepat dari yang saya kira. Kalau kamu sudah paham TypeScript, Express, dan Zod, kamu sudah setengah jalan lebih.
+Saya juga masih baru di Python, tapi berkat FastAPI, saya merasa betah jauh lebih cepat dari yang saya kira. Kalau kamu sudah paham TypeScript, Express, dan Zod, kamu sudah lebih dari setengah jalan.
 
 Selamat ngoding! 🐍

@@ -1,0 +1,346 @@
+---
+title: "Biome vs ESLint + Prettier: Is One Tool Enough?"
+publishedAt: "2026-10-16"
+summary: "A practical comparison of Biome and the classic ESLint + Prettier setup. Speed, config, rules, plugins, and editor support, plus how to migrate and when you should stay where you are."
+tags: ["biome", "eslint", "prettier", "tooling", "javascript", "typescript"]
+---
+
+For years, every JavaScript project I started had the same two tools: **ESLint** to find problems and **Prettier** to format the code. Then I'd spend the next 20 minutes installing plugins, writing config, and fixing the fights between them.
+
+This site now uses **[Biome](https://biomejs.dev/)** instead. One tool, one config file, and it's fast enough that I forget it's running.
+
+But "one tool is better than two" isn't the whole story. In this post I'll compare them honestly: what Biome does well, where ESLint + Prettier still win, and how to decide for your own project.
+
+## The short version
+
+- **Biome** is a single tool, written in Rust, that does formatting **and** linting (and sorts your imports too).
+- **ESLint** is a linter. **Prettier** is a formatter. You usually need both, plus some glue.
+- Biome is **much faster** and **much simpler to set up**.
+- ESLint has a **much bigger plugin ecosystem**, and Prettier supports **more file types**.
+
+If you're starting a new JS/TS project, Biome is a great default. If you depend on specific ESLint plugins, or you format a lot of Markdown and YAML, the classic combo may still be the better fit.
+
+## What each tool actually does
+
+Before comparing, it helps to be clear about the two jobs:
+
+| Job | Question it answers | Example |
+| --- | --- | --- |
+| **Formatting** | "How should this code *look*?" | Quotes, semicolons, indentation, line width |
+| **Linting** | "Is this code *wrong* or *risky*?" | Unused variables, missing `await`, hooks called in a loop |
+
+With the classic setup, **Prettier** does formatting and **ESLint** does linting. ESLint *can* also format, but most teams turn those rules off so the two tools don't fight. That's what `eslint-config-prettier` is for.
+
+Biome does both jobs in one pass, with one parser.
+
+## The big picture
+
+| Topic | ESLint + Prettier | Biome |
+| --- | --- | --- |
+| Tools to install | 2 tools, often 5+ packages | 1 package |
+| Language | JavaScript | Rust |
+| Speed | Fine on small projects, slow on big ones | Very fast, multi-threaded |
+| Config files | `eslint.config.js` + `.prettierrc` (+ ignore files) | `biome.json` |
+| Formatter output | The "standard" everyone copies | ~97% Prettier compatible |
+| Lint rules | Huge, through plugins | 500+ built-in rules, no npm plugins |
+| Custom rules | Write a plugin in JS | GritQL plugins (simpler, but more limited) |
+| Type-aware rules | Yes, via `typescript-eslint` (slow) | Some, without the TypeScript compiler |
+| File types | Prettier: JS, TS, CSS, HTML, Markdown, YAML, GraphQL, and more | JS, TS, JSX, JSON, CSS, GraphQL; HTML, Vue, Svelte, Astro experimental |
+| Import sorting | Extra plugin | Built in |
+| Maturity | 10+ years, used everywhere | Younger, but stable and growing fast |
+
+Let's look at the parts that matter most in daily work.
+
+## 1. Setup
+
+**ESLint + Prettier**
+
+A typical TypeScript + React project ends up with something like this:
+
+```bash
+pnpm add -D eslint @eslint/js typescript-eslint \
+  eslint-plugin-react-hooks \
+  prettier eslint-config-prettier
+```
+
+Then you write two config files:
+
+```js
+// eslint.config.js
+import { defineConfig } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import prettier from "eslint-config-prettier";
+
+export default defineConfig(
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  reactHooks.configs.flat.recommended,
+  prettier, // must be last, turns off rules that clash with Prettier
+);
+```
+
+```json
+// .prettierrc
+{
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all"
+}
+```
+
+It works, but you have to know which packages to pick, which order they go in, and why `eslint-config-prettier` must come last.
+
+**Biome**
+
+```bash
+pnpm add -D -E @biomejs/biome
+pnpm exec biome init
+```
+
+That's it. `biome init` creates a `biome.json` with sensible defaults, and the recommended rules are on from the start.
+
+Here is a trimmed version of the config this site actually uses:
+
+```json
+// biome.json
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "assist": {
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "linter": {
+    "domains": { "next": "recommended", "react": "recommended" },
+    "rules": { "preset": "recommended" }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  }
+}
+```
+
+A few nice things in there:
+
+- `"useIgnoreFile": true` means Biome reads your `.gitignore`. No separate ignore file.
+- **Domains** turn on rule groups for a framework. `"react": "recommended"` gives you the hooks rules, `"next"` gives you Next.js rules. No plugins to install.
+- The `$schema` line gives you autocomplete in VS Code.
+
+**Tip:** Install Biome with `-E` (exact version). Formatting can change slightly between versions, and you don't want two teammates getting different output.
+
+## 2. Speed
+
+This is where Biome is most famous. It's written in Rust and uses all your CPU cores, while ESLint and Prettier run in Node.
+
+On small projects you won't feel much difference. Both finish in a second or two. On a large monorepo, it's a different story: ESLint with type-aware rules can take **minutes**, and Biome often finishes the same codebase in **well under a second**. In the Biome team's own benchmark, formatting about 171,000 lines of code was around 35x faster than Prettier.
+
+Where speed really matters:
+
+- **Pre-commit hooks.** A hook that takes 15 seconds gets skipped. A hook that takes 200 ms gets used.
+- **CI.** Less waiting on every pull request.
+- **Editor.** Format-on-save feels instant, even in big files.
+
+On this site, the pre-commit hook runs Biome only on staged files, and I genuinely don't notice it:
+
+```yaml
+# lefthook.yml
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+```
+
+## 3. Daily commands
+
+| What you want | ESLint + Prettier | Biome |
+| --- | --- | --- |
+| Format files | `prettier --write .` | `biome format --write` |
+| Lint files | `eslint .` | `biome lint` |
+| Lint + fix | `eslint . --fix` | `biome lint --write` |
+| Format + lint + sort imports | `prettier --write . && eslint . --fix` | `biome check --write` |
+| Check in CI (no writes) | `prettier --check . && eslint .` | `biome ci` |
+
+`biome check` is the one I use most. It formats, lints, and organizes imports in a single command.
+
+## 4. Formatting output
+
+Biome's formatter was built to match Prettier, and it does: around **97% compatibility** on Prettier's own test suite. In practice, most projects can switch and see almost no diff.
+
+The small differences are edge cases, like how some long expressions wrap. If your team is used to Prettier's output, you probably won't notice.
+
+Options are similar too, with slightly different names:
+
+| Prettier | Biome |
+| --- | --- |
+| `semi: false` | `javascript.formatter.semicolons: "asNeeded"` |
+| `singleQuote: true` | `javascript.formatter.quoteStyle: "single"` |
+| `trailingComma: "all"` | `javascript.formatter.trailingCommas: "all"` |
+| `printWidth: 100` | `formatter.lineWidth: 100` |
+| `tabWidth: 2` | `formatter.indentWidth: 2` |
+
+## 5. Lint rules and error messages
+
+Biome ships with **500+ rules**, many of them ported from ESLint, `typescript-eslint`, `eslint-plugin-react`, `jsx-a11y`, `unicorn`, and others. Rules are grouped by purpose (`correctness`, `suspicious`, `style`, `a11y`, `performance`, `security`, `complexity`) instead of by plugin.
+
+The error messages are also really good. Biome tells you *why* something is a problem and often shows the fix right in the terminal:
+
+```txt
+src/app/page.tsx:12:7 lint/correctness/noUnusedVariables  FIXABLE
+  ✖ This variable is unused.
+  > 12 │   const total = items.length;
+       │         ^^^^^
+  ℹ Unused variables are often the result of an incomplete refactoring.
+  ℹ Unsafe fix: If this is intentional, prepend total with an underscore.
+```
+
+Ignoring a rule for one line looks familiar, but it requires a reason:
+
+**ESLint**
+
+```ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const data: any = await legacyClient.fetch();
+```
+
+**Biome**
+
+```ts
+// biome-ignore lint/suspicious/noExplicitAny: third-party type is wrong
+const data: any = await legacyClient.fetch();
+```
+
+I like that rule. Six months later, you know *why* the ignore is there.
+
+## 6. Type-aware linting
+
+Some of the most useful rules need to know your types. For example, `no-floating-promises` catches a promise you forgot to `await`.
+
+- **ESLint** does this through `typescript-eslint`, which runs the real TypeScript compiler. It's very accurate, but it's also the main reason ESLint gets slow on big projects.
+- **Biome** (since v2) has its own type inference, so it can run rules like `noFloatingPromises` **without** the TypeScript compiler. It's much faster, but it doesn't cover every case that `typescript-eslint` does yet.
+
+If your team relies heavily on strict type-aware rules, this is the biggest gap to check before switching.
+
+## 7. Plugins and ecosystem
+
+This is ESLint's biggest advantage.
+
+ESLint has thousands of plugins: Tailwind, Testing Library, Storybook, Playwright, TanStack Query, import boundaries, your company's internal rules, and so on. If a library exists, there's probably an ESLint plugin for it.
+
+Biome doesn't load ESLint plugins. Instead:
+
+- Many popular rules are **already built in** (React, hooks, a11y, Next.js, Tailwind class sorting with `useSortedClasses`).
+- You can write **custom rules with GritQL**, a pattern language. It's great for simple "don't use this API" rules, but less powerful than a full JS plugin.
+
+So ask yourself: *which ESLint plugins do I actually use, and does Biome cover them?* For a lot of apps, the answer is yes. For some, it isn't.
+
+## 8. File types
+
+Prettier formats almost everything in a frontend repo, including **Markdown, MDX, YAML, and HTML**.
+
+Biome is strongest in **JS, TS, JSX, JSON, and CSS**, and it also handles GraphQL. HTML formatting is experimental and you have to turn it on yourself. Vue, Svelte, and Astro support is experimental too. Markdown and YAML are still in progress, so Biome can't format them yet.
+
+For this site that's fine. My MDX blog posts don't need a formatter, and everything else is TS, JSON, and CSS. If your repo has lots of YAML or Markdown docs, you can keep Prettier just for those files and let Biome handle the rest.
+
+## 9. Editor support
+
+Both work well in VS Code. For Biome, install the official extension and set it as the default formatter:
+
+```json
+// .vscode/settings.json
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  }
+}
+```
+
+There are also extensions for JetBrains IDEs, Zed, Neovim, and others. ESLint and Prettier are supported by basically every editor that exists.
+
+## Migrating from ESLint + Prettier
+
+Biome has built-in migration commands that read your existing config:
+
+```bash
+pnpm add -D -E @biomejs/biome
+pnpm exec biome init
+
+# copy your Prettier options into biome.json
+pnpm exec biome migrate prettier --write
+
+# turn your ESLint rules into Biome rules (where they exist)
+pnpm exec biome migrate eslint --write
+```
+
+Then:
+
+1. Run `pnpm exec biome check --write` once and commit the result as its own "format" commit. That keeps your real changes easy to review.
+2. Update your `package.json` scripts, pre-commit hooks, and CI to use Biome.
+3. Update `.vscode/settings.json` so the editor uses Biome.
+4. Remove ESLint, Prettier, their plugins, and their config files.
+5. Optional: add the format commit to `.git-blame-ignore-revs` so `git blame` skips it.
+
+The `migrate eslint` command will tell you which rules it couldn't map. That list is your answer to "can we switch?"
+
+**Note for Next.js:** Next.js 16 removed the built-in `next lint` command, so you now run your linter directly. That makes switching to Biome even easier, and `create-next-app` already offers Biome as an option.
+
+## When to choose which
+
+**Choose Biome if:**
+
+- You're starting a **new project**.
+- Your code is mostly **JS, TS, JSX, JSON, and CSS**.
+- You want **one config file** and **fast** hooks and CI.
+- The rules you need are already built in (they usually are for React and Next.js apps).
+
+**Stay with ESLint + Prettier if:**
+
+- You depend on **specific ESLint plugins** Biome doesn't cover.
+- You need **strict type-aware rules** from `typescript-eslint` everywhere.
+- You format lots of **Markdown, YAML, or framework files** (Vue, Svelte, Astro) and want one tool for all of it.
+- You have a big existing setup that works, and nobody is complaining about speed.
+
+**Or mix them.** It's perfectly fine to use Biome for formatting and most linting, and keep a small ESLint config for one or two plugins you can't live without. Just make sure the two tools don't run the same rules.
+
+## Quick summary
+
+**Why I like Biome**
+
+- One tool, one config, one command (`biome check --write`)
+- Very fast, so hooks and CI stay quick
+- Prettier-compatible formatting
+- Great error messages, and ignores require a reason
+- React and Next.js rules built in, no plugins to install
+
+**Where ESLint + Prettier still win**
+
+- A huge plugin ecosystem
+- Stronger type-aware linting through `typescript-eslint`
+- Stable formatting for more file types (Markdown, YAML, HTML, Vue, Svelte)
+- Years of maturity and docs
+
+## My tips
+
+1. **Try it on a branch.** Run `biome migrate` and see how many rules are missing. That one list tells you most of what you need to know.
+2. **Pin the version** with `-E`, and update on purpose.
+3. **Make the big format change its own commit**, so it doesn't hide real changes.
+4. **Run it on staged files only** in your pre-commit hook. Use `biome ci` in CI.
+5. **Don't switch just because it's new.** If your current setup is fast enough and works, that's a fine place to be.
+
+For me, Biome removed a whole category of "tooling maintenance" from my projects. I don't miss juggling two configs at all.
+
+Happy coding! ⚡
