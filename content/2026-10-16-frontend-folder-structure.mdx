@@ -1,0 +1,351 @@
+---
+title: "How I Organize Frontend Projects"
+publishedAt: "2026-10-16"
+summary: "How I organize a frontend project as it grows: from a flat folder, to folders by type, to feature folders with import rules, and finally a monorepo. Why each step exists and when to take it."
+tags: ["architecture", "frontend", "react", "nextjs", "typescript", "best-practices"]
+---
+
+Every frontend project starts clean. Six months later, `components/` has 140 files, `utils.ts` is 900 lines long, and nobody remembers which `Button` is the real one.
+
+Users never see your folders. But folders decide how fast you can find code, change it safely, and delete it when a feature is gone. This post is how I organize projects so that stays easy.
+
+There's no single "right" structure. The old React docs said React ["doesn't have opinions on how you put files into folders"](https://legacy.reactjs.org/docs/faq-structure.html), and Dan Abramov's advice is [one line long](https://react-file-structure.surge.sh/): *"move files around until it feels right."* So instead of one perfect layout, I'll show the **steps** a project goes through as it grows, **why** each step exists, and **when** to take the next one.
+
+## The test I use
+
+Before choosing folders, I need a way to tell good from bad. I ask four questions:
+
+| Question | Good answer | Bad answer |
+| --- | --- | --- |
+| **Find:** Where is the code for X? | I can guess the path | I have to search for it |
+| **Change:** If I change X, what breaks? | Only things in X's folder | Random files across the app |
+| **Delete:** Can I remove X? | Delete one folder | Hunt through 12 folders |
+| **Onboard:** Can a new dev add a feature? | They copy an existing one | They ask me where things go |
+
+Every step below exists because one of these answers got worse. To make that easy to see, I'll follow **one example app** the whole way: a small invoicing app that grows into a real product.
+
+## The example app
+
+The example is built with **Next.js (App Router), React, and TypeScript**, the same stack as this site. That's why you'll see `src/app/` for routes and `page.tsx` for each page.
+
+Not using Next.js? The ideas still apply. Only the **routing folder** changes:
+
+| Stack | Where routes live | Everything else |
+| --- | --- | --- |
+| **Next.js** (App Router) | `src/app/invoices/page.tsx` | Same as this post |
+| **React Router** (framework mode) | `app/routes/invoices.tsx` | Same as this post |
+| **Vite + React Router** (no framework) | `src/routes/invoices.tsx`, plus a router file | Same as this post |
+
+`features/`, `components/`, `lib/`, the import rules, and the monorepo setup work the same way in all three. Only the [Next.js section](#where-nextjs-fits-in) near the end is specific to Next.js.
+
+## Step 0: Flat
+
+On day one, the app is a few files. `create-next-app` gives you `layout.tsx` and `page.tsx`, and the first components sit right next to them:
+
+```txt
+src/app/
+├── layout.tsx
+├── page.tsx
+├── invoice-list.tsx
+├── invoice-item.tsx
+├── api.ts
+├── utils.ts
+└── globals.css
+```
+
+This is fine. With a handful of files, all four questions are easy: you can see everything at once. Adding folders now only adds clicks, and designing a "scalable architecture" for code you haven't written yet is a good way to never ship.
+
+**Move on when** you start scrolling to find files, or one folder has more than 15 to 20 of them.
+
+## Step 1: Group by type
+
+The natural next step is to sort files by **what kind of thing they are**:
+
+```txt
+src/
+├── app/              # routes / pages
+├── components/
+│   ├── ui/           # buttons, inputs, dialogs
+│   └── layout/       # header, footer, sidebar
+├── hooks/
+├── lib/              # helpers, API client, config
+└── types/
+```
+
+Most templates start here, and it works well for apps with **few features and lots of shared UI**: a landing page, a portfolio, a small dashboard. Everyone knows what goes in `hooks/`, and `components/ui/` is where tools like [shadcn/ui](https://ui.shadcn.com/) already put things.
+
+The problem shows up as the app grows. Here's our invoicing feature now:
+
+```txt
+src/app/invoices/page.tsx
+src/components/invoice-table.tsx
+src/components/invoice-filters.tsx
+src/hooks/use-invoices.ts
+src/lib/invoice-api.ts
+src/types/invoice.ts
+```
+
+Six files in five folders. **Change** means jumping around the whole tree. **Delete** means hunting down every piece, and probably missing one.
+
+**Move on when** most files in `components/` are used by only one page, or every change makes you open the same four or five folders.
+
+## Step 2: Group by feature
+
+This is the biggest improvement. Instead of asking "what kind of file is this?", ask "**which part of the product is this for?**"
+
+```txt
+src/
+├── app/                    # routes only
+├── features/
+│   ├── auth/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── api.ts
+│   └── invoices/
+│       ├── components/
+│       │   ├── invoice-table.tsx
+│       │   └── invoice-filters.tsx
+│       ├── hooks/
+│       │   └── use-invoices.ts
+│       ├── api.ts
+│       └── types.ts
+├── components/ui/          # shared UI (used by 2+ features)
+├── hooks/                  # shared hooks
+├── lib/                    # shared helpers
+└── types/
+```
+
+The same invoice code now lives in **one folder**, and the four questions get easy again:
+
+- **Find:** invoice code is in `features/invoices/`.
+- **Change:** most tickets touch one feature, so most changes stay in one folder. Kent C. Dodds calls this [colocation](https://kentcdodds.com/blog/colocation): *"place code as close to where it's relevant as possible."*
+- **Delete:** remove the folder and fix a few imports. As Robin Wieruch [puts it](https://www.robinwieruch.de/react-folder-structure/), *"keeping features independent is what makes them removable."*
+- **Onboard:** a new feature copies the shape of an existing one.
+
+### Feature folder or shared folder?
+
+This is the question people ask most. My rule:
+
+> **Start inside the feature. Move it out only when a second feature needs it.**
+
+The invoice table lives in `features/invoices/`. If a reports feature later needs a similar table, **then** I make a generic version in `components/`. Wieruch describes the same flow: code moves up when several features need it, and back down when only one does.
+
+Don't guess ahead of time. Code that's "probably reusable" usually isn't, and a shared folder full of one-time components is just Step 1 again.
+
+### Pages stay thin
+
+Since features do the work, a page only puts them together:
+
+```tsx
+// src/app/invoices/page.tsx
+import { InvoiceFilters } from "@/features/invoices/components/invoice-filters";
+import { InvoiceTable } from "@/features/invoices/components/invoice-table";
+
+export default function InvoicesPage() {
+  return (
+    <main>
+      <h1>Invoices</h1>
+      <InvoiceFilters />
+      <InvoiceTable />
+    </main>
+  );
+}
+```
+
+The route decides **where** something appears. The feature decides **what** it does.
+
+## Step 3: Add import rules
+
+Feature folders fix where code lives, but not who uses it. A year in, you'll find something like this:
+
+```ts
+// inside features/auth/...
+import { formatInvoiceTotal } from "@/features/invoices/utils";
+```
+
+Now `auth` depends on `invoices`. Deleting invoices breaks login, and the **Change** and **Delete** answers are bad again. The fix is to make imports flow in **one direction**:
+
+| Layer | Contains | Can import from |
+| --- | --- | --- |
+| `app/` | Routes, layouts | `features/`, shared |
+| `features/` | One part of the product | shared only, **not other features** |
+| shared (`components/`, `hooks/`, `lib/`, `types/`) | Generic building blocks | shared only |
+
+This is the rule [Bulletproof React](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md) recommends too: code should *"flow in one direction, from shared parts of the code to the application."*
+
+If one feature really needs something from another, I try these in order:
+
+1. **Combine them in the page.** The page imports both features and passes data as props.
+2. **Move the shared part down.** If both need `formatInvoiceTotal`, it belongs in `lib/`.
+
+### Let the linter enforce it
+
+A rule that only lives in the README breaks in the first busy week. With **Biome**, `noRestrictedImports` can block shared code from importing features or routes:
+
+```json
+// biome.json
+{
+  "overrides": [
+    {
+      "includes": ["src/lib/**", "src/components/**", "src/hooks/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/**", "@/app/**"],
+                    "message": "Shared code must not depend on features or routes."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+With **ESLint**, use `import/no-restricted-paths` (what Bulletproof React uses) or [`eslint-plugin-boundaries`](https://github.com/javierbrea/eslint-plugin-boundaries). I also run [Knip](https://knip.dev/), which finds files left behind after moving things around.
+
+### Skip the `index.ts` in each feature
+
+A common idea is to give each feature a "public API" file:
+
+```ts
+// src/features/invoices/index.ts
+export { InvoiceTable } from "./components/invoice-table";
+export { useInvoices } from "./hooks/use-invoices";
+```
+
+It looks tidy, but these **barrel files** have real costs. Importing one thing can load the whole feature, which slows builds and breaks tree-shaking. When Vercel [measured this in Next.js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js), importing `@mui/material` loaded 2,225 modules where 735 were enough. Barrels also make circular imports easier to create, and in Next.js they can pull client code into places you didn't expect.
+
+Bulletproof React used to recommend them and now [says to import files directly](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). I agree: in app code, import from the file, and let the lint rule protect the boundaries.
+
+### What about Feature-Sliced Design?
+
+If you want even stricter rules, look at [Feature-Sliced Design](https://feature-sliced.design/) (FSD). It's Step 3 with more layers (`app`, `pages`, `widgets`, `features`, `entities`, `shared`) and fixed names. It's useful for large teams that want one shared vocabulary.
+
+For most projects I find it too much at the start, because debating "widget or feature?" takes time away from the product. Even the FSD docs [say](https://feature-sliced.design/docs/get-started/overview): *"If the current architecture works, maybe it's not worth changing."*
+
+## Step 4: Monorepo
+
+Our invoicing product now has a second app: an admin dashboard. It needs the same buttons, the same invoice types, and the same API client. Copy-pasting between repos won't last, so this is where a **monorepo** helps:
+
+```txt
+.
+├── apps/
+│   ├── web/              # customer app (Step 2 or 3 inside)
+│   └── admin/            # admin dashboard
+├── packages/
+│   ├── ui/               # shared design system
+│   ├── api-client/       # typed API client + invoice types
+│   └── config/           # shared tsconfig, biome.json
+├── pnpm-workspace.yaml
+└── turbo.json
+```
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+It's the same one-way rule, one level up: **apps import packages, packages never import apps.** One pull request can update the design system and every app that uses it, and tools like [Turborepo](https://turborepo.com/) or [Nx](https://nx.dev/) rebuild only what changed.
+
+A monorepo also adds real overhead: workspace config, build pipelines, slower installs. If you only have one app, `src/features/` gives you most of the benefit for much less work. Packages are also the one place where I *do* like an `index.ts`, because there a clear public API matters more than build speed.
+
+## Where Next.js fits in
+
+This section only applies to Next.js. If you use React Router, you can skip it.
+
+Next.js doesn't force a structure, but a few of its [conventions](https://nextjs.org/docs/app/getting-started/project-structure) fit the steps above well:
+
+- **`src/` folder:** keeps app code separate from config files at the root.
+- **`app/` for routes only:** `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`. Logic goes in `features/`, like in Step 2.
+- **Colocation is safe:** a file in `app/` only becomes a route if it's named `page.tsx` or `route.ts`. A component used by one page can sit right next to it. Prefix a folder with `_` (like `_components/`) to make that extra clear.
+- **Route groups:** a folder like `(dashboard)/` groups routes and gives them a shared layout **without** changing the URL.
+- **Server-only code:** keep database calls and secrets in files that client components never import. The [`server-only`](https://www.npmjs.com/package/server-only) package turns a mistake into a build error.
+
+```txt
+app/
+├── (marketing)/
+│   ├── layout.tsx          # marketing header + footer
+│   └── page.tsx            # → /
+└── (dashboard)/
+    ├── layout.tsx          # sidebar + auth check
+    └── invoices/
+        ├── _components/    # used only by this page
+        └── page.tsx        # → /invoices
+```
+
+## Rules I follow at every step
+
+The steps change. These don't:
+
+1. **Use a path alias.** `@/lib/format-date` instead of `../../../../lib/format-date`. Then moving files, which you'll do at every step, doesn't break dozens of imports.
+2. **Use one naming style.** I use kebab-case for files (`invoice-table.tsx`). macOS ignores the difference between `Button.tsx` and `button.tsx`, but Linux and your CI don't.
+3. **No `utils.ts` dumping ground.** Split by purpose: `format-date.ts`, `currency.ts`. If you can't name the file, the code probably belongs in a feature.
+4. **Keep tests next to the code.** `invoice-table.test.tsx` lives beside `invoice-table.tsx`, so deleting one deletes the other.
+5. **Don't nest too deep.** Three or four levels is plenty. The [old React docs](https://legacy.reactjs.org/docs/faq-structure.html) suggested the same limit.
+
+## How this site is organized
+
+This portfolio is small, so it sits between Step 1 and Step 2:
+
+```txt
+content/                  # blog posts (MDX), not code, so outside src
+src/
+├── app/[locale]/         # routes only
+├── features/page/        # homepage sections (hero, work, projects...)
+├── components/
+│   ├── ui/               # shadcn/ui
+│   └── blog/             # blog-only UI: table of contents, share buttons
+├── data/                 # resume data and blog loading
+├── i18n/                 # translation setup
+└── lib/                  # seo, feed, og images, utils
+```
+
+The homepage sections are only used on one page, so they live in `features/page/`, not in `components/`. `components/blog/` is honestly a feature too. Once the blog grows past a handful of files, it will move to `features/blog/`, following the same "move on when" signals from above.
+
+## Moving an existing project
+
+If your project is stuck at Step 1, don't rewrite everything in one big PR. Move one step at a time:
+
+1. **Add the path alias first**, so moving files is cheap.
+2. **Move one feature**, ideally the one you're about to work on, into `features/<name>/`. Your editor will update the imports.
+3. **Commit the move by itself**, with no logic changes, so it's easy to review.
+4. **Add the lint rule** once two or three features have moved.
+5. **Repeat** each time you touch another feature.
+
+## Wrapping up
+
+| Your project | Step |
+| --- | --- |
+| Prototype, a handful of files | **0:** flat |
+| Few features, mostly shared UI | **1:** by type |
+| Several distinct features | **2:** by feature |
+| Long-lived, several developers | **3:** features + import rules |
+| Several apps sharing code | **4:** monorepo |
+
+Move to the next step only when one of the four questions gets hard to answer: finding, changing, deleting, or onboarding. If nothing hurts, your structure is fine, even if a blog post (including this one) suggests something else.
+
+The best folder structure is one you stop thinking about. You know where things go, you put them there, and you get back to building.
+
+## Further reading
+
+- **[File Structure (React docs, legacy)](https://legacy.reactjs.org/docs/faq-structure.html):** the "no opinion" stance, feature vs. type, and the nesting limit.
+- **[Project Structure (Next.js docs)](https://nextjs.org/docs/app/getting-started/project-structure):** colocation, private folders, and route groups.
+- **[Bulletproof React: Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md):** feature folders, one-way imports, and why to skip barrel files.
+- **[Colocation](https://kentcdodds.com/blog/colocation)** by Kent C. Dodds: why code should live near where it's used.
+- **[React Folder Structure Best Practices](https://www.robinwieruch.de/react-folder-structure/)** by Robin Wieruch: a step-by-step path from one file to feature folders.
+- **[Feature-Sliced Design](https://feature-sliced.design/docs/get-started/overview):** a stricter, layered method for larger teams.
+- **[How we optimized package imports in Next.js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js)** (Vercel): what barrel files cost, in numbers.
+- **[react-file-structure.surge.sh](https://react-file-structure.surge.sh/)** by Dan Abramov: the shortest advice on this topic.
+
+Happy coding! 🗂️

@@ -46,10 +46,35 @@ export type Post = {
   availableLocales: Locale[];
 };
 
-/** `hello-world.mdx` is English; `hello-world.id.mdx` is its Indonesian version. */
-function postFile(slug: string, locale: Locale) {
-  const suffix = locale === routing.defaultLocale ? "" : `.${locale}`;
-  return path.join(CONTENT_DIR, `${slug}${suffix}.mdx`);
+/** Files start with their publish date so they sort oldest → newest on disk. */
+const DATE_PREFIX = /^\d{4}-\d{2}-\d{2}-/;
+
+type PostFile = { file: string; slug: string; locale: Locale };
+
+/**
+ * `2026-10-16-hello-world.mdx` is English; `2026-10-16-hello-world.id.mdx` is
+ * its Indonesian version. Both have the slug `hello-world`.
+ */
+function getPostFiles(): PostFile[] {
+  return fs
+    .readdirSync(CONTENT_DIR)
+    .filter((file) => path.extname(file) === ".mdx")
+    .map((file) => {
+      const name = path.basename(file, ".mdx");
+      const locale =
+        routing.locales.find(
+          (l) => l !== routing.defaultLocale && name.endsWith(`.${l}`),
+        ) ?? routing.defaultLocale;
+      const base =
+        locale === routing.defaultLocale
+          ? name
+          : name.slice(0, -(locale.length + 1));
+      return {
+        file: path.join(CONTENT_DIR, file),
+        slug: base.replace(DATE_PREFIX, ""),
+        locale,
+      };
+    });
 }
 
 /** Collects h2/h3 for the table of contents; runs after rehype-slug assigns ids. */
@@ -76,16 +101,17 @@ export async function markdownToHTML(markdown: string) {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSlug)
+    // Before autolink, so the "#" anchor text doesn't leak into TOC labels.
+    .use(rehypeCollectHeadings(headings))
     .use(rehypeAutolinkHeadings, {
       behavior: "append",
       properties: { className: ["anchor"], ariaHidden: true, tabIndex: -1 },
       content: { type: "text", value: "#" },
     })
-    .use(rehypeCollectHeadings(headings))
     .use(rehypePrettyCode, {
       // https://rehype-pretty.pages.dev/#usage
       theme: {
-        light: "min-light",
+        light: "github-light",
         dark: "min-dark",
       },
       keepBackground: false,
@@ -112,8 +138,9 @@ export const getPost = cache(
     slug: string,
     locale: Locale = routing.defaultLocale,
   ): Promise<Post | null> => {
+    const files = getPostFiles().filter((f) => f.slug === slug);
     const availableLocales = routing.locales.filter((l) =>
-      fs.existsSync(postFile(slug, l)),
+      files.some((f) => f.locale === l),
     );
 
     // Requested translation first, then English. Unknown slug → 404, not a 500.
@@ -124,7 +151,9 @@ export const getPost = cache(
         : null;
     if (!contentLocale) return null;
 
-    const source = fs.readFileSync(postFile(slug, contentLocale), "utf-8");
+    const file = files.find((f) => f.locale === contentLocale);
+    if (!file) return null;
+    const source = fs.readFileSync(file.file, "utf-8");
     const { content: rawContent, data: metadata } = matter(source);
     const { html, headings } = await markdownToHTML(rawContent);
 
@@ -142,11 +171,9 @@ export const getPost = cache(
 );
 
 function getSlugs() {
-  return fs
-    .readdirSync(CONTENT_DIR)
-    .filter((file) => path.extname(file) === ".mdx")
-    .map((file) => path.basename(file, ".mdx"))
-    .filter((name) => !routing.locales.some((l) => name.endsWith(`.${l}`)));
+  return getPostFiles()
+    .filter((f) => f.locale === routing.defaultLocale)
+    .map((f) => f.slug);
 }
 
 /** Newest first. */

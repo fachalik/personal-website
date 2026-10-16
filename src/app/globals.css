@@ -109,15 +109,17 @@ code {
 
 code[data-theme*=" "],
 code[data-theme*=" "] span {
-  color: var(--shiki-light);
-  background-color: var(--shiki-light-bg);
+  /* Plain-text blocks (```txt) have no token colors, so fall back to the page
+     foreground instead of prose's pre color, which is meant for a dark bg. */
+  color: var(--shiki-light, hsl(var(--foreground)));
+  background-color: var(--shiki-light-bg, transparent);
 }
 
 /* Follow the site's class-based theme, not the OS setting. */
 .dark code[data-theme*=" "],
 .dark code[data-theme*=" "] span {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
+  color: var(--shiki-dark, hsl(var(--foreground)));
+  background-color: var(--shiki-dark-bg, transparent);
 }
 
 code[data-line-numbers] {

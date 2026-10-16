@@ -1,0 +1,351 @@
+---
+title: "Cara Saya Mengatur Folder Project Frontend"
+publishedAt: "2026-10-16"
+summary: "Cara saya mengatur project frontend seiring pertumbuhannya: dari folder flat, folder per jenis, folder per fitur dengan aturan import, sampai monorepo. Kenapa setiap tahap ada dan kapan harus naik ke tahap berikutnya."
+tags: ["architecture", "frontend", "react", "nextjs", "typescript", "best-practices"]
+---
+
+Setiap project frontend selalu dimulai dengan rapi. Enam bulan kemudian, `components/` berisi 140 file, `utils.ts` sudah 900 baris, dan tidak ada yang ingat `Button` mana yang asli.
+
+User tidak pernah melihat struktur folder. Tapi struktur folder menentukan seberapa cepat kamu bisa menemukan kode, mengubahnya dengan aman, dan menghapusnya saat sebuah fitur sudah tidak dipakai. Tulisan ini membahas cara saya mengatur project supaya semua itu tetap mudah.
+
+Tidak ada satu struktur yang "benar". Dokumentasi React versi lama bilang React ["doesn't have opinions on how you put files into folders"](https://legacy.reactjs.org/docs/faq-structure.html), dan saran Dan Abramov [cuma satu kalimat](https://react-file-structure.surge.sh/): *"move files around until it feels right."* Jadi alih-alih satu layout yang sempurna, saya akan menunjukkan **tahapan** yang dilewati sebuah project seiring pertumbuhannya, **kenapa** setiap tahap ada, dan **kapan** harus naik ke tahap berikutnya.
+
+## Tes yang saya pakai
+
+Sebelum memilih folder, saya butuh cara untuk membedakan struktur yang bagus dan yang buruk. Saya pakai empat pertanyaan:
+
+| Pertanyaan | Jawaban bagus | Jawaban buruk |
+| --- | --- | --- |
+| **Cari:** Kode untuk X ada di mana? | Saya bisa menebak path-nya | Saya harus mencarinya |
+| **Ubah:** Kalau X diubah, apa yang rusak? | Hanya yang ada di folder X | File acak di seluruh aplikasi |
+| **Hapus:** Bisakah X dihapus? | Hapus satu folder | Berburu di 12 folder |
+| **Onboarding:** Bisakah dev baru menambah fitur? | Mereka tinggal meniru fitur yang ada | Mereka tanya saya harus taruh di mana |
+
+Setiap tahap di bawah ada karena salah satu jawaban ini memburuk. Supaya mudah dilihat, saya akan memakai **satu contoh aplikasi** dari awal sampai akhir: aplikasi invoice kecil yang tumbuh jadi produk sungguhan.
+
+## Contoh aplikasinya
+
+Contoh di tulisan ini dibangun dengan **Next.js (App Router), React, dan TypeScript**, stack yang sama dengan situs ini. Itu sebabnya kamu akan melihat `src/app/` untuk route dan `page.tsx` untuk setiap halaman.
+
+Tidak pakai Next.js? Idenya tetap berlaku. Yang berubah hanya **folder routing**-nya:
+
+| Stack | Letak route | Sisanya |
+| --- | --- | --- |
+| **Next.js** (App Router) | `src/app/invoices/page.tsx` | Sama seperti tulisan ini |
+| **React Router** (framework mode) | `app/routes/invoices.tsx` | Sama seperti tulisan ini |
+| **Vite + React Router** (tanpa framework) | `src/routes/invoices.tsx`, ditambah satu file router | Sama seperti tulisan ini |
+
+`features/`, `components/`, `lib/`, aturan import, dan setup monorepo bekerja dengan cara yang sama di ketiganya. Hanya [bagian Next.js](#posisi-nextjs-di-sini) di dekat akhir yang khusus untuk Next.js.
+
+## Tahap 0: Flat
+
+Di hari pertama, aplikasinya hanya beberapa file. `create-next-app` memberimu `layout.tsx` dan `page.tsx`, dan komponen pertama ditaruh tepat di sebelahnya:
+
+```txt
+src/app/
+├── layout.tsx
+├── page.tsx
+├── invoice-list.tsx
+├── invoice-item.tsx
+├── api.ts
+├── utils.ts
+└── globals.css
+```
+
+Ini tidak masalah. Dengan beberapa file saja, keempat pertanyaan tadi mudah dijawab karena kamu bisa melihat semuanya sekaligus. Menambah folder sekarang hanya menambah klik, dan mendesain "arsitektur yang scalable" untuk kode yang belum ditulis adalah cara jitu supaya project tidak pernah rilis.
+
+**Naik tahap saat** kamu mulai scroll untuk mencari file, atau satu folder sudah berisi lebih dari 15 sampai 20 file.
+
+## Tahap 1: Kelompokkan berdasarkan jenis
+
+Langkah berikutnya yang paling natural adalah mengelompokkan file berdasarkan **jenisnya**:
+
+```txt
+src/
+├── app/              # routes / halaman
+├── components/
+│   ├── ui/           # button, input, dialog
+│   └── layout/       # header, footer, sidebar
+├── hooks/
+├── lib/              # helper, API client, config
+└── types/
+```
+
+Sebagian besar template mulai dari sini, dan cocok untuk aplikasi dengan **sedikit fitur dan banyak UI bersama**: landing page, portfolio, atau dashboard kecil. Semua orang tahu apa isi `hooks/`, dan `components/ui/` adalah tempat yang memang dipakai tool seperti [shadcn/ui](https://ui.shadcn.com/).
+
+Masalahnya muncul saat aplikasi bertambah besar. Ini fitur invoice kita sekarang:
+
+```txt
+src/app/invoices/page.tsx
+src/components/invoice-table.tsx
+src/components/invoice-filters.tsx
+src/hooks/use-invoices.ts
+src/lib/invoice-api.ts
+src/types/invoice.ts
+```
+
+Enam file di lima folder. **Ubah** berarti loncat ke sana kemari di seluruh tree. **Hapus** berarti memburu setiap bagiannya, dan kemungkinan besar ada yang terlewat.
+
+**Naik tahap saat** sebagian besar file di `components/` hanya dipakai satu halaman, atau setiap perubahan membuatmu membuka empat atau lima folder yang sama.
+
+## Tahap 2: Kelompokkan berdasarkan fitur
+
+Ini peningkatan terbesar. Alih-alih bertanya "file ini jenisnya apa?", tanyakan "**file ini untuk bagian produk yang mana?**"
+
+```txt
+src/
+├── app/                    # hanya route
+├── features/
+│   ├── auth/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── api.ts
+│   └── invoices/
+│       ├── components/
+│       │   ├── invoice-table.tsx
+│       │   └── invoice-filters.tsx
+│       ├── hooks/
+│       │   └── use-invoices.ts
+│       ├── api.ts
+│       └── types.ts
+├── components/ui/          # UI bersama (dipakai 2+ fitur)
+├── hooks/                  # hooks bersama
+├── lib/                    # helper bersama
+└── types/
+```
+
+Kode invoice yang sama sekarang ada di **satu folder**, dan keempat pertanyaan kembali mudah dijawab:
+
+- **Cari:** kode invoice ada di `features/invoices/`.
+- **Ubah:** sebagian besar tiket hanya menyentuh satu fitur, jadi sebagian besar perubahan hanya di satu folder. Kent C. Dodds menyebutnya [colocation](https://kentcdodds.com/blog/colocation): *"place code as close to where it's relevant as possible."*
+- **Hapus:** hapus foldernya lalu perbaiki beberapa import. Seperti [kata](https://www.robinwieruch.de/react-folder-structure/) Robin Wieruch, *"keeping features independent is what makes them removable."*
+- **Onboarding:** fitur baru tinggal meniru bentuk fitur yang sudah ada.
+
+### Folder fitur atau folder bersama?
+
+Ini pertanyaan yang paling sering muncul. Aturan saya:
+
+> **Mulai di dalam fitur. Pindahkan keluar hanya saat fitur kedua membutuhkannya.**
+
+Tabel invoice tinggal di `features/invoices/`. Kalau nanti fitur laporan butuh tabel serupa, **barulah** saya buat versi umumnya di `components/`. Wieruch menjelaskan alur yang sama: kode naik saat beberapa fitur membutuhkannya, dan turun lagi saat hanya satu fitur yang memakainya.
+
+Jangan menebak dari awal. Kode yang "mungkin bisa dipakai ulang" biasanya tidak pernah dipakai ulang, dan folder bersama yang penuh komponen sekali pakai sama saja dengan Tahap 1.
+
+### Halaman tetap tipis
+
+Karena fitur yang mengerjakan semuanya, halaman cukup menyusunnya:
+
+```tsx
+// src/app/invoices/page.tsx
+import { InvoiceFilters } from "@/features/invoices/components/invoice-filters";
+import { InvoiceTable } from "@/features/invoices/components/invoice-table";
+
+export default function InvoicesPage() {
+  return (
+    <main>
+      <h1>Invoices</h1>
+      <InvoiceFilters />
+      <InvoiceTable />
+    </main>
+  );
+}
+```
+
+Route menentukan **di mana** sesuatu muncul. Fitur menentukan **apa** yang dilakukannya.
+
+## Tahap 3: Tambahkan aturan import
+
+Folder fitur memperbaiki *di mana* kode tinggal, tapi belum mengatur *siapa* yang memakainya. Setahun kemudian, kamu akan menemukan sesuatu seperti ini:
+
+```ts
+// di dalam features/auth/...
+import { formatInvoiceTotal } from "@/features/invoices/utils";
+```
+
+Sekarang `auth` bergantung pada `invoices`. Menghapus invoice akan merusak login, dan jawaban untuk **Ubah** dan **Hapus** kembali buruk. Solusinya adalah membuat import mengalir ke **satu arah**:
+
+| Layer | Isinya | Boleh import dari |
+| --- | --- | --- |
+| `app/` | Route, layout | `features/`, shared |
+| `features/` | Satu bagian produk | shared saja, **bukan fitur lain** |
+| shared (`components/`, `hooks/`, `lib/`, `types/`) | Bahan dasar yang generik | shared saja |
+
+Ini juga aturan yang direkomendasikan [Bulletproof React](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md): kode sebaiknya *"flow in one direction, from shared parts of the code to the application."*
+
+Kalau sebuah fitur benar-benar butuh sesuatu dari fitur lain, saya coba ini secara berurutan:
+
+1. **Gabungkan di halaman.** Halaman meng-import kedua fitur dan mengoper data lewat props.
+2. **Pindahkan bagian bersamanya ke bawah.** Kalau keduanya butuh `formatInvoiceTotal`, tempatnya di `lib/`.
+
+### Biarkan linter yang menjaga
+
+Aturan yang hanya ada di README akan dilanggar di minggu sibuk pertama. Dengan **Biome**, `noRestrictedImports` bisa melarang kode bersama meng-import fitur atau route:
+
+```json
+// biome.json
+{
+  "overrides": [
+    {
+      "includes": ["src/lib/**", "src/components/**", "src/hooks/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/**", "@/app/**"],
+                    "message": "Shared code must not depend on features or routes."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+Dengan **ESLint**, pakai `import/no-restricted-paths` (yang dipakai Bulletproof React) atau [`eslint-plugin-boundaries`](https://github.com/javierbrea/eslint-plugin-boundaries). Saya juga menjalankan [Knip](https://knip.dev/), yang menemukan file tertinggal setelah kode dipindah-pindah.
+
+### Tidak perlu `index.ts` di setiap fitur
+
+Ide yang sering muncul adalah memberi setiap fitur file "public API":
+
+```ts
+// src/features/invoices/index.ts
+export { InvoiceTable } from "./components/invoice-table";
+export { useInvoices } from "./hooks/use-invoices";
+```
+
+Kelihatannya rapi, tapi **barrel file** seperti ini punya biaya nyata. Import satu hal bisa memuat seluruh fitur, sehingga build jadi lebih lambat dan tree-shaking tidak jalan. Saat Vercel [mengukurnya di Next.js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js), import `@mui/material` memuat 2.225 modul padahal 735 sudah cukup. Barrel juga memudahkan terjadinya circular import, dan di Next.js bisa menarik kode client ke tempat yang tidak kamu duga.
+
+Bulletproof React dulu merekomendasikannya, dan sekarang [menyarankan import file secara langsung](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). Saya setuju: di kode aplikasi, import langsung dari file-nya, dan biarkan lint rule yang menjaga batasnya.
+
+### Bagaimana dengan Feature-Sliced Design?
+
+Kalau kamu ingin aturan yang lebih ketat lagi, lihat [Feature-Sliced Design](https://feature-sliced.design/) (FSD). Ini Tahap 3 dengan lebih banyak layer (`app`, `pages`, `widgets`, `features`, `entities`, `shared`) dan penamaan yang sudah ditentukan. Cocok untuk tim besar yang ingin punya satu kosakata bersama.
+
+Untuk kebanyakan project, menurut saya ini terlalu berlebihan di awal, karena berdebat "ini widget atau feature?" menyita waktu yang seharusnya untuk produk. Bahkan dokumentasi FSD sendiri [bilang](https://feature-sliced.design/docs/get-started/overview): *"If the current architecture works, maybe it's not worth changing."*
+
+## Tahap 4: Monorepo
+
+Produk invoice kita sekarang punya aplikasi kedua: dashboard admin. Aplikasi ini butuh button yang sama, tipe invoice yang sama, dan API client yang sama. Copy-paste antar repo tidak akan bertahan lama, dan di sinilah **monorepo** membantu:
+
+```txt
+.
+├── apps/
+│   ├── web/              # aplikasi customer (isinya Tahap 2 atau 3)
+│   └── admin/            # dashboard admin
+├── packages/
+│   ├── ui/               # design system bersama
+│   ├── api-client/       # API client bertipe + tipe invoice
+│   └── config/           # tsconfig, biome.json bersama
+├── pnpm-workspace.yaml
+└── turbo.json
+```
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+Aturannya sama, hanya naik satu level: **aplikasi import package, package tidak pernah import aplikasi.** Satu pull request bisa memperbarui design system dan semua aplikasi yang memakainya, dan tool seperti [Turborepo](https://turborepo.com/) atau [Nx](https://nx.dev/) hanya mem-build ulang yang berubah.
+
+Tapi monorepo juga menambah beban nyata: config workspace, pipeline build, install yang lebih lambat. Kalau kamu hanya punya satu aplikasi, `src/features/` sudah memberi sebagian besar manfaatnya dengan usaha yang jauh lebih sedikit. Package juga satu-satunya tempat saya *suka* memakai `index.ts`, karena di sana public API yang jelas lebih penting daripada kecepatan build.
+
+## Posisi Next.js di sini
+
+Bagian ini hanya berlaku untuk Next.js. Kalau kamu pakai React Router, bagian ini bisa dilewati.
+
+Next.js tidak memaksakan struktur tertentu, tapi beberapa [konvensinya](https://nextjs.org/docs/app/getting-started/project-structure) cocok dengan tahapan di atas:
+
+- **Folder `src/`:** memisahkan kode aplikasi dari file config di root.
+- **`app/` hanya untuk route:** `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`. Logikanya ada di `features/`, seperti di Tahap 2.
+- **Colocation itu aman:** file di `app/` hanya jadi route kalau namanya `page.tsx` atau `route.ts`. Komponen yang hanya dipakai satu halaman bisa ditaruh tepat di sebelahnya. Beri awalan `_` pada folder (misalnya `_components/`) supaya lebih jelas.
+- **Route group:** folder seperti `(dashboard)/` mengelompokkan route dan memberinya layout bersama **tanpa** mengubah URL.
+- **Kode khusus server:** taruh query database dan secret di file yang tidak pernah di-import client component. Package [`server-only`](https://www.npmjs.com/package/server-only) mengubah kesalahan itu jadi error saat build.
+
+```txt
+app/
+├── (marketing)/
+│   ├── layout.tsx          # header + footer marketing
+│   └── page.tsx            # → /
+└── (dashboard)/
+    ├── layout.tsx          # sidebar + cek auth
+    └── invoices/
+        ├── _components/    # hanya dipakai halaman ini
+        └── page.tsx        # → /invoices
+```
+
+## Aturan yang saya pakai di setiap tahap
+
+Tahapannya bisa berubah. Aturan ini tidak:
+
+1. **Pakai path alias.** `@/lib/format-date`, bukan `../../../../lib/format-date`. Dengan begitu, memindahkan file (yang akan kamu lakukan di setiap tahap) tidak merusak puluhan import.
+2. **Pakai satu gaya penamaan.** Saya pakai kebab-case untuk file (`invoice-table.tsx`). macOS tidak membedakan `Button.tsx` dan `button.tsx`, tapi Linux dan CI-mu membedakannya.
+3. **Jangan jadikan `utils.ts` tempat sampah.** Pecah berdasarkan tujuan: `format-date.ts`, `currency.ts`. Kalau kamu tidak bisa memberi nama file-nya, kemungkinan kodenya milik sebuah fitur.
+4. **Taruh test di sebelah kodenya.** `invoice-table.test.tsx` ada di samping `invoice-table.tsx`, jadi menghapus yang satu ikut menghapus yang lain.
+5. **Jangan terlalu dalam.** Tiga atau empat level sudah cukup. [Dokumentasi React versi lama](https://legacy.reactjs.org/docs/faq-structure.html) juga menyarankan batas yang sama.
+
+## Bagaimana situs ini diatur
+
+Portfolio ini project kecil, jadi posisinya di antara Tahap 1 dan Tahap 2:
+
+```txt
+content/                  # tulisan blog (MDX), bukan kode, jadi di luar src
+src/
+├── app/[locale]/         # hanya route
+├── features/page/        # bagian-bagian homepage (hero, work, projects...)
+├── components/
+│   ├── ui/               # shadcn/ui
+│   └── blog/             # UI khusus blog: daftar isi, tombol share
+├── data/                 # data resume dan pemuatan blog
+├── i18n/                 # setup terjemahan
+└── lib/                  # seo, feed, og image, utils
+```
+
+Bagian-bagian homepage hanya dipakai di satu halaman, jadi tempatnya di `features/page/`, bukan di `components/`. Jujur saja, `components/blog/` sebenarnya juga sebuah fitur. Begitu blog-nya tumbuh lebih dari beberapa file, folder itu akan pindah ke `features/blog/`, mengikuti tanda "naik tahap saat" di atas.
+
+## Memindahkan project yang sudah ada
+
+Kalau project-mu tertahan di Tahap 1, jangan tulis ulang semuanya dalam satu PR besar. Pindahkan satu langkah demi satu langkah:
+
+1. **Pasang path alias dulu**, supaya memindahkan file jadi murah.
+2. **Pindahkan satu fitur**, idealnya yang memang akan kamu kerjakan, ke `features/<nama>/`. Editor akan memperbarui import-nya.
+3. **Commit pemindahan itu sendiri**, tanpa perubahan logika, supaya mudah di-review.
+4. **Tambahkan lint rule** setelah dua atau tiga fitur dipindahkan.
+5. **Ulangi** setiap kali kamu menyentuh fitur lain.
+
+## Penutup
+
+| Project-mu | Tahap |
+| --- | --- |
+| Prototipe, beberapa file saja | **0:** flat |
+| Sedikit fitur, kebanyakan UI bersama | **1:** per jenis |
+| Beberapa fitur yang jelas berbeda | **2:** per fitur |
+| Jangka panjang, beberapa developer | **3:** fitur + aturan import |
+| Beberapa aplikasi yang berbagi kode | **4:** monorepo |
+
+Naik ke tahap berikutnya hanya saat salah satu dari empat pertanyaan tadi mulai susah dijawab: mencari, mengubah, menghapus, atau onboarding. Kalau tidak ada yang terasa sakit, struktur kamu sudah baik, meskipun ada tulisan blog (termasuk yang ini) yang menyarankan hal lain.
+
+Struktur folder terbaik adalah struktur yang tidak perlu kamu pikirkan lagi. Kamu tahu sesuatu harus ditaruh di mana, kamu taruh di sana, lalu kembali membangun.
+
+## Bacaan lanjutan
+
+- **[File Structure (dokumentasi React, legacy)](https://legacy.reactjs.org/docs/faq-structure.html):** sikap "tidak beropini", per fitur vs. per jenis, dan batas nesting.
+- **[Project Structure (dokumentasi Next.js)](https://nextjs.org/docs/app/getting-started/project-structure):** colocation, private folder, dan route group.
+- **[Bulletproof React: Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md):** folder fitur, import satu arah, dan alasan menghindari barrel file.
+- **[Colocation](https://kentcdodds.com/blog/colocation)** oleh Kent C. Dodds: kenapa kode sebaiknya tinggal dekat dengan tempat ia dipakai.
+- **[React Folder Structure Best Practices](https://www.robinwieruch.de/react-folder-structure/)** oleh Robin Wieruch: tahapan dari satu file sampai folder fitur.
+- **[Feature-Sliced Design](https://feature-sliced.design/docs/get-started/overview):** metode berlapis yang lebih ketat untuk tim besar.
+- **[How we optimized package imports in Next.js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js)** (Vercel): biaya barrel file dalam angka.
+- **[react-file-structure.surge.sh](https://react-file-structure.surge.sh/)** oleh Dan Abramov: saran paling singkat soal topik ini.
+
+Selamat ngoding! 🗂️
