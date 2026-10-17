@@ -1,7 +1,8 @@
 import { ArrowUpRight, Globe } from "lucide-react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import BlurFade from "@/components/magicui/blur-fade";
-import type { Post } from "@/data/blog";
+import type { PostSummary as Post } from "@/data/blog";
 import { Link } from "@/i18n/navigation";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
@@ -30,53 +31,95 @@ function PostMeta({ post }: { post: Post }) {
   );
 }
 
-function FeaturedPost({ post }: { post: Post }) {
+/** Cover image, or a quiet placeholder built from the first tag. */
+function Cover({
+  post,
+  sizes,
+  priority = false,
+}: {
+  post: Post;
+  sizes: string;
+  priority?: boolean;
+}) {
+  const { image, tags } = post.metadata;
+
+  return (
+    <div className="relative aspect-[1200/630] overflow-hidden border-b bg-muted">
+      {image ? (
+        <Image
+          src={image}
+          // Decorative: the title sits right below it.
+          alt=""
+          fill
+          sizes={sizes}
+          priority={priority}
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:14px_14px]">
+          {tags?.[0] && (
+            <span className="rounded-md bg-background/80 px-2.5 py-1 font-mono text-muted-foreground text-xs backdrop-blur-sm">
+              #{tags[0]}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostCard({
+  post,
+  featured = false,
+}: {
+  post: Post;
+  featured?: boolean;
+}) {
   const t = useTranslations("Blog");
 
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group relative block overflow-hidden rounded-xl border bg-card/60 p-6 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border bg-card/60 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-lg"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <span className="inline-block rounded-md bg-foreground px-2 py-0.5 text-background text-xs">
-          {t("latest")}
-        </span>
-        <ArrowUpRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
-      </div>
-      <h2 className="font-bold text-xl tracking-tight sm:text-2xl">
-        {post.metadata.title}
-      </h2>
-      {post.metadata.summary && (
-        <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
-          {post.metadata.summary}
-        </p>
-      )}
-      <div className="mt-5">
-        <PostMeta post={post} />
-      </div>
-    </Link>
-  );
-}
-
-function PostRow({ post }: { post: Post }) {
-  return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group -mx-3 flex items-start justify-between gap-4 rounded-lg px-3 py-4 transition-colors hover:bg-foreground/[0.04]"
-    >
-      <div className="min-w-0 space-y-1.5">
-        <h3 className="font-medium tracking-tight underline-offset-4 group-hover:underline">
+      <Cover
+        post={post}
+        priority={featured}
+        sizes={
+          featured
+            ? "(min-width: 768px) 720px, 100vw"
+            : "(min-width: 768px) 360px, (min-width: 640px) 50vw, 100vw"
+        }
+      />
+      <div className={cn("flex flex-1 flex-col p-4", featured && "sm:p-6")}>
+        {featured && (
+          <span className="mb-3 self-start rounded-md bg-foreground px-2 py-0.5 text-background text-xs">
+            {t("latest")}
+          </span>
+        )}
+        <h2
+          className={cn(
+            "font-semibold tracking-tight underline-offset-4 group-hover:underline",
+            featured ? "text-xl sm:text-2xl" : "line-clamp-2",
+          )}
+        >
           {post.metadata.title}
-        </h3>
+        </h2>
         {post.metadata.summary && (
-          <p className="line-clamp-2 text-muted-foreground text-sm">
+          <p
+            className={cn(
+              "mt-2 text-muted-foreground text-sm leading-relaxed",
+              featured ? "line-clamp-3" : "line-clamp-2",
+            )}
+          >
             {post.metadata.summary}
           </p>
         )}
-        <PostMeta post={post} />
+        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+          <PostMeta post={post} />
+          <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+        </div>
       </div>
-      <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:opacity-100" />
     </Link>
   );
 }
@@ -122,7 +165,7 @@ export function TagFilter({
   );
 }
 
-/** Newest post as a card (when `featured`), the rest grouped by year. */
+/** Card grid; with `featured`, the first post spans the full width. */
 export function PostList({
   posts,
   featured = false,
@@ -132,42 +175,20 @@ export function PostList({
   featured?: boolean;
   delay?: number;
 }) {
-  const [first, ...others] = posts;
-  const rest = featured ? others : posts;
-
-  const byYear = rest.reduce<Record<string, Post[]>>((acc, post) => {
-    const year = post.metadata.publishedAt.slice(0, 4);
-    acc[year] ??= [];
-    acc[year].push(post);
-    return acc;
-  }, {});
-  const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a));
-
   return (
-    <>
-      {featured && first && (
-        <BlurFade delay={delay}>
-          <FeaturedPost post={first} />
-        </BlurFade>
-      )}
-
-      {years.map((year, yi) => (
-        <BlurFade key={year} delay={delay + BLUR_FADE_DELAY + yi * 0.05}>
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-muted-foreground text-sm">
-                {year}
-              </span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <div className="divide-y divide-border/60">
-              {byYear[year].map((post) => (
-                <PostRow key={post.slug} post={post} />
-              ))}
-            </div>
-          </div>
-        </BlurFade>
-      ))}
-    </>
+    <div className="grid gap-4 sm:grid-cols-2">
+      {posts.map((post, i) => {
+        const isFeatured = featured && i === 0;
+        return (
+          <BlurFade
+            key={post.slug}
+            delay={delay + i * 0.05}
+            className={cn("h-full", isFeatured && "sm:col-span-2")}
+          >
+            <PostCard post={post} featured={isFeatured} />
+          </BlurFade>
+        );
+      })}
+    </div>
   );
 }

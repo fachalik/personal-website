@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, Clock, Globe } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -311,6 +312,21 @@ export default async function BlogPost({ params }: { params: Params }) {
           </BlurFade>
         )}
       </header>
+
+      {post.metadata.image && (
+        <BlurFade delay={BLUR_FADE_DELAY * 5}>
+          <div className="relative mt-8 aspect-[1200/630] overflow-hidden rounded-xl border bg-muted">
+            <Image
+              src={post.metadata.image}
+              alt={post.metadata.imageAlt ?? ""}
+              fill
+              priority
+              sizes="(min-width: 768px) 720px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        </BlurFade>
+      )}
 
       <div className="relative mt-10">
         {showToc && (

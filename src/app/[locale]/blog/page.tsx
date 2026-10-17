@@ -2,9 +2,10 @@ import { Rss } from "lucide-react";
 import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { PostList, TagFilter } from "@/components/blog/post-list";
+import { PostBrowser } from "@/components/blog/post-browser";
+import { TagFilter } from "@/components/blog/post-list";
 import BlurFade from "@/components/magicui/blur-fade";
-import { getBlogPosts, getTags } from "@/data/blog";
+import { getBlogPosts, getTags, toSummary } from "@/data/blog";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
@@ -94,7 +95,11 @@ export default async function BlogPage({
         <TagFilter tags={getTags(posts)} />
       </BlurFade>
 
-      <PostList posts={posts} featured delay={BLUR_FADE_DELAY * 3} />
+      <PostBrowser
+        posts={posts.map(toSummary)}
+        featured
+        delay={BLUR_FADE_DELAY * 3}
+      />
     </section>
   );
 }

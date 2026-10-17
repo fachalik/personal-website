@@ -13,7 +13,8 @@
     "check:unused": "knip --max-issues 1",
     "check:unused:fix": "knip --fix",
     "prepare": "lefthook install",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "blog:cover": "node scripts/blog-cover.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.6",

@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { PostList, TagFilter } from "@/components/blog/post-list";
+import { PostBrowser } from "@/components/blog/post-browser";
+import { TagFilter } from "@/components/blog/post-list";
 import BlurFade from "@/components/magicui/blur-fade";
-import { getBlogPosts, getTags } from "@/data/blog";
+import { getBlogPosts, getTags, toSummary } from "@/data/blog";
 import { Link } from "@/i18n/navigation";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
@@ -105,7 +106,7 @@ export default async function TagPage({ params }: { params: Params }) {
         <TagFilter tags={getTags(allPosts)} active={tag} />
       </BlurFade>
 
-      <PostList posts={posts} delay={BLUR_FADE_DELAY * 3} />
+      <PostBrowser posts={posts.map(toSummary)} delay={BLUR_FADE_DELAY * 3} />
     </section>
   );
 }

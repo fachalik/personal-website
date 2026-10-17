@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Credits } from "@/components/credits";
 import { PersonStructuredData } from "@/components/structured-data";
 import { AboutSection } from "@/features/page/about-section";
+import { BlogSection } from "@/features/page/blog-section";
 import { ContactSection } from "@/features/page/contact-section";
 import { EducationSection } from "@/features/page/education-section";
 import { GithubSection } from "@/features/page/github-section";
@@ -27,6 +28,7 @@ export default async function Page({
       <WorkSection />
       <EducationSection />
       <ProjectsSection />
+      <BlogSection />
       <GithubSection />
       <ContactSection />
       <Credits />

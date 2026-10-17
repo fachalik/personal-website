@@ -107,7 +107,16 @@
     "tags": "Tags",
     "allTags": "All",
     "tagTitle": "Posts tagged #{tag}",
-    "tagDescription": "Everything I've written about {tag}."
+    "tagDescription": "Everything I've written about {tag}.",
+    "searchLabel": "Search posts",
+    "searchPlaceholder": "Search by title, summary or tag…",
+    "clearSearch": "Clear search",
+    "searchResults": "{count, plural, =0 {No posts match} one {# post matches} other {# posts match}} “{query}”.",
+    "noResults": "Nothing matches that search.",
+    "pagination": "Pagination",
+    "goToPage": "Page {page}",
+    "recentTitle": "Recent writing",
+    "viewAll": "View all posts"
   },
   "Resume": {
     "work": {

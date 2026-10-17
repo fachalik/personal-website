@@ -25,7 +25,10 @@ type Metadata = {
   title: string;
   publishedAt: string;
   summary: string;
+  /** Cover, ideally 1200×630, e.g. `/blog/<slug>/cover.webp` in `public/`. */
   image?: string;
+  /** Describes the cover on the post page; omit if it's purely decorative. */
+  imageAlt?: string;
   /** Lowercase, URL-safe topics, e.g. `["go", "typescript"]`. */
   tags?: string[];
 };
@@ -45,6 +48,21 @@ export type Post = {
   /** Every locale this post has been written in. */
   availableLocales: Locale[];
 };
+
+/** What a post list needs; leaves the rendered HTML on the server. */
+export type PostSummary = Pick<
+  Post,
+  "slug" | "metadata" | "readingTime" | "isFallback"
+>;
+
+export function toSummary({
+  slug,
+  metadata,
+  readingTime,
+  isFallback,
+}: Post): PostSummary {
+  return { slug, metadata, readingTime, isFallback };
+}
 
 /** Files start with their publish date so they sort oldest → newest on disk. */
 const DATE_PREFIX = /^\d{4}-\d{2}-\d{2}-/;
@@ -189,7 +207,7 @@ export async function getBlogPosts(locale: Locale = routing.defaultLocale) {
 }
 
 /** Every tag used by these posts with its post count, most used first. */
-export function getTags(posts: Post[]) {
+export function getTags(posts: PostSummary[]) {
   const counts = new Map<string, number>();
   for (const post of posts) {
     for (const tag of post.metadata.tags ?? []) {
