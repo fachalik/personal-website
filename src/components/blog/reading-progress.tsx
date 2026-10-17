@@ -1,20 +1,40 @@
 "use client";
 
-import { motion, useScroll, useSpring } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 export function ReadingProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 200,
-    damping: 30,
-    restDelta: 0.001,
-  });
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const bar = ref.current;
+    if (!bar) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const { scrollTop, scrollHeight, clientHeight } =
+        document.documentElement;
+      const max = scrollHeight - clientHeight;
+      bar.style.transform = `scaleX(${max > 0 ? scrollTop / max : 0})`;
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   return (
-    <motion.div
+    <div
+      ref={ref}
       aria-hidden
-      style={{ scaleX }}
-      className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-accentBrand"
+      style={{ transform: "scaleX(0)" }}
+      className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-accentBrand transition-transform duration-150 ease-out"
     />
   );
 }

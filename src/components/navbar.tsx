@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { Icons } from "@/components/icons";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -17,6 +16,8 @@ import { DATA } from "@/data/resume";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
+const TAP = "inline-block transition-transform active:scale-90";
+
 export default function Navbar() {
   const t = useTranslations("Nav");
 
@@ -28,9 +29,10 @@ export default function Navbar() {
           <DockIcon key={item.href}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.span whileTap={{ scale: 0.9 }} className="inline-block">
+                <span className={TAP}>
                   <Link
                     href={item.href}
+                    aria-label={t(item.label)}
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon" }),
                       "size-12",
@@ -38,7 +40,7 @@ export default function Navbar() {
                   >
                     <item.icon className="size-4" />
                   </Link>
-                </motion.span>
+                </span>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{t(item.label)}</p>
@@ -53,14 +55,12 @@ export default function Navbar() {
             <DockIcon key={name}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <motion.span
-                    whileTap={{ scale: 0.9 }}
-                    className="inline-block"
-                  >
+                  <span className={TAP}>
                     <a
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={name}
                       className={cn(
                         buttonVariants({ variant: "ghost", size: "icon" }),
                         "size-12",
@@ -68,7 +68,7 @@ export default function Navbar() {
                     >
                       <social.icon className="size-4" />
                     </a>
-                  </motion.span>
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{name}</p>
@@ -79,7 +79,7 @@ export default function Navbar() {
         <DockIcon>
           <Tooltip>
             <TooltipTrigger asChild>
-              <motion.span whileTap={{ scale: 0.9 }} className="inline-block">
+              <span className={TAP}>
                 <a
                   target="_blank"
                   href="/cv-fachalik.pdf"
@@ -89,10 +89,11 @@ export default function Navbar() {
                   )}
                   download
                   rel="noopener"
+                  aria-label={t("downloadCv")}
                 >
                   <Icons.newspaper className="size-4" />
                 </a>
-              </motion.span>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
               <p>{t("downloadCv")}</p>

@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,6 +31,46 @@ interface Props {
   className?: string;
 }
 
+/**
+ * Muted looping demo that only downloads and plays while on screen, so it
+ * doesn't compete with above-the-fold content for bandwidth.
+ */
+function DemoVideo({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else video.pause();
+    });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      poster={src.replace(/\.mp4$/, ".webp")}
+      loop
+      muted
+      playsInline
+      preload="none"
+      className="pointer-events-none mx-auto h-40 w-full object-cover object-top transition-transform duration-300 ease-out group-hover:scale-105" // needed because random black line at bottom of video
+    >
+      {/* Silent demo; captions describe what's on screen. */}
+      <track
+        kind="captions"
+        src={src.replace(/\.mp4$/, ".vtt")}
+        srcLang="en"
+        label="English"
+      />
+    </video>
+  );
+}
+
 export function ProjectCard({
   title,
   href,
@@ -44,11 +84,7 @@ export function ProjectCard({
   className,
 }: Props) {
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="h-full"
-    >
+    <div className="h-full transition-transform duration-200 ease-out hover:-translate-y-1">
       <Card
         className={
           "flex h-full flex-col overflow-hidden border transition-all duration-300 ease-out hover:shadow-lg"
@@ -57,21 +93,13 @@ export function ProjectCard({
         <Link
           target={href ? "_blank" : undefined}
           href={href || "#"}
+          aria-label={title}
           className={cn(
             "group block cursor-pointer overflow-hidden",
             className,
           )}
         >
-          {video && (
-            <video
-              src={video}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="pointer-events-none mx-auto h-40 w-full object-cover object-top transition-transform duration-300 ease-out group-hover:scale-105" // needed because random black line at bottom of video
-            />
-          )}
+          {video && <DemoVideo src={video} />}
           {image && (
             <Image
               src={image}
@@ -127,6 +155,6 @@ export function ProjectCard({
           )}
         </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { animate, useInView, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -20,26 +19,44 @@ export function NumberTicker({
   className,
 }: NumberTickerProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "0px" });
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const node = ref.current;
-    if (!node || !inView) return;
-    if (reduceMotion) {
-      node.textContent = `${value}${suffix}`;
+    if (!node) return;
+    const render = (n: number) => {
+      node.textContent = `${Math.round(n)}${suffix}`;
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      render(value);
       return;
     }
-    const controls = animate(0, value, {
-      delay,
-      duration: 1.2,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (latest) => {
-        node.textContent = `${Math.round(latest)}${suffix}`;
-      },
+
+    let frame = 0;
+    let timeout = 0;
+    const run = () => {
+      const duration = 1200;
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min((now - start) / duration, 1);
+        // easeOutExpo, close to the old cubic-bezier(0.16, 1, 0.3, 1).
+        render(value * (t === 1 ? 1 : 1 - 2 ** (-10 * t)));
+        if (t < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    };
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      timeout = window.setTimeout(run, delay * 1000);
     });
-    return () => controls.stop();
-  }, [inView, reduceMotion, value, suffix, delay]);
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+      cancelAnimationFrame(frame);
+    };
+  }, [value, suffix, delay]);
 
   return (
     <span className={cn("tabular-nums", className)}>

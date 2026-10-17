@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, Mail } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -40,7 +39,6 @@ export function CopyEmail({
     <button
       type="button"
       onClick={copy}
-      aria-label={t("copyEmail")}
       className={cn(
         "group inline-flex h-10 items-center overflow-hidden rounded-full border bg-background/60 text-sm shadow-sm backdrop-blur-sm transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         copied && "border-emerald-500/50 hover:border-emerald-500/50",
@@ -60,26 +58,25 @@ export function CopyEmail({
         )}
       >
         <span className="relative size-3.5">
-          <AnimatePresence initial={false} mode="popLayout">
-            <motion.span
-              key={copied ? "check" : "copy"}
-              initial={{ scale: 0.4, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.4, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="absolute inset-0"
-            >
-              {copied ? (
-                <Check className="size-3.5" />
-              ) : (
-                <Copy className="size-3.5" />
-              )}
-            </motion.span>
-          </AnimatePresence>
+          {/* Both icons stay mounted and cross-fade. */}
+          <Copy
+            className={cn(
+              "absolute inset-0 size-3.5 transition-[opacity,transform] duration-150",
+              copied && "scale-50 opacity-0",
+            )}
+          />
+          <Check
+            className={cn(
+              "absolute inset-0 size-3.5 transition-[opacity,transform] duration-150",
+              !copied && "scale-50 opacity-0",
+            )}
+          />
         </span>
         {/* Both labels share one grid cell so the pill never changes width. */}
         <span className="grid">
+          {/* The accessible name is the visible text, so hide the faded label. */}
           <span
+            aria-hidden={copied}
             className={cn(
               "col-start-1 row-start-1 transition-opacity",
               copied && "opacity-0",
@@ -88,6 +85,7 @@ export function CopyEmail({
             {t("copy")}
           </span>
           <span
+            aria-hidden={!copied}
             className={cn(
               "col-start-1 row-start-1 transition-opacity",
               !copied && "opacity-0",

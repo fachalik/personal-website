@@ -12,7 +12,7 @@ import {
   TableOfContents,
 } from "@/components/blog/table-of-contents";
 import BlurFade from "@/components/magicui/blur-fade";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { getBlogPosts, getPost, type Post } from "@/data/blog";
 import { DATA } from "@/data/resume";
 import { Link } from "@/i18n/navigation";
@@ -272,8 +272,13 @@ export default async function BlogPost({ params }: { params: Params }) {
           <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
             <div className="flex items-center gap-3">
               <Avatar className="size-9 border">
-                <AvatarImage alt={DATA.name} src={DATA.avatarUrl} />
-                <AvatarFallback>{DATA.initials}</AvatarFallback>
+                <Image
+                  src={DATA.avatarUrl}
+                  alt={DATA.name}
+                  width={36}
+                  height={36}
+                  className="aspect-square size-full object-cover"
+                />
               </Avatar>
               <div className="flex flex-col text-sm">
                 <span className="font-medium">{DATA.name}</span>

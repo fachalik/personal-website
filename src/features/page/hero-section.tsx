@@ -1,9 +1,10 @@
 import { DownloadIcon, MailIcon } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import BlurFade from "@/components/magicui/blur-fade";
 import BlurFadeText from "@/components/magicui/blur-fade-text";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { DATA } from "@/data/resume";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
@@ -51,12 +52,19 @@ export function HeroSection() {
               text={t("description")}
             />
           </div>
-          <BlurFade delay={BLUR_FADE_DELAY} className="order-1 sm:order-2">
-            <Avatar className="size-20 border sm:size-28">
-              <AvatarImage alt={DATA.name} src={DATA.avatarUrl} />
-              <AvatarFallback>{DATA.initials}</AvatarFallback>
-            </Avatar>
-          </BlurFade>
+          {/* Not animated: it's the LCP element, so it should paint immediately. */}
+          <Avatar className="order-1 size-20 border sm:order-2 sm:size-28">
+            <Image
+              src={DATA.avatarUrl}
+              alt={DATA.name}
+              width={112}
+              height={112}
+              sizes="(min-width: 640px) 112px, 80px"
+              fetchPriority="high"
+              loading="eager"
+              className="aspect-square size-full object-cover"
+            />
+          </Avatar>
         </div>
 
         <BlurFade delay={BLUR_FADE_DELAY * 2}>

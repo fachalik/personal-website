@@ -1,14 +1,8 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import {
-  type MotionValue,
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import React, { type PropsWithChildren, useRef } from "react";
+import type React from "react";
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export interface DockProps extends VariantProps<typeof dockVariants> {
@@ -20,107 +14,68 @@ export interface DockProps extends VariantProps<typeof dockVariants> {
 
 const DEFAULT_MAGNIFICATION = 60;
 const DEFAULT_DISTANCE = 140;
+const BASE_SIZE = 40;
 
 const dockVariants = cva(
   "mx-auto flex h-full w-max items-end rounded-full border p-2",
 );
 
-const Dock = React.forwardRef<HTMLDivElement, DockProps>(
-  (
-    {
-      className,
-      children,
-      magnification = DEFAULT_MAGNIFICATION,
-      distance = DEFAULT_DISTANCE,
-      ...props
-    },
-    ref,
-  ) => {
-    const mousex = useMotionValue(Infinity);
-
-    const renderChildren = () => {
-      return React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child, {
-            mousex,
-            magnification,
-            distance,
-          } as DockIconProps);
-        }
-        return child;
-      });
-    };
-
-    return (
-      <motion.div
-        ref={ref}
-        onMouseMove={(e) => mousex.set(e.pageX)}
-        onMouseLeave={() => mousex.set(Infinity)}
-        {...props}
-        className={cn(dockVariants({ className }))}
-      >
-        {renderChildren()}
-      </motion.div>
-    );
-  },
-);
-
-Dock.displayName = "Dock";
-
-export interface DockIconProps {
-  size?: number;
-  magnification?: number;
-  distance?: number;
-  mousex?: MotionValue<number>;
-  className?: string;
-  children?: React.ReactNode;
-  props?: PropsWithChildren;
-}
-
-const DockIcon = ({
-  size,
-  magnification = DEFAULT_MAGNIFICATION,
-  distance = DEFAULT_DISTANCE,
-  mousex,
+/**
+ * macOS-style dock. Icon widths are written straight to the DOM on mousemove
+ * and eased by a CSS transition, so hovering never re-renders React.
+ */
+const Dock = ({
   className,
   children,
-  ...props
-}: DockIconProps) => {
+  magnification = DEFAULT_MAGNIFICATION,
+  distance = DEFAULT_DISTANCE,
+}: DockProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const fallbackMousex = useMotionValue(Infinity);
 
-  const distanceCalc = useTransform(mousex ?? fallbackMousex, (val: number) => {
-    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
-    return val - bounds.x - bounds.width / 2;
-  });
+  const icons = () =>
+    ref.current?.querySelectorAll<HTMLElement>("[data-dock-icon]") ?? [];
 
-  const widthSync = useTransform(
-    distanceCalc,
-    [-distance, 0, distance],
-    [40, magnification, 40],
-  );
+  const onMouseMove = (e: React.MouseEvent) => {
+    for (const icon of icons()) {
+      const bounds = icon.getBoundingClientRect();
+      const offset = Math.abs(e.clientX - bounds.x - bounds.width / 2);
+      const t = Math.max(0, 1 - offset / distance);
+      icon.style.width = `${BASE_SIZE + (magnification - BASE_SIZE) * t}px`;
+    }
+  };
 
-  const width = useSpring(widthSync, {
-    mass: 0.1,
-    stiffness: 150,
-    damping: 12,
-  });
+  const onMouseLeave = () => {
+    for (const icon of icons()) icon.style.width = "";
+  };
 
   return (
-    <motion.div
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover magnification is purely visual
+    <div
       ref={ref}
-      style={{ width }}
-      className={cn(
-        "flex aspect-square cursor-pointer items-center justify-center rounded-full",
-        className,
-      )}
-      {...props}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      className={cn(dockVariants({ className }))}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
-DockIcon.displayName = "DockIcon";
+export interface DockIconProps {
+  className?: string;
+  children?: React.ReactNode;
+}
 
-export { Dock, DockIcon, dockVariants };
+const DockIcon = ({ className, children }: DockIconProps) => (
+  <div
+    data-dock-icon
+    className={cn(
+      "flex aspect-square w-10 cursor-pointer items-center justify-center rounded-full transition-[width] duration-150 ease-out",
+      className,
+    )}
+  >
+    {children}
+  </div>
+);
+
+export { Dock, DockIcon };

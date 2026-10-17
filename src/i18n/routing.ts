@@ -9,6 +9,10 @@ export const routing = defineRouting({
   // browser (or a stale NEXT_LOCALE cookie) bounced every unprefixed English
   // URL back to /id, so switching to English appeared to do nothing.
   localeDetection: false,
+  // hreflang is emitted in <head> via metadata (absolute, canonical host).
+  // The middleware's Link header used the request host instead, which gave
+  // crawlers two conflicting sets of alternates.
+  alternateLinks: false,
 });
 
 export type Locale = (typeof routing.locales)[number];
