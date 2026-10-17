@@ -1,0 +1,443 @@
+---
+title: "Git Hooks dengan Husky dan Lefthook: Kapan, Kenapa, dan Bagaimana"
+publishedAt: "2026-10-17"
+image: "/blog/husky-vs-lefthook/cover.png"
+summary: "Kenalan dengan Git hooks, kenapa perlu hook manager, dan bedanya Husky dengan Lefthook. Lengkap dengan cara setup, contoh config asli, cara skip hook dengan aman, dan tips memilih yang pas untuk project-mu."
+tags: ["git", "husky", "lefthook", "tooling", "javascript", "workflow"]
+---
+
+Pernah begini? Kamu push branch, buka pull request, lalu lima menit kemudian CI merah. Ternyata cuma kurang titik koma. Atau ada import yang lupa dihapus. Atau pesan commit-nya tidak sesuai format tim.
+
+Masalahnya sepele, tapi ketahuannya **telat**. Nah, Git hooks bisa menangkap hal-hal seperti ini langsung di laptopmu, sebelum kodenya sempat ke mana-mana.
+
+Di tulisan ini saya mau bahas apa itu Git hooks, kenapa sebaiknya pakai tool untuk mengelolanya, dan bagaimana perbandingan dua tool yang paling populer: **[Husky](https://typicode.github.io/husky/)** dan **[Lefthook](https://lefthook.dev/)**. Langsung saja saya bocorkan: saya merekomendasikan **Lefthook**, karena setup dan config-nya lebih simpel dan straightforward. Situs ini juga pakai Lefthook, jadi nanti saya tunjukkan config aslinya.
+
+## Versi singkatnya
+
+- **Git hooks** itu script yang otomatis dijalankan Git di momen tertentu, misalnya sebelum commit atau sebelum push.
+- Hooks tidak ikut terbagi lewat repo, jadi kamu butuh **hook manager** supaya satu tim punya hooks yang sama.
+- **Husky** adalah pilihan klasik di project JavaScript. Kecil, sederhana, dan hooks-nya cuma shell script biasa. Biasanya dipakai bareng **lint-staged**.
+- **Lefthook** berupa satu binary Go dengan config YAML. Bisa menjalankan job **paralel**, memfilter file pakai glob, dan bisa dipakai di bahasa apa pun.
+- **Pilihan saya: Lefthook.** Cukup satu paket dan satu file config. Hal-hal yang di Husky butuh tool tambahan (file yang di-stage, job paralel, filter file) di Lefthook sudah ada dari sananya. Tapi kalau tim-mu lebih nyaman dengan shell script biasa, Husky juga tetap oke.
+
+## Apa itu Git hook?
+
+Setiap repository Git punya folder `.git/hooks`. Taruh script dengan nama tertentu di situ, dan Git akan menjalankannya di momen yang sesuai:
+
+| Hook | Kapan jalan | Biasanya dipakai untuk |
+| --- | --- | --- |
+| `pre-commit` | Sebelum commit dibuat | Format dan lint file yang di-stage |
+| `commit-msg` | Setelah kamu menulis pesan commit | Cek format pesan (commitlint) |
+| `pre-push` | Sebelum push ke remote | Type check, test, build |
+| `post-merge` / `post-checkout` | Setelah pull atau pindah branch | Install ulang dependency kalau lockfile berubah |
+
+Kalau script-nya gagal (keluar dengan kode selain nol), Git langsung **berhenti**. Commit atau push-nya batal. Sesederhana itu.
+
+## Kenapa tidak pakai `.git/hooks` langsung?
+
+Bisa saja, kok. Masalahnya cuma satu, tapi lumayan besar: **folder `.git` tidak ikut di-commit**. Jadi hooks-mu cuma ada di laptopmu sendiri. Rekan tim yang baru clone repo tidak akan dapat apa-apa.
+
+Di sinilah hook manager berguna:
+
+1. Config hook disimpan **di dalam repo**, jadi bisa di-review dan tercatat di history seperti kode lainnya.
+2. Hooks **langsung ter-install** begitu seseorang menjalankan `pnpm install`.
+3. Semua orang menjalankan **pengecekan yang sama**, dengan cara yang sama.
+
+## Kenapa perlu hooks?
+
+- **Feedback lebih cepat.** Hook yang gagal cuma makan beberapa detik. Kalau CI yang gagal, bisa beberapa menit, belum lagi harus balik fokus ke kerjaan tadi.
+- **History lebih rapi.** Tidak ada lagi commit "fix lint" atau "format" yang nyempil di setiap perubahan.
+- **Pesan commit seragam.** Ini penting kalau kamu bikin changelog otomatis atau pakai semantic versioning.
+- **Code review lebih fokus.** Reviewer bisa fokus ke logika, bukan ke urusan gaya penulisan.
+
+Tapi ingat, hooks juga ada harganya. Hook yang lambat itu menyebalkan, dan hook yang menyebalkan ujung-ujungnya pasti di-skip. Pegang ini sampai akhir tulisan: **kecepatan itu fitur.**
+
+## Husky
+
+Di dunia JavaScript, Husky adalah hook manager yang paling dikenal. Sejak v9, ukurannya kecil sekali (sekitar 2 kB, tanpa dependency), dan cara kerjanya simpel: setiap hook adalah **shell script** di folder `.husky/`.
+
+### Setup
+
+```bash
+pnpm add -D husky
+pnpm exec husky init
+```
+
+`husky init` mengerjakan dua hal:
+
+- Membuat file `.husky/pre-commit` berisi contoh perintah.
+- Menambahkan script `prepare` di `package.json`, supaya hooks otomatis ter-install setiap kali `pnpm install` dijalankan.
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "husky"
+  }
+}
+```
+
+### Menulis hooks
+
+Setiap hook cuma file berisi perintah shell:
+
+```sh
+# .husky/pre-commit
+pnpm exec lint-staged
+```
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+```sh
+# .husky/pre-push
+pnpm run typecheck
+pnpm test
+```
+
+Di sinilah kelebihan Husky: apa pun yang bisa kamu ketik di terminal, bisa kamu masukkan ke hook. Tidak ada yang baru untuk dipelajari.
+
+### Husky + lint-staged
+
+Husky cuma menjalankan script. Dia tidak tahu file mana saja yang kamu stage. Makanya Husky hampir selalu dipasangkan dengan **[lint-staged](https://github.com/lint-staged/lint-staged)**, yang menjalankan tool-mu khusus di file yang di-stage:
+
+```json
+// package.json
+{
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,css,md}": "prettier --write"
+  }
+}
+```
+
+Selain itu, lint-staged juga mengurus dua hal penting:
+
+- File yang dirapikan oleh tool-mu akan **di-stage ulang**, jadi hasil perbaikannya ikut masuk ke commit yang sama.
+- Kalau sebuah file cuma di-stage sebagian, perubahan yang **belum di-stage** akan **disimpan dulu** (pakai git stash), lalu dikembalikan setelah selesai. Ini penting kalau kamu sering pakai `git add -p`.
+
+### Yang perlu diperhatikan
+
+- Perintah di dalam hook jalan **satu per satu**. Sebenarnya bisa dibuat paralel dengan trik shell (`&` dan `wait`), tapi script-nya cepat jadi berantakan.
+- Hooks-nya berupa POSIX shell. Di Windows memang bisa jalan lewat Git Bash, tapi script yang rumit bisa saja berperilaku beda di tiap mesin.
+- Husky adalah tool Node.js. Pas untuk repo JS, tapi agak janggal kalau dipakai di project Go atau Python.
+
+## Lefthook
+
+Lefthook dibuat oleh Evil Martians dengan bahasa **Go**. Bentuknya satu binary, dan bisa di-install lewat npm, Homebrew, Go, pip, gem, dan banyak lagi. Semua hooks cukup ditulis di satu file YAML.
+
+### Setup
+
+```bash
+pnpm add -D lefthook
+```
+
+Setelah itu, buat `lefthook.yml` di root project, lalu install hooks-nya:
+
+```bash
+pnpm exec lefthook install
+```
+
+Biar hooks ter-install otomatis untuk semua orang, tambahkan ke `prepare`:
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "lefthook install"
+  }
+}
+```
+
+**Tips:** pnpm 10 tidak menjalankan install script dari dependency kecuali kamu izinkan dulu. Jadi menulis script `prepare` secara eksplisit adalah cara paling aman untuk memastikan hooks ter-install.
+
+### Menulis hooks
+
+Ini `lefthook.yml` yang benar-benar dipakai di situs ini (sedikit dipangkas):
+
+```yaml
+# lefthook.yml
+pre-commit:
+  parallel: true
+  jobs:
+    # Hanya file yang di-stage, jadi kerjaan lain yang belum selesai tidak ikut diubah.
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    - name: typecheck
+      run: pnpm run typecheck
+    - name: unused-code
+      run: pnpm run check:unused
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: biome-ci
+      run: pnpm exec biome ci .
+    - name: docker-build
+      run: docker compose build --quiet
+```
+
+Beberapa hal di atas, kalau pakai Husky, butuh tool tambahan:
+
+- **`parallel: true`** menjalankan semua job sekaligus. Formatting, type check, dan pengecekan kode yang tidak terpakai jalan bareng, tidak perlu antre.
+- **`{staged_files}`** otomatis diganti dengan daftar file yang di-stage. Tidak perlu lint-staged lagi.
+- **`glob`** bikin job hanya jalan kalau ada file yang cocok di-stage. Kalau kamu cuma mengubah file Markdown, job Biome dilewati.
+- **`stage_fixed: true`** menjalankan `git add` setelah job selesai, jadi hasil auto-fix langsung masuk ke commit yang sama.
+- **`{1}`** meneruskan argumen pertama dari hook. Untuk `commit-msg`, isinya path ke file pesan commit.
+
+### Opsi lain yang berguna
+
+```yaml
+pre-commit:
+  jobs:
+    - name: lint
+      run: pnpm exec eslint --fix {staged_files}
+      glob: "*.{ts,tsx}"
+      exclude:
+        - "src/generated/**"
+      # Jangan lint saat sedang menyelesaikan merge atau rebase.
+      skip:
+        - merge
+        - rebase
+      stage_fixed: true
+```
+
+- **`exclude`** untuk melewati file tertentu, walaupun cocok dengan glob.
+- **`skip`** untuk mematikan job saat merge, rebase, atau di branch tertentu.
+- **`root`** untuk menjalankan job di dalam subfolder. Cocok untuk monorepo (`root: "apps/web/"`).
+- **`lefthook-local.yml`** untuk override config di mesin masing-masing developer. Jangan lupa masukkan ke `.gitignore`.
+
+Kamu juga bisa menjalankan hook secara manual tanpa harus commit:
+
+```bash
+pnpm exec lefthook run pre-commit
+```
+
+### Yang perlu diperhatikan
+
+- **YAML.** Buat kebanyakan orang sih tidak masalah, tapi salah indentasi sedikit saja, job-nya bisa diam-diam jalan dengan cara lain. Lefthook punya JSON schema (`https://lefthook.dev/schema.json`), jadi aktifkan validasinya di editor.
+- **Ada satu format config lagi** yang perlu dipelajari tim, dibanding Husky yang "cuma shell script".
+- **File yang di-stage sebagian.** `stage_fixed` akan menambahkan ulang seluruh isi file. Kalau kamu cuma men-stage sebagian file pakai `git add -p`, lalu formatter mengubah file itu, coba dulu bagaimana hasilnya sebelum benar-benar mengandalkannya.
+
+## Perbandingan langsung
+
+| Topik | Husky (+ lint-staged) | Lefthook |
+| --- | --- | --- |
+| Ditulis dengan | JavaScript (Node.js) | Go (satu binary) |
+| Config | Shell script di `.husky/` + config lint-staged | Satu `lefthook.yml` |
+| Hanya file yang di-stage | Lewat lint-staged | Sudah bawaan (`{staged_files}`) |
+| Stage ulang hasil perbaikan | Diurus lint-staged | `stage_fixed: true` |
+| Job paralel | Tidak ada bawaan | `parallel: true` |
+| Filter file | Glob di lint-staged | `glob`, `exclude` |
+| Skip saat merge/rebase | Tulis sendiri di shell | `skip: [merge, rebase]` |
+| Dukungan monorepo | Bisa, tapi path-nya diatur manual | Opsi `root` per job |
+| Project non-JS | Kurang pas | Bisa di mana saja |
+| Override lokal | Tidak ada bawaan | `lefthook-local.yml` |
+| Kurva belajar | Sangat landai, cuma shell | Landai, tapi perlu hafal key YAML-nya |
+
+## Kenapa saya merekomendasikan Lefthook: simpel dan straightforward
+
+Husky-nya sendiri memang simpel. Tapi di dunia nyata, setup pre-commit hampir tidak pernah cukup dengan Husky saja. Coba lihat setup yang sama (format file yang di-stage, stage ulang hasil perbaikan, cek pesan commit) kalau dikerjakan dengan masing-masing tool.
+
+**Husky: 2 paket, config di 3 tempat**
+
+```bash
+pnpm add -D husky lint-staged
+pnpm exec husky init
+```
+
+```sh
+# .husky/pre-commit
+pnpm exec lint-staged
+```
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+```json
+// package.json
+{
+  "scripts": { "prepare": "husky" },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css}": "biome check --write"
+  }
+}
+```
+
+**Lefthook: 1 paket, 1 file**
+
+```bash
+pnpm add -D lefthook
+```
+
+```yaml
+# lefthook.yml
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+```
+
+```json
+// package.json
+{
+  "scripts": { "prepare": "lefthook install" }
+}
+```
+
+Di Husky, logikanya tersebar di folder `.husky/`, config `lint-staged`, dan `package.json`. Mau tahu apa saja yang terjadi waktu commit? Kamu harus buka tiga tempat. Di Lefthook, **semuanya ada di `lefthook.yml`**: hook apa, file mana, perintah apa, dan apakah hasil perbaikannya di-stage ulang.
+
+Dan ini tetap simpel walaupun project-nya makin besar. Mau type check jalan bareng formatter? Tinggal tambah satu job dan pasang `parallel: true`. Mau dilewati saat rebase? Tambah `skip: [rebase]`. Kalau di Husky, semua itu harus kamu tulis dan rawat sendiri sebagai shell script.
+
+## Bagaimana dengan kecepatan?
+
+Hampir setiap artikel tentang Lefthook bilang "Lefthook lebih cepat". Ini angka-angka yang dilaporkan developer lain:
+
+| Sumber | Husky | Lefthook | Selisih |
+| --- | --- | --- | --- |
+| [devtoolsguide](https://devtoolsguide.hashnode.dev/lefthook-fast-simple-git-hooks-without-the-husky-bloat): ESLint + `tsc` + Prettier | 12,1 detik (bergantian) | 6,9 detik (paralel) | ~1,8x |
+| [PkgPulse](https://www.pkgpulse.com/guides/husky-vs-lefthook-vs-lint-staged-git-hooks-nodejs-2026): ESLint + Prettier + `tsc` | 15 detik (bergantian) | 8 detik (paralel) | ~1,9x |
+| [pistack](https://www.pistack.xyz/posts/2026-04-26-pre-commit-vs-lefthook-vs-husky-git-hooks-management-guide-2026/): project 500+ file, run kedua dan seterusnya | 2–3 detik (dengan lint-staged) | di bawah 1 detik | ~2–3x |
+| [Gazar](https://gazar.dev/devops/lefthook-vs-husky-git-hooks): project frontend pada umumnya | 45 detik | ~15 detik (setelah `parallel` dinyalakan) | ~3x |
+| [Kelvyn Thai](https://dev.to/kelvynthai/save-10-on-every-git-commit-by-migrating-from-husky-to-lefthook-4afi): migrasi project sungguhan | ~17 detik per commit | ~2 detik lebih cepat | ~10% |
+
+Artikel lain juga bilang hal serupa, cuma tanpa angka detail. [recca0120](https://recca0120.github.io/en/2026/03/08/lefthook-git-hooks/) menulis bahwa eksekusi paralel bisa memangkas waktu tunggu commit "jadi setengahnya", dan [Yoshihide Shiono](https://dev.to/saltyshiomix/saying-goodbye-to-husky-how-lefthook-supercharged-our-typescript-workflow-35c8) menyebut penghematannya bisa "50% atau lebih".
+
+### Tapi baca angkanya dengan kritis
+
+- **Sebagian besar bukan benchmark formal.** Angka dari devtoolsguide dan PkgPulse cuma contoh untuk menjelaskan konsep, pistack tidak menyebut hardware atau berapa kali tesnya diulang, dan angka Gazar berasal dari pengalaman pribadi.
+- **Klaim besar harusnya disertai bukti yang kuat.** PkgPulse sempat menyebut Lefthook "~10x lebih cepat dari Husky untuk project besar", padahal contoh mereka sendiri cuma menunjukkan sekitar 1,9x.
+- **Ada penghematan yang sebenarnya datang dari perubahan lain.** Waktu Kelvyn Thai migrasi, type check dan test juga dipindah dari `pre-commit` ke `pre-push`. Jadi 2 detik itu tidak semuanya jasa Lefthook.
+
+### Sebenarnya cepatnya dari mana?
+
+Hampir semua artikel sepakat soal alasannya: **Husky menjalankan perintah satu per satu, sedangkan Lefthook bisa menjalankannya paralel.** Di Husky, total waktu hook adalah *jumlah* semua pengecekan. Di Lefthook dengan `parallel: true`, totalnya kira-kira sama dengan pengecekan yang *paling lama*.
+
+```txt
+Husky (bergantian):   eslint 5s → prettier 2s → tsc 8s  = 15s
+Lefthook (paralel):   eslint 5s
+                      prettier 2s
+                      tsc 8s                            ≈  8s
+```
+
+Beberapa artikel juga menyinggung bahwa Husky + lint-staged harus menyalakan Node.js di setiap commit, sementara Lefthook cuma satu binary Go. Itu memang sedikit membantu, tapi faktor terbesarnya tetap eksekusi paralel.
+
+### Jadi, artinya?
+
+- Kalau hook-mu cuma menjalankan **satu formatter yang cepat**, bedanya tidak akan terasa. Dua-duanya sudah cukup cepat.
+- Kalau hook-mu menjalankan **beberapa pengecekan yang lambat** (lint, type check, test), di situlah `parallel: true` milik Lefthook memberi angka 2x–3x seperti yang dilaporkan.
+- Klaim "10x lebih cepat" anggap saja bahasa marketing. Dari angka-angka di atas, **sekitar 2x** adalah ekspektasi yang lebih masuk akal, dan itu pun kalau kamu menjalankan beberapa pengecekan sekaligus.
+
+Buat saya, kecepatan itu bonus saja, bukan alasan utama. Saya tetap pilih Lefthook karena **simpel dan straightforward**.
+
+## Skip hooks (dan kenapa CI tetap penting)
+
+Ada kalanya kamu memang perlu melewati hook. Misalnya commit WIP buru-buru, rebase 30 commit, atau perbaikan darurat.
+
+**Berlaku untuk hook manager apa pun**
+
+```bash
+git commit -m "wip" --no-verify   # atau -n
+git push --no-verify
+```
+
+**Husky**
+
+```bash
+HUSKY=0 git commit -m "skip semua hook husky"
+```
+
+**Lefthook**
+
+```bash
+LEFTHOOK=0 git commit -m "skip semua hook lefthook"
+
+# atau skip satu job saja berdasarkan namanya
+LEFTHOOK_EXCLUDE=typecheck git commit -m "skip typecheck saja"
+```
+
+Ini poin paling penting soal hooks: **hooks itu alat bantu, bukan pagar pengaman**. Siapa pun bisa melewatinya. Karena itu CI-mu wajib menjalankan pengecekan yang sama sekali lagi. Hooks memberi feedback cepat, tapi yang benar-benar menjaga `main` tetap CI.
+
+### Mematikan hooks di CI dan Docker
+
+Biasanya kamu tidak butuh hooks ter-install di CI atau saat build Docker untuk production:
+
+- **Husky:** set `HUSKY=0` di environment. Kalau install di production tidak menyertakan devDependencies, pakai `"prepare": "husky || true"` supaya `prepare` tidak error saat Husky tidak ada.
+- **Lefthook:** install script bawaan paket npm-nya sudah otomatis dilewati kalau `CI=true`. Kalau kamu pakai `"prepare": "lefthook install"`, hooks tetap akan ter-install di CI, tapi itu tidak masalah karena memang tidak ada yang commit di sana. Set `LEFTHOOK=0` kalau mau benar-benar memastikan hooks tidak jalan.
+
+## Kapan pakai yang mana?
+
+**Pilih Lefthook (default saya) kalau:**
+
+- Kamu mau **satu paket dan satu file config** untuk semua hook, filter file, dan urusan file yang di-stage.
+- Kamu menjalankan **beberapa pengecekan** di satu hook dan ingin semuanya jalan **paralel**.
+- Repo-mu berupa **monorepo**, atau isinya **lebih dari satu bahasa** (misalnya frontend Next.js dengan backend Go atau Python).
+- Kamu ingin hooks **otomatis dilewati** saat merge dan rebase.
+
+**Pilih Husky kalau:**
+
+- Tim-mu lebih suka **shell script biasa** dan tidak mau repot belajar key YAML.
+- Kamu sudah punya setup **Husky + lint-staged** yang jalan lancar. Tidak perlu migrasi cuma demi ganti tool.
+- Kamu butuh cara lint-staged yang rapi dalam menangani **file yang di-stage sebagian**.
+
+**Tidak perlu keduanya kalau:**
+
+- Project-nya pribadi dan sekali pakai. Cukup jalankan `pnpm check` sebelum push.
+- Hooks-mu pasti makan lebih dari beberapa detik, apa pun yang kamu lakukan. Lebih baik pindahkan yang lambat ke CI dan biarkan hooks tetap ringan.
+
+## Apa saja yang saya taruh di tiap hook
+
+Setelah beberapa project, ini pembagian yang menurut saya paling pas:
+
+| Hook | Yang dijalankan | Patokannya |
+| --- | --- | --- |
+| `pre-commit` | Format + lint di **file yang di-stage**, plus type check kalau cepat | Selesai dalam beberapa detik |
+| `commit-msg` | commitlint | Hampir instan |
+| `pre-push` | Lint penuh, type check, test, build | Boleh agak lama, toh push lebih jarang |
+| CI | Semuanya sekali lagi | Penentu akhir |
+
+## Tips dari saya
+
+1. **Di `pre-commit`, cek file yang di-stage saja.** Lint seluruh repo di setiap commit adalah cara paling cepat bikin orang benci hooks.
+2. **Jaga `pre-commit` tetap cepat.** Kalau mulai lambat, pindahkan ke `pre-push` atau CI.
+3. **Jalankan pengecekan yang sama di CI.** Hooks bisa di-skip, CI tidak.
+4. **Auto-fix lalu stage ulang** (pakai `stage_fixed` atau lint-staged), jangan cuma bikin commit gagal. Biar tool-nya yang merapikan.
+5. **Bikin install-nya otomatis** lewat script `prepare`, supaya tidak ada yang perlu ingat langkah setup.
+6. **Tampilkan pesan yang jelas kalau gagal.** Pesan seperti "Commit diblokir: jalankan `pnpm check`" bisa menyelamatkan rekan tim dari kebingungan.
+
+Buat saya, Lefthook menang karena simpel dan straightforward. Satu paket, satu `lefthook.yml`, dan seluruh setup hook bisa dibaca di satu tempat. Di situs ini, Biome, type check, dan pengecekan kode yang tidak terpakai jalan paralel, dan saya hampir tidak sadar hook-nya sedang bekerja. Husky tetap tool yang bagus, dan kalau tim-mu sudah punya setup yang lancar, pertahankan saja. Tapi setiap kali mulai project baru, Lefthook selalu jadi yang pertama saya install.
+
+Selamat commit! 🪝
+
+## Referensi
+
+- [Husky: Get started](https://typicode.github.io/husky/get-started.html) dan [How to](https://typicode.github.io/husky/how-to.html), dokumentasi resmi
+- [Lefthook di GitHub](https://github.com/evilmartians/lefthook) dan [dokumentasi Lefthook](https://lefthook.dev/)
+- [lint-staged di GitHub](https://github.com/lint-staged/lint-staged)
+- [Lefthook: benefits vs husky and how to use](https://dev.to/quave/lefthook-benefits-vs-husky-and-how-to-use-30je) oleh João Felipe (Quave), DEV Community. Pengantar yang bagus dari sisi Lefthook. Catatan: di artikel itu config Husky disebut berupa JSON, yang memang benar di Husky v4. Sejak v9, hooks Husky berupa shell script biasa.
+- [Save 10% on Every Git Commit by Migrating from Husky to Lefthook](https://dev.to/kelvynthai/save-10-on-every-git-commit-by-migrating-from-husky-to-lefthook-4afi) oleh Kelvyn Thai, DEV Community
+- [Lefthook: Fast, Simple Git Hooks Without the Husky Bloat](https://devtoolsguide.hashnode.dev/lefthook-fast-simple-git-hooks-without-the-husky-bloat), devtoolsguide
+- [Husky vs Lefthook vs lint-staged 2026](https://www.pkgpulse.com/guides/husky-vs-lefthook-vs-lint-staged-git-hooks-nodejs-2026), PkgPulse
+- [Pre-commit vs Lefthook vs Husky 2026](https://www.pistack.xyz/posts/2026-04-26-pre-commit-vs-lefthook-vs-husky-git-hooks-management-guide-2026/), pistack
+- [Lefthook vs Husky: Why I Switched and Never Looked Back](https://gazar.dev/devops/lefthook-vs-husky-git-hooks) oleh Gazar
+- [Ditch Husky: Speed Up Git Hooks with Lefthook](https://recca0120.github.io/en/2026/03/08/lefthook-git-hooks/), recca0120
+- [Saying Goodbye to Husky](https://dev.to/saltyshiomix/saying-goodbye-to-husky-how-lefthook-supercharged-our-typescript-workflow-35c8) oleh Yoshihide Shiono, DEV Community
+- [Dokumentasi githooks](https://git-scm.com/docs/githooks), daftar lengkap hook yang didukung Git

@@ -1,0 +1,443 @@
+---
+title: "Git Hooks with Husky and Lefthook: When, Why, and How"
+publishedAt: "2026-10-17"
+image: "/blog/husky-vs-lefthook/cover.png"
+summary: "What Git hooks are, why a hook manager helps, and how Husky and Lefthook compare. Setup for both, real configs, how to skip hooks safely, and how to pick the right one for your project."
+tags: ["git", "husky", "lefthook", "tooling", "javascript", "workflow"]
+---
+
+You push a branch, open a pull request, and five minutes later CI fails. A missing semicolon. An unused import. A commit message that doesn't follow the team's format.
+
+None of these are hard problems. They're just problems you found **too late**. Git hooks let you catch them on your own machine, before the code ever leaves your laptop.
+
+In this post I'll explain what Git hooks are, why you want a tool to manage them, and how the two most popular ones, **[Husky](https://typicode.github.io/husky/)** and **[Lefthook](https://lefthook.dev/)**, compare. Spoiler: I recommend **Lefthook**. The setup and config are simpler and more straightforward. This site uses it, so I'll show its real config too.
+
+## The short version
+
+- **Git hooks** are scripts Git runs at certain moments, like before a commit or before a push.
+- Git doesn't share hooks through the repo, so you need a **hook manager** to give everyone on the team the same hooks.
+- **Husky** is the classic choice for JavaScript projects. Tiny, simple, and hooks are plain shell scripts. Usually paired with **lint-staged**.
+- **Lefthook** is a single Go binary with a YAML config. It runs jobs **in parallel**, filters files with globs, and works in any language.
+- **My pick is Lefthook.** One package, one config file, and the things you'd add extra tools for in Husky (staged files, parallel jobs, file filters) are already built in. Husky is still a fine choice if your team prefers plain shell scripts.
+
+## What is a Git hook?
+
+Every Git repository has a `.git/hooks` folder. If you put an executable script there with a special name, Git runs it at the matching moment:
+
+| Hook | When it runs | Typical use |
+| --- | --- | --- |
+| `pre-commit` | Before the commit is created | Format and lint staged files |
+| `commit-msg` | After you write the message | Check the message format (commitlint) |
+| `pre-push` | Before pushing to the remote | Type check, tests, build |
+| `post-merge` / `post-checkout` | After pulling or switching branches | Reinstall dependencies if the lockfile changed |
+
+If the script exits with a non-zero code, Git **stops**. No commit, no push. That's the whole trick.
+
+## Why not just use `.git/hooks`?
+
+You can! But there's one big problem: **the `.git` folder isn't committed**. Your hooks live only on your machine. A new teammate clones the repo and gets nothing.
+
+A hook manager solves this:
+
+1. Hook config lives **in the repo**, so it's reviewed and versioned like any other code.
+2. Hooks are **installed automatically** when someone runs `pnpm install`.
+3. Everyone runs **the same checks**, the same way.
+
+## Why use hooks at all?
+
+- **Faster feedback.** A failed hook takes seconds. A failed CI run takes minutes, plus the context switch.
+- **Cleaner history.** No more "fix lint" or "format" commits after every real change.
+- **Consistent commit messages.** Useful if you generate changelogs or use semantic versioning.
+- **Less noise in code review.** Reviewers can focus on logic instead of style.
+
+But hooks also have a cost. A slow hook is an annoying hook, and annoying hooks get skipped. Keep this in mind for the rest of the post. **Speed is a feature.**
+
+## Husky
+
+Husky is the most well-known hook manager in the JavaScript world. Since v9 it's very small (around 2 kB, no dependencies), and the idea is simple: each hook is a **shell script** in a `.husky/` folder.
+
+### Setup
+
+```bash
+pnpm add -D husky
+pnpm exec husky init
+```
+
+`husky init` does two things:
+
+- Creates `.husky/pre-commit` with an example command.
+- Adds a `prepare` script to `package.json`, so hooks install after every `pnpm install`.
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "husky"
+  }
+}
+```
+
+### Writing hooks
+
+Each hook is just a file with shell commands:
+
+```sh
+# .husky/pre-commit
+pnpm exec lint-staged
+```
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+```sh
+# .husky/pre-push
+pnpm run typecheck
+pnpm test
+```
+
+That's the strength of Husky: if you can write it in a terminal, you can put it in a hook. Nothing new to learn.
+
+### Husky + lint-staged
+
+Husky only runs scripts. It doesn't know which files you staged. That's why it's almost always paired with **[lint-staged](https://github.com/lint-staged/lint-staged)**, which runs your tools only on staged files:
+
+```json
+// package.json
+{
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,css,md}": "prettier --write"
+  }
+}
+```
+
+lint-staged also does two important things for you:
+
+- It **re-stages** files your tools fixed, so the fixes go into the same commit.
+- It **hides unstaged changes** in partially staged files (using a git stash) while it runs, and puts them back afterward. If you use `git add -p` a lot, this matters.
+
+### What to watch out for
+
+- Commands in a hook run **one after another**. You can run things in parallel with shell tricks (`&` and `wait`), but it gets messy fast.
+- Hooks are POSIX shell. Windows works through Git Bash, but complex scripts can still behave differently across machines.
+- It's a Node.js tool. Fine for a JS repo, awkward for a Go or Python project.
+
+## Lefthook
+
+Lefthook is made by Evil Martians and written in **Go**. It ships as a single binary, and you can install it from npm, Homebrew, Go, pip, gem, and more. All hooks live in one YAML file.
+
+### Setup
+
+```bash
+pnpm add -D lefthook
+```
+
+Then add a `lefthook.yml` at the root of the project and install the hooks:
+
+```bash
+pnpm exec lefthook install
+```
+
+To make sure hooks install for everyone, add it to `prepare`:
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "lefthook install"
+  }
+}
+```
+
+**Tip:** pnpm 10 doesn't run dependency install scripts unless you approve them, so an explicit `prepare` script is the most reliable way to install hooks.
+
+### Writing hooks
+
+Here is the actual `lefthook.yml` this site uses (slightly trimmed):
+
+```yaml
+# lefthook.yml
+pre-commit:
+  parallel: true
+  jobs:
+    # Only staged files, so unrelated work in progress is never rewritten.
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    - name: typecheck
+      run: pnpm run typecheck
+    - name: unused-code
+      run: pnpm run check:unused
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: biome-ci
+      run: pnpm exec biome ci .
+    - name: docker-build
+      run: docker compose build --quiet
+```
+
+A few things in there you'd need extra tools for with Husky:
+
+- **`parallel: true`** runs all jobs at the same time. Formatting, type checking, and the unused-code check finish together instead of one by one.
+- **`{staged_files}`** is replaced with the list of staged files. No lint-staged needed.
+- **`glob`** runs a job only when matching files are staged. Change only a Markdown file, and the Biome job is skipped.
+- **`stage_fixed: true`** runs `git add` on the files after the job, so auto-fixes land in the same commit.
+- **`{1}`** passes the hook's first argument. For `commit-msg`, that's the path to the message file.
+
+### More useful options
+
+```yaml
+pre-commit:
+  jobs:
+    - name: lint
+      run: pnpm exec eslint --fix {staged_files}
+      glob: "*.{ts,tsx}"
+      exclude:
+        - "src/generated/**"
+      # Don't lint while resolving a merge or rebase.
+      skip:
+        - merge
+        - rebase
+      stage_fixed: true
+```
+
+- **`exclude`** skips files even if they match the glob.
+- **`skip`** turns a job off during a merge, a rebase, or on a specific branch.
+- **`root`** runs a job inside a subfolder, which is great for monorepos (`root: "apps/web/"`).
+- **`lefthook-local.yml`** lets each developer override the config for their own machine. Add it to `.gitignore`.
+
+You can also run any hook by hand, without committing:
+
+```bash
+pnpm exec lefthook run pre-commit
+```
+
+### What to watch out for
+
+- **YAML.** Most people are fine with it, but one wrong indent and the job silently does something else. Lefthook has a JSON schema (`https://lefthook.dev/schema.json`), so turn on editor validation.
+- **Another config format** for the team to learn, compared to "just a shell script".
+- **Partially staged files.** `stage_fixed` re-adds the whole file. If you stage only part of a file with `git add -p` and a formatter touches it, test how your setup behaves before you trust it.
+
+## Side by side
+
+| Topic | Husky (+ lint-staged) | Lefthook |
+| --- | --- | --- |
+| Written in | JavaScript (Node.js) | Go (single binary) |
+| Config | Shell scripts in `.husky/` + lint-staged config | One `lefthook.yml` |
+| Staged files only | Through lint-staged | Built in (`{staged_files}`) |
+| Re-stage fixed files | lint-staged does it | `stage_fixed: true` |
+| Parallel jobs | Not built in | `parallel: true` |
+| File filters | lint-staged globs | `glob`, `exclude` |
+| Skip on merge/rebase | Write it yourself in shell | `skip: [merge, rebase]` |
+| Monorepo support | Possible, needs manual paths | `root` option per job |
+| Non-JS projects | Awkward | Works anywhere |
+| Local overrides | Not built in | `lefthook-local.yml` |
+| Learning curve | Very low, it's just shell | Low, but you need to learn the YAML keys |
+
+## Why I recommend Lefthook: simple and straightforward
+
+Husky itself is simple. But a *real* pre-commit setup almost never stops at Husky. Here's the same setup (format staged files, re-stage the fixes, check the commit message) with both tools.
+
+**Husky: 2 packages, 3 places to configure**
+
+```bash
+pnpm add -D husky lint-staged
+pnpm exec husky init
+```
+
+```sh
+# .husky/pre-commit
+pnpm exec lint-staged
+```
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+```json
+// package.json
+{
+  "scripts": { "prepare": "husky" },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css}": "biome check --write"
+  }
+}
+```
+
+**Lefthook: 1 package, 1 file**
+
+```bash
+pnpm add -D lefthook
+```
+
+```yaml
+# lefthook.yml
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+```
+
+```json
+// package.json
+{
+  "scripts": { "prepare": "lefthook install" }
+}
+```
+
+With Husky, the logic is spread across a `.husky/` folder, a `lint-staged` config, and `package.json`. To understand what happens on commit, you open three places. With Lefthook, **everything is in `lefthook.yml`**: which hook, which files, which command, and whether the fixes get re-staged.
+
+And it stays simple as the project grows. Want type checking to run next to the formatter? Add a job and set `parallel: true`. Want to skip it during a rebase? Add `skip: [rebase]`. With Husky, each of those becomes shell code you write and maintain yourself.
+
+## What about speed?
+
+"Lefthook is faster" is a claim you'll see in almost every article about it. Here's what other developers have reported:
+
+| Source | Husky | Lefthook | Gain |
+| --- | --- | --- | --- |
+| [devtoolsguide](https://devtoolsguide.hashnode.dev/lefthook-fast-simple-git-hooks-without-the-husky-bloat): ESLint + `tsc` + Prettier | 12.1 s (one after another) | 6.9 s (in parallel) | ~1.8x |
+| [PkgPulse](https://www.pkgpulse.com/guides/husky-vs-lefthook-vs-lint-staged-git-hooks-nodejs-2026): ESLint + Prettier + `tsc` | 15 s (one after another) | 8 s (in parallel) | ~1.9x |
+| [pistack](https://www.pistack.xyz/posts/2026-04-26-pre-commit-vs-lefthook-vs-husky-git-hooks-management-guide-2026/): project with 500+ files, warm run | 2–3 s (with lint-staged) | under 1 s | ~2–3x |
+| [Gazar](https://gazar.dev/devops/lefthook-vs-husky-git-hooks): a typical frontend project | 45 s | ~15 s (after turning on `parallel`) | ~3x |
+| [Kelvyn Thai](https://dev.to/kelvynthai/save-10-on-every-git-commit-by-migrating-from-husky-to-lefthook-4afi): real migration | ~17 s per commit | ~2 s faster | ~10% |
+
+Other articles say the same thing in words. [recca0120](https://recca0120.github.io/en/2026/03/08/lefthook-git-hooks/) writes that parallel execution "cuts commit wait time in half", and [Yoshihide Shiono](https://dev.to/saltyshiomix/saying-goodbye-to-husky-how-lefthook-supercharged-our-typescript-workflow-35c8) says it "can cut commit waits by 50% or more".
+
+### Read these numbers carefully
+
+- **Most of them aren't formal benchmarks.** The devtoolsguide and PkgPulse numbers are examples to explain the idea, pistack doesn't share its hardware or how many runs it did, and Gazar's numbers come from experience.
+- **Big claims need big proof.** PkgPulse also says Lefthook is "~10x faster than husky for large projects", but its own example shows about 1.9x.
+- **Some gains come from other changes.** In Kelvyn Thai's migration, type checking and tests also moved from `pre-commit` to `pre-push`, so not all of the 2 seconds came from Lefthook.
+
+### Where the speed actually comes from
+
+Almost every article points to the same reason: **Husky runs commands one after another, Lefthook can run them in parallel.** With Husky, a hook takes the *sum* of all checks. With Lefthook and `parallel: true`, it takes about as long as the *slowest* check.
+
+```txt
+Husky (one after another):  eslint 5s → prettier 2s → tsc 8s  = 15s
+Lefthook (parallel):        eslint 5s
+                            prettier 2s
+                            tsc 8s                            ≈  8s
+```
+
+Some articles also mention that Husky + lint-staged has to start Node.js on every commit, while Lefthook is a single Go binary. That helps a bit, but parallel execution is the big one.
+
+### What this means
+
+- If your hook runs **one quick formatter**, you won't feel a difference. Both are fast enough.
+- If your hook runs **several slow checks** (lint, type check, tests), Lefthook's `parallel: true` is where the reported 2x–3x gains come from.
+- Treat "10x faster" as marketing. Based on the numbers above, **around 2x** is a more realistic expectation, and only when you have several checks.
+
+For me, speed is a nice bonus, not the main reason. I pick Lefthook because it's **simple and straightforward**.
+
+## Skipping hooks (and why CI still matters)
+
+Sometimes you really do need to skip a hook. A quick WIP commit, a rebase with 30 commits, or an emergency fix.
+
+**Any hook manager**
+
+```bash
+git commit -m "wip" --no-verify   # or -n
+git push --no-verify
+```
+
+**Husky**
+
+```bash
+HUSKY=0 git commit -m "skip all husky hooks"
+```
+
+**Lefthook**
+
+```bash
+LEFTHOOK=0 git commit -m "skip all lefthook hooks"
+
+# or skip just one job by name
+LEFTHOOK_EXCLUDE=typecheck git commit -m "skip only typecheck"
+```
+
+This is the most important thing to understand about hooks: **they are a convenience, not a security gate**. Anyone can skip them. So your CI must run the same checks again. Hooks give you fast feedback; CI is what actually protects `main`.
+
+### Turning hooks off in CI and Docker
+
+You usually don't want hooks installed in CI or in a production Docker build:
+
+- **Husky:** set `HUSKY=0` in the environment. If production installs skip devDependencies, use `"prepare": "husky || true"` so `prepare` doesn't fail when Husky isn't installed.
+- **Lefthook:** the npm package's own install script already skips when `CI=true`. If you use `"prepare": "lefthook install"`, the hooks still get installed in CI, which is harmless since nobody commits there. Set `LEFTHOOK=0` to make sure they never run.
+
+## When to use which
+
+**Choose Lefthook (my default) if:**
+
+- You want **one package and one config file** for all hooks, file filters, and staged-file handling.
+- You run **several checks** per hook and want them **in parallel**.
+- You have a **monorepo**, or a repo with **more than one language** (a Next.js frontend and a Go or Python backend, for example).
+- You want hooks to **skip themselves** during merges and rebases.
+
+**Choose Husky if:**
+
+- Your team strongly prefers **plain shell scripts** and doesn't want to learn any YAML keys.
+- You already have a working **Husky + lint-staged** setup. It's not worth migrating just for the sake of it.
+- You rely on lint-staged's careful handling of **partially staged files**.
+
+**Use neither if:**
+
+- It's a solo throwaway project. A `pnpm check` before you push is enough.
+- Your hooks would take more than a few seconds no matter what. Move the slow stuff to CI and keep the hooks light.
+
+## What I put in each hook
+
+After a few projects, this is the split that works for me:
+
+| Hook | What to run | Rule |
+| --- | --- | --- |
+| `pre-commit` | Format + lint on **staged files**, maybe a quick type check | Should finish in a few seconds |
+| `commit-msg` | commitlint | Almost instant |
+| `pre-push` | Full lint, type check, tests, build | Can be slower, you push less often |
+| CI | Everything again | The real source of truth |
+
+## My tips
+
+1. **Only check staged files in `pre-commit`.** Running the linter on the whole repo on every commit is the fastest way to make people hate hooks.
+2. **Keep `pre-commit` fast.** If it's slow, move it to `pre-push` or CI.
+3. **Always run the same checks in CI.** Hooks can be skipped. CI can't.
+4. **Auto-fix and re-stage** (`stage_fixed` or lint-staged) instead of just failing. Let the tool fix it for you.
+5. **Make the install automatic** with a `prepare` script, so nobody has to remember a setup step.
+6. **Print a clear message on failure.** "Commit blocked: run `pnpm check`" saves your teammates a few minutes of confusion.
+
+For me, Lefthook wins because it's simple and straightforward. One package, one `lefthook.yml`, and I can read the whole hook setup in one place. On this site, Biome, type checking, and the unused-code check all run in parallel, and I rarely notice the hook is there. Husky is still a good tool, and if your team already has a setup that works, keep it. But for every new project, Lefthook is what I install first.
+
+Happy committing! 🪝
+
+## References
+
+- [Husky: Get started](https://typicode.github.io/husky/get-started.html) and [How to](https://typicode.github.io/husky/how-to.html), official docs
+- [Lefthook on GitHub](https://github.com/evilmartians/lefthook) and the [Lefthook docs](https://lefthook.dev/)
+- [lint-staged on GitHub](https://github.com/lint-staged/lint-staged)
+- [Lefthook: benefits vs husky and how to use](https://dev.to/quave/lefthook-benefits-vs-husky-and-how-to-use-30je) by João Felipe (Quave), DEV Community. A good intro to the Lefthook side. Note that it describes Husky's config as JSON, which was true in Husky v4. Since v9, Husky hooks are plain shell scripts.
+- [Save 10% on Every Git Commit by Migrating from Husky to Lefthook](https://dev.to/kelvynthai/save-10-on-every-git-commit-by-migrating-from-husky-to-lefthook-4afi) by Kelvyn Thai, DEV Community
+- [Lefthook: Fast, Simple Git Hooks Without the Husky Bloat](https://devtoolsguide.hashnode.dev/lefthook-fast-simple-git-hooks-without-the-husky-bloat), devtoolsguide
+- [Husky vs Lefthook vs lint-staged 2026](https://www.pkgpulse.com/guides/husky-vs-lefthook-vs-lint-staged-git-hooks-nodejs-2026), PkgPulse
+- [Pre-commit vs Lefthook vs Husky 2026](https://www.pistack.xyz/posts/2026-04-26-pre-commit-vs-lefthook-vs-husky-git-hooks-management-guide-2026/), pistack
+- [Lefthook vs Husky: Why I Switched and Never Looked Back](https://gazar.dev/devops/lefthook-vs-husky-git-hooks) by Gazar
+- [Ditch Husky: Speed Up Git Hooks with Lefthook](https://recca0120.github.io/en/2026/03/08/lefthook-git-hooks/), recca0120
+- [Saying Goodbye to Husky](https://dev.to/saltyshiomix/saying-goodbye-to-husky-how-lefthook-supercharged-our-typescript-workflow-35c8) by Yoshihide Shiono, DEV Community
+- [githooks documentation](https://git-scm.com/docs/githooks), the full list of hooks Git supports
