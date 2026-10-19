@@ -1,0 +1,333 @@
+---
+title: "Knip: Mencari Kode Mati, Export yang Tidak Terpakai, dan Dependency Nganggur"
+publishedAt: "2026-10-19"
+image: "/blog/knip-unused-code/cover.png"
+summary: "Cara Knip menemukan file, export, dan dependency yang tidak terpakai di project JavaScript atau TypeScript. Lengkap dengan setup, cara kerjanya, menangani false positive, auto-fix, production mode, dan cara menjalankannya di Git hooks dan CI."
+tags: ["knip", "tooling", "typescript", "javascript", "nextjs", "workflow"]
+---
+
+Makin lama sebuah project jalan, makin banyak "sampah" yang menumpuk. Komponen yang sudah tidak pernah di-render. Export di `utils.ts` dari fitur yang sudah dihapus enam bulan lalu. Paket di `package.json` yang dulu di-install "buat coba-coba" lalu lupa dihapus.
+
+Semua itu tidak bikin build gagal, jadi tidak ada yang sadar. Tapi tetap ada harganya. Install jadi lebih berat, CI lebih lambat, dan setiap anggota tim baru harus bertanya-tanya apakah `formatLegacyDate` itu masih penting atau tidak.
+
+Linter tidak bisa menemukan sebagian besar masalah ini. Biome atau ESLint membaca **satu file dalam satu waktu**, jadi mereka bisa bilang ada variabel yang tidak terpakai di dalam sebuah file. Tapi mereka tidak bisa bilang sebuah **export** tidak di-import di mana pun, atau sebuah **file** sama sekali tidak di-import. Untuk itu kamu butuh tool yang melihat seluruh project. Tool itu adalah **[Knip](https://knip.dev/)**.
+
+Di tulisan ini saya bahas apa saja yang bisa ditemukan Knip, cara kerjanya, cara setup-nya, dan bagaimana saya menjalankannya di situs ini. Ini tulisan ketiga di seri kecil saya soal tooling, setelah [Biome vs ESLint + Prettier](/id/blog/biome-vs-eslint-prettier) dan [Husky vs Lefthook](/id/blog/husky-vs-lefthook).
+
+## Versi singkatnya
+
+- **Knip** mencari **file**, **export**, **type**, dan **dependency** yang tidak terpakai di project JavaScript dan TypeScript. Knip juga menemukan dependency yang kamu pakai tapi **lupa ditulis** di `package.json`.
+- Cara kerjanya: mulai dari **entry file**, lalu ikuti semua import. Apa pun yang tidak terjangkau berarti tidak terpakai.
+- Knip punya **plugin untuk 100+ tool** (Next.js, Vite, Vitest, Storybook, dan lain-lain), jadi kebanyakan project cuma butuh sedikit sekali config.
+- `knip --fix` bisa menghapus export dan dependency yang tidak terpakai secara otomatis. Cek dulu diff-nya sebelum commit.
+- Jalankan di **Git hook** dan di **CI**, supaya kode mati ketahuan selagi masih kecil.
+
+## Yang tidak bisa dilihat linter
+
+Bedanya kelihatan dari contoh ini:
+
+```ts
+// src/lib/format.ts
+const DEFAULT_LOCALE = "en"; // tidak dipakai di file ini
+
+export function formatDate(date: Date) {
+  return date.toLocaleDateString(DEFAULT_LOCALE);
+}
+
+export function formatLegacyDate(date: Date) {
+  // sudah tidak ada yang meng-import ini
+  return date.toISOString();
+}
+```
+
+Linter cuma membaca file ini saja. Dia lihat `formatLegacyDate` di-export, dan sebuah export *bisa saja* dipakai di mana pun, jadi dia diam saja.
+
+Knip membaca **semua** file dan membangun graph siapa meng-import apa. Dia lihat tidak ada satu file pun yang meng-import `formatLegacyDate`, lalu melaporkannya.
+
+## Apa saja yang ditemukan Knip
+
+Ini jenis-jenis issue utamanya:
+
+| Jenis issue | Artinya | Auto-fix |
+| --- | --- | --- |
+| Unused files | Tidak ada file yang meng-import-nya, dan bukan entry file | Ya (dengan `--allow-remove-files`) |
+| Unused dependencies | Ada di `package.json`, tapi tidak pernah di-import atau dipakai | Ya |
+| Unused devDependencies | Sama, untuk `devDependencies` | Ya |
+| Unlisted dependencies | Di-import di kode, tapi **tidak ada** di `package.json` | Tidak |
+| Unlisted binaries | Script memakai CLI yang tidak disediakan dependency mana pun | Tidak |
+| Unresolved imports | Path import yang tidak mengarah ke mana-mana | Tidak |
+| Unused exports | Di-export, tapi tidak di-import file lain | Ya (menghapus `export`) |
+| Unused exported types | Sama, untuk type dan interface | Ya |
+| Unused enum members | Nilai enum yang tidak dipakai | Ya |
+| Duplicate exports | Hal yang sama di-export dua kali dengan nama berbeda | Tidak |
+
+Cek **unlisted dependencies** ini sering terlewat, padahal termasuk yang paling berguna. Dia menangkap bug klasik: kode jalan di laptopmu cuma karena kebetulan ada paket lain yang ikut meng-install dependency tersebut.
+
+## Cara kerjanya
+
+Ide Knip sebenarnya sederhana:
+
+1. Cari **entry file**, yaitu titik awal kodemu: `src/index.ts`, page dan layout Next.js, file config, file test, script di `package.json`.
+2. Dari setiap entry file, ikuti semua `import`, `require`, dan re-export, lalu bangun **module graph**.
+3. Bandingkan graph itu dengan semua yang lain:
+   - **Project file** yang tidak ada di graph berarti **unused file**.
+   - **Export** yang tidak di-import file mana pun berarti **unused export**.
+   - **Dependency** di `package.json` yang tidak dipakai file atau script mana pun berarti **unused dependency**.
+
+Bagian tersulitnya ada di langkah 1. Setiap framework punya file "ajaib" sendiri. Next.js memuat `app/**/page.tsx` tanpa ada yang meng-import-nya. Vitest memuat `*.test.ts`. Tailwind membaca `tailwind.config.ts`.
+
+Di sinilah **plugin** berperan. Knip punya plugin untuk tiap tool populer, dan plugin itu **otomatis aktif** kalau tool-nya ada di `package.json`. Plugin Next.js misalnya, otomatis menambahkan `app/**/{layout,page,route,template}.tsx`, `middleware.ts`, `proxy.ts`, `sitemap.ts`, `opengraph-image.tsx`, dan file spesial lainnya sebagai entry file. Kamu tidak perlu menulisnya sendiri.
+
+Plugin juga membaca file config. Kalau `vitest.config.ts`-mu memakai `@vitejs/plugin-react`, Knip tahu dependency itu terpakai, walaupun tidak ada file source yang meng-import-nya.
+
+## Setup
+
+Cara paling cepat pakai perintah init:
+
+```bash
+pnpm create @knip/config
+```
+
+Perintah ini meng-install `knip`, menambahkan script `knip` di `package.json`, dan selesai. Atau setup manual:
+
+```bash
+pnpm add -D knip typescript @types/node
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "knip": "knip"
+  }
+}
+```
+
+Lalu jalankan:
+
+```bash
+pnpm knip
+```
+
+**Mulai tanpa file config.** Default Knip ditambah plugin-pluginnya sudah cukup untuk banyak project. Tambahkan config hanya kalau output-nya menunjukkan ada yang salah.
+
+## Membaca output-nya
+
+Waktu saya sengaja menambahkan satu file dan satu export yang tidak terpakai di situs ini lalu menjalankan Knip, hasilnya begini:
+
+```text
+Unused files (1)
+src/lib/old-utils.ts
+Unused exports (1)
+slugifyTitle  function  src/lib/brand.ts:11:17
+```
+
+Setiap bagian adalah satu jenis issue, lengkap dengan path file-nya. Untuk export, ada juga baris dan kolomnya. Kalau semuanya bersih, Knip tidak menampilkan apa-apa dan keluar dengan kode `0`. Kalau ada issue, dia keluar dengan kode `1`. Ini yang bikin Knip berguna di hooks dan CI.
+
+Di project yang besar dan sudah lama, run pertama bisa menampilkan **ratusan** issue. Jangan panik, dan jangan perbaiki semuanya dalam satu pull request. Mulai dari satu kategori dulu:
+
+```bash
+pnpm knip --dependencies   # hanya issue dependency
+pnpm knip --files          # hanya file yang tidak terpakai
+pnpm knip --exports        # hanya export dan type yang tidak terpakai
+```
+
+Dependency biasanya paling cepat dibereskan. Setelah itu file, baru export.
+
+## Konfigurasi
+
+Knip membaca `knip.json`, `knip.jsonc`, `knip.ts`, atau key `knip` di `package.json`. Ini config lengkap situs ini:
+
+```json
+// knip.json
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,css}"],
+  "ignoreExportsUsedInFile": true
+}
+```
+
+Cuma itu. Semua entry file sudah diurus plugin Next.js. Ada dua opsi yang saya set:
+
+- **`project`** menentukan file mana saja yang dicek untuk "unused file". Saya tambahkan `css` supaya stylesheet yang sudah tidak dipakai juga ikut dilaporkan.
+- **`ignoreExportsUsedInFile`** membuat Knip tidak melaporkan export yang masih dipakai **di dalam file-nya sendiri**. Saya suka meng-export type pembantu di sebelah fungsi yang memakainya, walaupun belum ada file lain yang meng-import-nya. Opsi ini membuat yang seperti itu tidak dilaporkan.
+
+Ini opsi-opsi yang paling sering kamu butuhkan:
+
+| Opsi | Dipakai untuk |
+| --- | --- |
+| `entry` | Entry file tambahan yang tidak bisa ditemukan Knip sendiri, misalnya script custom |
+| `project` | File mana saja yang dicek untuk "unused file" |
+| `ignoreDependencies` | Paket yang dipakai dengan cara yang tidak terlihat oleh Knip |
+| `ignoreBinaries` | CLI di script yang bukan berasal dari dependency |
+| `ignoreFiles` | File yang dilewati khusus untuk cek unused file |
+| `workspaces` | Config per paket di monorepo |
+| `plugins` | Menyalakan atau mematikan plugin, atau mengarahkannya ke path config custom |
+
+## Menangani false positive
+
+Kadang Knip melaporkan sesuatu yang sebenarnya **terpakai**. Jangan langsung pakai `ignore`. Opsi itu menyembunyikan semua jenis issue di file tersebut, termasuk yang memang beneran masalah. Perbaiki penyebabnya:
+
+**1. Knip tidak tahu sebuah entry file.** Tambahkan ke `entry`:
+
+```json
+{
+  "entry": ["scripts/*.mjs"]
+}
+```
+
+**2. Dependency dipakai dengan cara yang tidak terlihat oleh Knip**, misalnya paket yang dimuat lewat nama string saat runtime, atau CLI yang dipanggil dari shell script yang tidak dibaca Knip:
+
+```json
+{
+  "ignoreDependencies": ["some-runtime-plugin"]
+}
+```
+
+**3. Export-nya memang sengaja dijadikan public API**, misalnya di library yang di-import project lain. Tandai dengan JSDoc:
+
+```ts
+/** @public */
+export function createClient() {
+  // dipakai paket lain, bukan di dalam repo ini
+}
+```
+
+**4. Kamu bingung kenapa sesuatu dilaporkan.** Tanya Knip:
+
+```bash
+pnpm knip --trace-export formatDate      # export ini dipakai di mana?
+pnpm knip --trace-dependency shiki       # paket ini dipakai di mana?
+pnpm knip --debug                        # entry dan project file apa saja yang ditemukan?
+```
+
+Knip juga menampilkan **configuration hints**, misalnya "entry `ignoreDependencies` ini sudah tidak diperlukan". Baca hint-hint itu. Mereka mencegah config-mu dipenuhi daftar ignore yang sebenarnya sudah tidak perlu.
+
+## Auto-fix
+
+Kalau laporannya sudah benar, Knip bisa membereskannya untukmu:
+
+```bash
+pnpm knip --fix
+```
+
+Yang sebenarnya dilakukan:
+
+- **Unused exports:** menghapus keyword `export`. Kodenya tetap ada, jadi linter-mu nanti bisa memberi tahu kalau ternyata kode itu juga tidak dipakai di dalam file-nya.
+- **Unused dependencies:** menghapusnya dari `package.json`. Jalankan `pnpm install` setelahnya untuk meng-update lockfile.
+- **Unused files:** hanya dihapus kalau kamu menambahkan `--allow-remove-files`.
+
+```bash
+pnpm knip --fix --allow-remove-files --format
+```
+
+`--format` menjalankan formatter-mu (Biome, Prettier, atau dprint) di file yang berubah, supaya diff-nya tidak berantakan.
+
+Dua hal yang perlu diingat:
+
+1. **Selalu cek diff-nya.** Knip memang bagus, tapi dia tidak bisa melihat file yang dimuat lewat path string dinamis. Git adalah tombol undo-mu.
+2. **Jalankan Knip lagi setelah fix.** Menghapus satu export yang tidak terpakai bisa membuat fungsi yang dipanggilnya ikut jadi tidak terpakai. Run kedua akan menemukan lapisan berikutnya.
+
+Di situs ini saya punya kedua perintah itu sebagai script:
+
+```json
+// package.json
+{
+  "scripts": {
+    "check:unused": "knip --max-issues 1",
+    "check:unused:fix": "knip --fix"
+  }
+}
+```
+
+`--max-issues` menentukan berapa issue yang masih ditoleransi sebelum Knip gagal. Default-nya `0`, yang paling ketat. Saya beri toleransi satu supaya satu export yang belum selesai tidak menghalangi commit yang masih work in progress. CI tetap menangkapnya sebelum masuk ke `main`.
+
+## Production mode
+
+Secara default, Knip mengecek **semuanya**: source code, test, Storybook stories, file config. Ini punya satu titik buta. Kalau sebuah fungsi cuma di-import oleh test-nya sendiri, Knip melihat import itu dan menganggapnya terpakai. Padahal user-mu tidak pernah menjalankan kode itu.
+
+**Production mode** mengatasi hal ini:
+
+```bash
+pnpm knip --production
+```
+
+Mode ini hanya melihat entry file production (plugin sudah tahu yang mana saja, misalnya page Next.js), mengabaikan test dan stories, dan hanya mengecek `dependencies`, bukan `devDependencies`. Kalau kamu mengatur `entry` atau `project` sendiri, tandai pattern production dengan `!` di akhir:
+
+```json
+{
+  "entry": ["src/index.ts!", "scripts/*.ts"],
+  "project": ["src/**/*.ts!"]
+}
+```
+
+Production mode tidak menggantikan run biasa. Pakai keduanya: run biasa menjaga seluruh repo tetap rapi, dan run production menemukan kode yang cuma ada demi test-nya sendiri.
+
+## Menjalankannya di hooks dan CI
+
+Knip paling berguna kalau berjalan otomatis. Di situs ini, Knip jalan di hook `pre-commit` lewat [Lefthook](/id/blog/husky-vs-lefthook), paralel dengan Biome dan type check:
+
+```yaml
+# lefthook.yml
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    - name: typecheck
+      run: pnpm run typecheck
+    - name: unused-code
+      run: pnpm run check:unused
+```
+
+Perhatikan bahwa Knip selalu mengecek **seluruh project**, bukan cuma file yang di-stage. Memang itu intinya: menghapus import di satu file bisa membuat file lain jadi tidak terpakai. Di project kecil atau menengah, ini cuma butuh satu atau dua detik. Di monorepo besar, tambahkan `--cache`, atau pindahkan Knip ke `pre-push` atau CI.
+
+Di CI, satu step sederhana sudah cukup:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Check unused code
+  run: pnpm knip
+```
+
+Di GitHub Actions kamu juga bisa pakai `--reporter github-actions`, supaya issue-nya muncul sebagai anotasi langsung di diff pull request.
+
+## Knip vs tool-tool lama
+
+Sebelum ada Knip, kamu butuh tiga tool untuk pekerjaan ini:
+
+| Tool | Fungsinya | Padanan di Knip |
+| --- | --- | --- |
+| ts-prune | Export yang tidak terpakai | `knip --exports` |
+| depcheck | Dependency yang tidak terpakai dan yang hilang | `knip --dependencies` |
+| unimported | File dan dependency yang tidak terpakai | `knip --production --dependencies --include files` |
+
+ts-prune dan unimported sekarang sudah di-archive, dan README-nya merekomendasikan Knip. Satu tool yang paham framework-mu jelas lebih baik daripada tiga tool yang masing-masing cuma menebak.
+
+## Tips dari saya
+
+1. **Mulai tanpa config.** Tambahkan opsi hanya kalau output-nya menunjukkan ada yang salah.
+2. **Bereskan per kategori.** Dependency dulu, lalu file, lalu export. Pull request yang kecil lebih gampang di-review.
+3. **Perbaiki penyebabnya, bukan gejalanya.** Utamakan `entry` dan `ignoreDependencies` daripada `ignore`.
+4. **Baca configuration hints-nya.** Hint itu memberi tahu kalau ada ignore yang sudah tidak perlu.
+5. **Cek setiap hasil `--fix`.** Lalu jalankan Knip lagi untuk menemukan lapisan berikutnya.
+6. **Otomatiskan.** Git hook untuk feedback cepat, CI untuk pengecekan terakhir. Kode mati itu murah dihapus selagi masih satu export, dan menyakitkan kalau sudah jadi satu fitur utuh yang terlupakan.
+
+Buat saya, Knip sekarang termasuk tool yang langsung saya pasang di hari pertama, bareng Biome dan Lefthook. Sehari-hari dia diam saja, dan baru muncul tepat saat saya menghapus sebuah komponen tapi lupa menghapus helper yang cuma dipakai komponen itu. `package.json`-mu dan rekan setim-mu di masa depan pasti berterima kasih.
+
+Selamat bersih-bersih! 🧹
+
+## Referensi
+
+- [Dokumentasi Knip](https://knip.dev/), situs resmi
+- [Getting started](https://knip.dev/overview/getting-started) dan [Configuration](https://knip.dev/reference/configuration), dokumentasi Knip
+- [Issue types](https://knip.dev/reference/issue-types), daftar lengkap apa saja yang dilaporkan Knip
+- [Auto-fix](https://knip.dev/features/auto-fix) dan [Production mode](https://knip.dev/features/production-mode), dokumentasi Knip
+- [Plugin Next.js](https://knip.dev/reference/plugins/next), entry file apa saja yang ditambahkan Knip untuk Next.js
+- [CLI reference](https://knip.dev/reference/cli), semua flag, termasuk opsi `--trace-*`
+- [Comparison & migration](https://knip.dev/explanations/comparison-and-migration), panduan pindah dari ts-prune, depcheck, dan unimported
+- [Knip di GitHub](https://github.com/webpro-nl/knip)
+- [Remove unused files and dependencies with Knip](https://blog.openreplay.com/remove-unused-files-dependencies-knip/), OpenReplay Blog
+- [Knip vs ts-prune vs depcheck 2026](https://www.pkgpulse.com/guides/knip-vs-ts-prune-vs-depcheck-dead-code-cleanup-2026), PkgPulse

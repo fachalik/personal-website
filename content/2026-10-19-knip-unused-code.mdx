@@ -1,0 +1,333 @@
+---
+title: "Knip: Finding Dead Code, Unused Exports, and Unused Dependencies"
+publishedAt: "2026-10-19"
+image: "/blog/knip-unused-code/cover.png"
+summary: "How Knip finds unused files, exports, and dependencies in a JavaScript or TypeScript project. Setup, how it works, handling false positives, auto-fix, production mode, and how to run it in Git hooks and CI."
+tags: ["knip", "tooling", "typescript", "javascript", "nextjs", "workflow"]
+---
+
+Every project collects junk over time. A component nobody renders anymore. A `utils.ts` export from a feature you deleted six months ago. A package in `package.json` you installed "just to try" and never removed.
+
+None of it breaks the build, so nobody notices. But it costs you anyway. Bigger installs, slower CI, and every new teammate has to wonder whether `formatLegacyDate` is still important.
+
+Your linter can't find most of this. Biome or ESLint look at **one file at a time**, so they can tell you a variable is unused inside a file. They can't tell you that an **export** isn't imported anywhere else, or that a **file** isn't imported at all. For that you need a tool that looks at the whole project. That tool is **[Knip](https://knip.dev/)**.
+
+In this post I'll explain what Knip finds, how it works, how to set it up, and how I run it on this site. This is the third post in my small tooling series, after [Biome vs ESLint + Prettier](/blog/biome-vs-eslint-prettier) and [Husky vs Lefthook](/blog/husky-vs-lefthook).
+
+## The short version
+
+- **Knip** finds unused **files**, **exports**, **types**, and **dependencies** in JavaScript and TypeScript projects. It also finds dependencies you use but **forgot to list** in `package.json`.
+- It works by starting from your **entry files** and following every import. Anything it can't reach is unused.
+- It has **plugins for 100+ tools** (Next.js, Vite, Vitest, Storybook, and more), so most projects need very little config.
+- `knip --fix` can remove unused exports and dependencies for you. Review the diff before you commit.
+- Run it in a **Git hook** and in **CI**, so dead code gets caught while it's still small.
+
+## What a linter can't see
+
+Here's the difference in one example:
+
+```ts
+// src/lib/format.ts
+const DEFAULT_LOCALE = "en"; // never used in this file
+
+export function formatDate(date: Date) {
+  return date.toLocaleDateString(DEFAULT_LOCALE);
+}
+
+export function formatLegacyDate(date: Date) {
+  // nobody imports this anymore
+  return date.toISOString();
+}
+```
+
+A linter only reads this one file. It sees that `formatLegacyDate` is exported, and an export *could* be used anywhere, so it says nothing.
+
+Knip reads **every** file and builds a graph of who imports what. It sees that no file imports `formatLegacyDate` and reports it.
+
+## What Knip finds
+
+These are the main issue types:
+
+| Issue type | What it means | Auto-fix |
+| --- | --- | --- |
+| Unused files | No file imports it, and it's not an entry file | Yes (with `--allow-remove-files`) |
+| Unused dependencies | In `package.json`, but never imported or used | Yes |
+| Unused devDependencies | Same, for `devDependencies` | Yes |
+| Unlisted dependencies | Imported in code, but **missing** from `package.json` | No |
+| Unlisted binaries | A script uses a CLI that no dependency provides | No |
+| Unresolved imports | An import path that points to nothing | No |
+| Unused exports | Exported, but no other file imports it | Yes (removes `export`) |
+| Unused exported types | Same, for types and interfaces | Yes |
+| Unused enum members | An enum value nobody uses | Yes |
+| Duplicate exports | The same thing exported twice under different names | No |
+
+The **unlisted dependencies** check is easy to overlook, but it's one of the most useful. It catches the bug where your code works on your machine only because some other package happened to install that dependency for you.
+
+## How it works
+
+Knip's idea is simple:
+
+1. Find the **entry files**. These are the places your code starts: `src/index.ts`, Next.js pages and layouts, config files, test files, scripts in `package.json`.
+2. From each entry file, follow every `import`, `require`, and re-export, and build a **module graph**.
+3. Compare the graph with everything else:
+   - A **project file** that's not in the graph is an **unused file**.
+   - An **export** that no file imports is an **unused export**.
+   - A **dependency** in `package.json` that no file or script uses is an **unused dependency**.
+
+The hard part is step 1. Every framework has its own magic files. Next.js loads `app/**/page.tsx` without anyone importing it. Vitest loads `*.test.ts`. Tailwind reads `tailwind.config.ts`.
+
+That's what **plugins** are for. Knip has a plugin for each popular tool, and a plugin turns on **automatically** when the tool is in your `package.json`. The Next.js plugin, for example, adds `app/**/{layout,page,route,template}.tsx`, `middleware.ts`, `proxy.ts`, `sitemap.ts`, `opengraph-image.tsx`, and the other special files as entry files. You don't write any of that yourself.
+
+Plugins also read config files. If your `vitest.config.ts` uses `@vitejs/plugin-react`, Knip knows that dependency is used, even though no source file imports it.
+
+## Setup
+
+The fastest way is the init command:
+
+```bash
+pnpm create @knip/config
+```
+
+It installs `knip`, adds a `knip` script to `package.json`, and you're done. Or do it by hand:
+
+```bash
+pnpm add -D knip typescript @types/node
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "knip": "knip"
+  }
+}
+```
+
+Then run it:
+
+```bash
+pnpm knip
+```
+
+**Start without a config file.** Knip's defaults plus its plugins work for a lot of projects. Only add config when the output tells you something is wrong.
+
+## Reading the output
+
+When I add an unused file and an unused export to this site and run Knip, I get this:
+
+```text
+Unused files (1)
+src/lib/old-utils.ts
+Unused exports (1)
+slugifyTitle  function  src/lib/brand.ts:11:17
+```
+
+Each section is one issue type, with the file path and, for exports, the exact line and column. If everything is clean, Knip prints nothing and exits with code `0`. If it finds issues, it exits with code `1`, which is what makes it useful in hooks and CI.
+
+On a big, older project, the first run can show **hundreds** of issues. Don't panic and don't fix them all in one pull request. Start with one category:
+
+```bash
+pnpm knip --dependencies   # only dependency issues
+pnpm knip --files          # only unused files
+pnpm knip --exports        # only unused exports and types
+```
+
+Dependencies are usually the quickest win. Then files, then exports.
+
+## Configuration
+
+Knip reads `knip.json`, `knip.jsonc`, `knip.ts`, or a `knip` key in `package.json`. This is the full config for this site:
+
+```json
+// knip.json
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,css}"],
+  "ignoreExportsUsedInFile": true
+}
+```
+
+That's it. The Next.js plugin handles all the entry files. Two options are set:
+
+- **`project`** says which files Knip should check for "unused file". I added `css` so an orphaned stylesheet gets reported too.
+- **`ignoreExportsUsedInFile`** stops Knip from reporting an export that's still used **inside its own file**. I like to export a helper type next to the function that uses it, even if no other file imports it yet. This keeps those quiet.
+
+These are the options you'll reach for most often:
+
+| Option | Use it for |
+| --- | --- |
+| `entry` | Extra entry files Knip can't find on its own, like a custom script |
+| `project` | Which files to check for "unused file" |
+| `ignoreDependencies` | Packages that are used in a way Knip can't see |
+| `ignoreBinaries` | CLIs used in scripts that aren't from a dependency |
+| `ignoreFiles` | Files to skip in the unused-file check only |
+| `workspaces` | Per-package config in a monorepo |
+| `plugins` | Turn a plugin on or off, or point it to a custom config path |
+
+## Handling false positives
+
+Sometimes Knip reports something that **is** used. Don't reach for `ignore` first. That hides every issue type for those files, including real ones. Fix the cause instead:
+
+**1. Knip doesn't know about an entry file.** Add it to `entry`:
+
+```json
+{
+  "entry": ["scripts/*.mjs"]
+}
+```
+
+**2. A dependency is used in a way Knip can't see**, like a package loaded by a string name at runtime, or a CLI called from a shell script Knip doesn't read:
+
+```json
+{
+  "ignoreDependencies": ["some-runtime-plugin"]
+}
+```
+
+**3. An export is a public API on purpose**, like a library that other projects import. Tag it with JSDoc:
+
+```ts
+/** @public */
+export function createClient() {
+  // used by other packages, not inside this repo
+}
+```
+
+**4. You don't understand why something is reported.** Ask Knip:
+
+```bash
+pnpm knip --trace-export formatDate      # where is this export used?
+pnpm knip --trace-dependency shiki       # where is this package used?
+pnpm knip --debug                        # which entry and project files did it find?
+```
+
+Knip also prints **configuration hints**, like "this `ignoreDependencies` entry isn't needed anymore". Read them. They keep your config from growing ignore lists you don't need.
+
+## Auto-fix
+
+Once the report looks right, Knip can clean it up for you:
+
+```bash
+pnpm knip --fix
+```
+
+What it actually does:
+
+- **Unused exports:** removes the `export` keyword. The code stays, so your linter can then tell you if it's unused inside the file too.
+- **Unused dependencies:** removes them from `package.json`. Run `pnpm install` afterwards to update the lockfile.
+- **Unused files:** only deleted if you add `--allow-remove-files`.
+
+```bash
+pnpm knip --fix --allow-remove-files --format
+```
+
+`--format` runs your formatter (Biome, Prettier, or dprint) on the changed files, so you don't get a messy diff.
+
+Two things to keep in mind:
+
+1. **Always review the diff.** Knip is good, but it can't see a file loaded with a dynamic string path. Git is your undo button.
+2. **Run Knip again after fixing.** Removing one unused export can make the function it called unused too. A second run finds the next layer.
+
+On this site I have both commands as scripts:
+
+```json
+// package.json
+{
+  "scripts": {
+    "check:unused": "knip --max-issues 1",
+    "check:unused:fix": "knip --fix"
+  }
+}
+```
+
+`--max-issues` sets how many issues are allowed before Knip fails. The default is `0`, which is the strictest. I keep a buffer of one so a single half-finished export doesn't block a work-in-progress commit. CI still catches it before it reaches `main`.
+
+## Production mode
+
+By default, Knip checks **everything**: source code, tests, Storybook stories, config files. That has one blind spot. If a function is only imported by its own test, Knip sees the import and says it's used. But your users never run that code.
+
+**Production mode** fixes that:
+
+```bash
+pnpm knip --production
+```
+
+It only looks at production entry files (plugins already know which ones those are, like Next.js pages), ignores tests and stories, and only checks `dependencies`, not `devDependencies`. If you configure `entry` or `project` yourself, mark the production patterns with a `!` at the end:
+
+```json
+{
+  "entry": ["src/index.ts!", "scripts/*.ts"],
+  "project": ["src/**/*.ts!"]
+}
+```
+
+Production mode doesn't replace the normal run. Use both: the normal run keeps your whole repo tidy, and the production run finds code that only exists for its own tests.
+
+## Running it in hooks and CI
+
+Knip is most useful when it runs automatically. On this site it runs in the `pre-commit` hook with [Lefthook](/blog/husky-vs-lefthook), in parallel with Biome and the type check:
+
+```yaml
+# lefthook.yml
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    - name: typecheck
+      run: pnpm run typecheck
+    - name: unused-code
+      run: pnpm run check:unused
+```
+
+Note that Knip always checks the **whole project**, not just staged files. That's the point: deleting an import in one file can make a different file unused. On a small or medium project this takes a second or two. On a big monorepo, add `--cache`, or move Knip to `pre-push` or CI.
+
+In CI, a basic step is enough:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Check unused code
+  run: pnpm knip
+```
+
+On GitHub Actions you can also use `--reporter github-actions`, so issues show up as annotations in the pull request's diff.
+
+## Knip vs the older tools
+
+Before Knip, you needed three tools for this job:
+
+| Tool | What it did | Knip equivalent |
+| --- | --- | --- |
+| ts-prune | Unused exports | `knip --exports` |
+| depcheck | Unused and missing dependencies | `knip --dependencies` |
+| unimported | Unused files and dependencies | `knip --production --dependencies --include files` |
+
+ts-prune and unimported are now archived, and their READMEs recommend Knip. One tool that understands your framework beats three tools that each guess.
+
+## My tips
+
+1. **Start with no config.** Add options only when the output tells you something is wrong.
+2. **Fix by category.** Dependencies first, then files, then exports. Small pull requests are easier to review.
+3. **Fix the cause, not the symptom.** Prefer `entry` and `ignoreDependencies` over `ignore`.
+4. **Read the configuration hints.** They tell you when an ignore isn't needed anymore.
+5. **Review every `--fix`.** Then run Knip again to find the next layer.
+6. **Automate it.** A Git hook for fast feedback, CI for the final check. Dead code is cheap to remove when it's one export, and painful when it's a whole forgotten feature.
+
+For me, Knip is one of those tools I add on day one now, together with Biome and Lefthook. It's quiet most of the time, and it shows up exactly when I delete a component and forget the helper that only that component used. Your `package.json` and your future teammates will thank you.
+
+Happy cleaning! 🧹
+
+## References
+
+- [Knip documentation](https://knip.dev/), official site
+- [Getting started](https://knip.dev/overview/getting-started) and [Configuration](https://knip.dev/reference/configuration), Knip docs
+- [Issue types](https://knip.dev/reference/issue-types), the full list of what Knip reports
+- [Auto-fix](https://knip.dev/features/auto-fix) and [Production mode](https://knip.dev/features/production-mode), Knip docs
+- [Next.js plugin](https://knip.dev/reference/plugins/next), which entry files Knip adds for Next.js
+- [CLI reference](https://knip.dev/reference/cli), every flag, including the `--trace-*` options
+- [Comparison & migration](https://knip.dev/explanations/comparison-and-migration), moving from ts-prune, depcheck, and unimported
+- [Knip on GitHub](https://github.com/webpro-nl/knip)
+- [Remove unused files and dependencies with Knip](https://blog.openreplay.com/remove-unused-files-dependencies-knip/), OpenReplay Blog
+- [Knip vs ts-prune vs depcheck 2026](https://www.pkgpulse.com/guides/knip-vs-ts-prune-vs-depcheck-dead-code-cleanup-2026), PkgPulse
