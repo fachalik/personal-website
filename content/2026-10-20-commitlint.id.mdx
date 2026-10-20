@@ -1,0 +1,647 @@
+---
+title: "Commitlint dan Conventional Commits: Commit Message yang Benar-Benar Berguna"
+publishedAt: "2026-10-20"
+image: "/blog/commitlint/cover.png"
+summary: "Apa itu Conventional Commits, kenapa format commit yang konsisten itu worth it, dan cara menegakkannya dengan commitlint. Lengkap dengan setup, aturan bawaan, config custom, breaking change, Git hooks, CI, dan cara membuat changelog dari history."
+tags: ["commitlint", "git", "tooling", "workflow", "javascript"]
+---
+
+Coba jalankan `git log --oneline` di hampir semua project. Perintah ini menampilkan daftar commit, satu baris per commit: hash di kiri, commit message di kanan. Hasilnya sering seperti ini:
+
+```bash
+$ git log --oneline
+3f9a1c2 asdf
+8b2e7d4 final fix (beneran)
+c41f0a9 Update index.tsx
+5d6e2b1 fixed the thing
+a07c3f8 wip
+e92b4d0 fix
+1c7e4a9 bismillah jalan
+9f8e7d6 fix something
+b3d8f05 ya allah please bisa, please bisa
+```
+
+Coba tebak apa isi masing-masing commit di atas. Susah, kan?
+
+- `fix` dan `fixed the thing`: memperbaiki **apa**? Bug yang mana, di bagian mana?
+- `wip` (_work in progress_): pekerjaan yang belum selesai. Belum selesai di mana, dan untuk fitur apa?
+- `Update index.tsx`: kita sudah tahu file-nya dari diff. Yang tidak kita tahu justru **kenapa** file itu diubah.
+- `final fix (beneran)`: biasanya tanda bahwa "final fix" sebelumnya ternyata belum final.
+- `asdf`: tidak ada informasi sama sekali.
+
+Saat menulisnya, setiap commit ini terasa cukup jelas karena kamu masih ingat konteksnya. Tapi enam bulan kemudian, saat kamu perlu mencari tahu **kapan** sebuah bug pertama kali muncul atau **apa saja** yang berubah di antara dua rilis, daftar di atas tidak membantu. Kamu terpaksa membuka diff satu per satu.
+
+Bandingkan dengan history yang mengikuti format yang akan kita bahas di tulisan ini:
+
+```bash
+$ git log --oneline
+7c1d9e3 fix(auth): redirect to login when the token expires
+2a8f4b6 feat(blog): add post search
+f05e1c7 refactor(ui): split Card component out of the home page
+```
+
+Tanpa membuka kode pun, kamu langsung tahu jenis perubahannya (`fix`, `feat`, `refactor`), bagian mana yang tersentuh (`auth`, `blog`, `ui`), dan apa yang dilakukan.
+
+Commit message yang bagus itu soal kebiasaan, dan kebiasaan susah dijaga di dalam tim. Jadi daripada berharap, lebih baik formatnya dijadikan aturan dan dicek oleh tool. Tool itu adalah **[commitlint](https://commitlint.js.org/)**.
+
+Di tulisan ini saya bahas kenapa format commit itu sepadan, seperti apa format Conventional Commits, cara setup dan kustomisasi commitlint, cara menegakkannya lewat Git hook dan CI, beberapa trik menulis commit message di terminal dan VS Code, sampai bagaimana history kamu bisa diubah jadi changelog. Ini tulisan keempat di seri kecil saya soal tooling, setelah [Biome vs ESLint + Prettier](/id/blog/biome-vs-eslint-prettier), [Husky vs Lefthook](/id/blog/husky-vs-lefthook), dan [Knip](/id/blog/knip-unused-code).
+
+## Versi singkatnya
+
+- **Conventional Commits** adalah format sederhana untuk commit message: `type(scope): subject`, contohnya `feat(blog): add search`.
+- **commitlint** mengecek setiap commit message terhadap format itu dan **memblokir commit** kalau tidak sesuai.
+- Setup-nya cuma dua paket dan file config tiga baris. Preset `@commitlint/config-conventional` sudah memberi aturan yang masuk akal.
+- Jalankan di **Git hook `commit-msg`** untuk feedback instan, dan di **CI** karena hook bisa di-skip.
+- Manfaat terbesarnya: history yang bisa dibaca tool. Kamu bisa **membuat changelog** dan **menentukan nomor versi berikutnya** secara otomatis.
+
+## Kenapa repot-repot?
+
+Sebelum masuk ke formatnya, wajar kalau kamu bertanya apakah ini sepadan. Ini yang kamu dapat:
+
+- **History yang mudah dibaca.** `git log --oneline` jadi daftar fitur dan perbaikan, bukan daftar curhatan.
+- **Code review lebih mudah.** Commit berjudul `refactor: ...` memberi tahu reviewer bahwa perilakunya tidak boleh berubah. Kalau berubah, berarti ada yang salah.
+- **Debugging lebih mudah.** `git log --grep "^fix(auth)"` menemukan semua perbaikan auth dalam hitungan detik. `git bisect` juga lebih nyaman kalau setiap commit jelas isinya.
+- **Changelog dan versi otomatis.** Karena formatnya bisa dibaca mesin, tool bisa mengubah history jadi release notes dan menentukan nomor versi berikutnya. Detailnya di bagian akhir.
+- **Satu hal yang tidak perlu diperdebatkan lagi.** Formatnya diputuskan sekali, di file config. Tidak ada lagi yang perlu mengingatkan soal ini saat review.
+
+## Format Conventional Commits
+
+[Conventional Commits](https://www.conventionalcommits.org/id/v1.0.0/) adalah spesifikasi kecil. Bentuk commit message-nya seperti ini:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Cuma baris pertama (**header**) yang wajib. Beberapa contoh asli dari history situs ini:
+
+```
+feat(blog): cover images, search & pagination, home blog section
+perf: fix pagespeed issues across performance, a11y and seo
+chore(tooling): add lefthook, commitlint, knip and docker setup
+docs(blog): add knip post on finding unused code and dependencies
+```
+
+### Type
+
+**Type** menjelaskan jenis perubahannya. Ini type yang diizinkan oleh preset conventional:
+
+| Type | Dipakai untuk |
+| --- | --- |
+| `feat` | Fitur baru |
+| `fix` | Perbaikan bug |
+| `docs` | Dokumentasi saja |
+| `style` | Format, spasi, titik koma. Tidak mengubah perilaku |
+| `refactor` | Perubahan kode yang bukan fix dan bukan fitur |
+| `perf` | Perubahan yang membuat lebih cepat |
+| `test` | Menambah atau memperbaiki test |
+| `build` | Build system atau dependency |
+| `ci` | Config dan script CI |
+| `chore` | Maintenance lain yang tidak menyentuh `src` atau test |
+| `revert` | Membatalkan commit sebelumnya |
+
+Kalau cuma mau ingat dua, ingat `feat` dan `fix`. Dua type itulah yang berpengaruh ke versioning, nanti kita bahas.
+
+### Scope
+
+**Scope** itu opsional dan menunjukkan bagian project mana yang berubah: `feat(auth)`, `fix(api)`, `docs(blog)`. Ini sangat membantu saat membaca log, dan rapi saat dikelompokkan di changelog.
+
+### Subject
+
+**Subject** adalah ringkasan singkat perubahannya. Konvensi yang umum:
+
+- Pakai **bentuk perintah (imperative)** dalam bahasa Inggris: "add search", bukan "added search" atau "adds search". Anggap saja kamu melanjutkan kalimat *"If applied, this commit will..."*.
+- **Huruf kecil**, dan **tanpa titik** di akhir.
+- Header-nya dibuat pendek. Preset-nya mengizinkan sampai 100 karakter, tapi di bawah 72 lebih enak dibaca di kebanyakan tool.
+
+### Body dan footer
+
+Untuk perubahan yang tidak jelas dengan sendirinya, tambahkan **body** setelah satu baris kosong. Jelaskan **kenapa**, bukan apa. Diff-nya sudah menunjukkan apa.
+
+**Footer** dipakai untuk metadata, seperti referensi issue atau breaking change:
+
+```
+fix(auth): refresh token before it expires
+
+The old check compared against the current time, so a token that
+expired during a slow request was still sent once and failed.
+
+Closes #142
+```
+
+### Breaking change
+
+Breaking change ditandai dengan `!` setelah type atau scope, footer `BREAKING CHANGE:`, atau dua-duanya:
+
+```
+feat(api)!: drop the v1 endpoints
+
+BREAKING CHANGE: /api/v1/* is removed. Use /api/v2/* instead.
+```
+
+Ini sinyal paling penting di seluruh format. Sinyal ini memberi tahu semua orang (dan semua tool) bahwa upgrade-nya harus hati-hati.
+
+## Apa yang dilakukan commitlint
+
+Spesifikasi itu cuma dokumen. Tidak ada yang mencegah orang untuk mengabaikannya. **commitlint** adalah tool yang membaca commit message dan mengeceknya terhadap sekumpulan aturan.
+
+Begini kira-kira cara kerjanya. Cukup pipe sebuah message ke commitlint (cara install-nya ada di bagian berikutnya):
+
+```bash
+echo "Fixed the bug" | pnpm exec commitlint
+```
+
+```
+⧗   --- input ---
+Fixed the bug
+✖   subject may not be empty [subject-empty]
+✖   type may not be empty [type-empty]
+
+✖   found 2 problems, 0 warnings
+```
+
+Dia mem-parse `Fixed the bug` dan tidak menemukan type maupun subject. Message yang sesuai format akan lolos tanpa output apa-apa, dengan exit code `0`:
+
+```bash
+echo "fix(auth): refresh token before it expires" | pnpm exec commitlint
+```
+
+Exit code itulah triknya. Taruh commitlint di Git hook, dan exit code yang bukan nol akan **menghentikan commit**.
+
+## Setup
+
+### 1. Install
+
+```bash
+pnpm add -D @commitlint/cli @commitlint/config-conventional
+```
+
+- `@commitlint/cli` adalah tool-nya.
+- `@commitlint/config-conventional` adalah **shareable config** berisi aturan Conventional Commits.
+
+### 2. Buat file config
+
+Ini config lengkap di situs ini:
+
+```js
+// commitlint.config.mjs
+/** @type {import('@commitlint/types').UserConfig} */
+const config = {
+  extends: ["@commitlint/config-conventional"],
+};
+
+export default config;
+```
+
+Komentar `@type` itu memberi autocomplete di editor. Untuk itu kamu perlu meng-install `@commitlint/types` (`pnpm add -D @commitlint/types`). Kalau lebih suka TypeScript, commitlint juga bisa membaca `commitlint.config.ts`.
+
+### 3. Coba
+
+```bash
+echo "wip: stuff" | pnpm exec commitlint
+```
+
+```
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+```
+
+Berhasil. Sekarang kita buat supaya jalan di setiap commit.
+
+## Aturan bawaan
+
+Preset conventional adalah titik awal yang bagus. Ini aturan yang dinyalakan oleh preset tersebut:
+
+| Aturan | Yang dicek | Level |
+| --- | --- | --- |
+| `type-enum` | Type harus salah satu dari 11 type di atas | error |
+| `type-empty` / `subject-empty` | Type dan subject harus ada | error |
+| `type-case` | Type huruf kecil | error |
+| `subject-case` | Subject bukan Sentence case, Start Case, PascalCase, atau UPPER CASE | error |
+| `subject-full-stop` | Subject tidak diakhiri `.` | error |
+| `header-max-length` | Header maksimal 100 karakter | error |
+| `header-trim` | Tidak ada spasi di awal atau akhir header | error |
+| `body-max-line-length` / `footer-max-line-length` | Setiap baris maksimal 100 karakter | error |
+| `body-leading-blank` / `footer-leading-blank` | Ada baris kosong sebelum body dan footer | warning |
+
+Aturan `subject-case` yang paling sering bikin kaget. `feat(blog): Add Post.` gagal dua kali:
+
+```
+✖   subject must not be sentence-case [subject-case]
+✖   subject may not end with full stop [subject-full-stop]
+```
+
+Warning tetap ditampilkan tapi tidak memblokir commit:
+
+```
+⚠   body must have leading blank line [body-leading-blank]
+
+⚠   found 0 problems, 1 warnings
+```
+
+commitlint juga **mengabaikan beberapa message secara default**: merge commit (`Merge branch ...`, `Merge pull request ...`), `Revert ...`, dan commit `fixup!` / `squash!` / `amend!`. Jadi `git merge` dan `git commit --fixup` tetap jalan tanpa config tambahan.
+
+## Kustomisasi aturan
+
+Setiap aturan punya bentuk yang sama:
+
+```js
+"nama-aturan": [level, applicable, value]
+```
+
+- **level**: `0` mati, `1` warning, `2` error.
+- **applicable**: `"always"` atau `"never"`.
+- **value**: opsi aturannya, misalnya angka atau daftar.
+
+Kamu bisa import `RuleConfigSeverity` dari `@commitlint/types` kalau lebih suka menulis `RuleConfigSeverity.Error` daripada `2`.
+
+Ini config yang akan saya pakai di project tim:
+
+```js
+// commitlint.config.mjs
+/** @type {import('@commitlint/types').UserConfig} */
+const config = {
+  extends: ["@commitlint/config-conventional"],
+  rules: {
+    // Hanya izinkan scope yang sudah disepakati.
+    "scope-enum": [2, "always", ["blog", "i18n", "seo", "ui", "tooling", "deps"]],
+    // Minta scope, tapi jangan blokir commit.
+    "scope-empty": [1, "never"],
+    // Header pendek lebih enak dibaca di `git log --oneline` dan di GitHub.
+    "header-max-length": [2, "always", 72],
+  },
+};
+
+export default config;
+```
+
+Dengan config itu:
+
+```bash
+echo "feat(home): add hero" | pnpm exec commitlint
+# ✖   scope must be one of [blog, i18n, seo, ui, tooling, deps] [scope-enum]
+
+echo "feat: add hero" | pnpm exec commitlint
+# ⚠   scope may not be empty [scope-empty]  (warning, commit tetap jalan)
+```
+
+Beberapa tips soal aturan custom:
+
+- **Mulai dengan preset apa adanya.** Tambahkan aturan hanya kalau kamu melihat masalah nyata di history.
+- **`scope-enum` cocok sekali untuk monorepo**, di mana scope-nya adalah nama-nama package. Di aplikasi kecil, sering kali cuma bikin kesal. Warning adalah jalan tengah yang pas.
+- **Jangan menambah type yang tidak akan dipakai.** Setiap type tambahan berarti satu hal lagi yang harus dijelaskan ke anggota tim baru.
+- Kalau ragu, cek config yang benar-benar dimuat commitlint dengan `pnpm exec commitlint --print-config`.
+
+## Menjalankannya di Git hook
+
+commitlint butuh message yang baru saja kamu ketik. Git memberikan path file message itu sebagai argumen pertama di hook `commit-msg`, dan `--edit` menyuruh commitlint membaca file tersebut.
+
+Dengan **Lefthook** (yang dipakai situs ini):
+
+```yaml
+# lefthook.yml
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+```
+
+Dengan **Husky**:
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+Sekarang message yang jelek tidak akan pernah masuk ke history:
+
+```bash
+git commit -m "fixed stuff"
+# ✖   subject may not be empty [subject-empty]
+# ✖   type may not be empty [type-empty]
+# (commit tidak dibuat, perubahan kamu masih di-stage)
+```
+
+Tidak ada yang hilang. Perubahan kamu masih di-stage, jadi tinggal commit lagi dengan message yang lebih baik. Kalau darurat, `git commit --no-verify` akan melewati hook. Baca [tulisan Husky vs Lefthook](/id/blog/husky-vs-lefthook) untuk cara setup hook-nya dari awal.
+
+## Menjalankannya di CI
+
+Hook jalan di komputer kamu, dan siapa pun bisa melewatinya. Jadi kalau formatnya memang penting, cek juga di CI.
+
+commitlint bisa mengecek **rentang commit** dengan `--from` dan `--to`. Di GitHub Actions, untuk pull request:
+
+```yaml
+# .github/workflows/commitlint.yml
+name: Commitlint
+on: [pull_request]
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # seluruh history, supaya commit base-nya ada
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint commits in this PR
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+```
+
+`fetch-depth: 0` adalah bagian yang paling sering terlupa. Tanpa itu, checkout cuma berisi satu commit, dan commitlint tidak bisa menemukan base dari rentangnya.
+
+Kamu juga bisa mengecek rentang commit secara lokal. Ini cara yang bagus untuk melihat seberapa rapi history kamu sekarang:
+
+```bash
+pnpm exec commitlint --from HEAD~20 --to HEAD
+```
+
+### Bagaimana dengan squash merge?
+
+Kalau tim kamu memakai **squash and merge** di GitHub, commit-commit di dalam pull request tidak akan masuk ke `main`. Cuma satu commit yang masuk, dan message-nya biasanya adalah **judul pull request**. Dalam kasus itu, judul PR-lah yang perlu dicek. GitHub Action [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request) melakukan persis hal itu.
+
+## Bantuan menulis message
+
+Kalau kamu atau tim sering lupa type-nya, prompt interaktif bisa membantu. commitlint punya sendiri:
+
+```bash
+pnpm add -D @commitlint/prompt-cli
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "commit": "commit"
+  }
+}
+```
+
+`pnpm commit` lalu akan menanyakan type, scope, dan subject langkah demi langkah, sesuai aturan di config kamu. [Commitizen](https://github.com/commitizen/cz-cli) dengan adapter `@commitlint/cz-commitlint` adalah alternatif yang populer.
+
+Jujur saja, setelah satu atau dua minggu kebanyakan orang sudah tidak butuh lagi. Formatnya cukup kecil untuk diingat, dan hook-nya akan menangkap kesalahan.
+
+## Menulis commit message di terminal
+
+Kebanyakan orang cuma tahu `git commit -m "..."`, jadi semuanya ditulis dalam satu baris dan body-nya dilewati. Padahal Git punya beberapa opsi lain yang membuat menulis message yang bagus sama cepatnya. Trik di bawah ini urut dari menulis message, memperbaikinya, sampai membaca history.
+
+### Tambahkan body dengan `-m` kedua
+
+Setiap `-m` jadi paragraf sendiri, dan Git otomatis menaruh baris kosong di antaranya. Yang pertama jadi header, sisanya jadi body dan footer:
+
+```bash
+git commit \
+  -m "fix(auth): refresh token before it expires" \
+  -m "The old check compared against the current time, so a token that expired during a slow request was still sent once and failed." \
+  -m "Closes #142"
+```
+
+```
+fix(auth): refresh token before it expires
+
+The old check compared against the current time, so a token that expired during a slow request was still sent once and failed.
+
+Closes #142
+```
+
+Baris kosongnya sudah ada, jadi `body-leading-blank` dan `footer-leading-blank` lolos.
+
+### Tulis message panjang dengan heredoc
+
+Kalau body-nya beberapa baris atau berupa daftar, `-F -` membaca message dari stdin. Digabung dengan heredoc, kamu bisa menulisnya langsung di terminal:
+
+```bash
+git commit -F - <<'EOF'
+feat(blog): add search and pagination
+
+- search filters posts by title, summary, and tags
+- pagination shows 10 posts per page
+- the query is kept in the URL, so results can be shared
+EOF
+```
+
+Pakai tanda kutip di `<<'EOF'`. Tanda kutip itu mencegah shell meng-expand `$variabel` dan backtick di dalam message kamu.
+
+### Atau biarkan Git membuka editor
+
+Jalankan `git commit` tanpa `-m`, dan Git akan membuka editor. Untuk message yang panjang, ini sering jadi cara paling nyaman. Atur editor-nya sekali saja:
+
+```bash
+git config --global core.editor "code --wait"   # VS Code
+git config --global core.editor "nano"          # atau editor lain yang kamu suka
+```
+
+Tambahkan `-v` (`git commit -v`) untuk menampilkan diff lengkap di bawah message di editor. Jadi kamu bisa membaca perubahan sendiri sambil menjelaskannya. Diff-nya tidak ikut masuk ke commit.
+
+### Pakai commit template
+
+Template adalah file yang otomatis diisi Git ke editor setiap kali kamu menjalankan `git commit`. Cocok jadi contekan format:
+
+```bash
+# ~/.gitmessage
+
+# <type>(<scope>): <subject>
+#
+# Kenapa perubahan ini perlu?
+#
+# Closes #
+#
+# Types: feat fix docs style refactor perf test build ci chore revert
+```
+
+```bash
+git config --global commit.template ~/.gitmessage
+```
+
+Baris yang diawali `#` adalah komentar. Git akan menghapusnya, jadi tidak akan masuk ke commit.
+
+### Tambahkan trailer dengan `--trailer`
+
+Trailer adalah baris `Key: value` di akhir message, misalnya `Co-authored-by` untuk pair programming. Sejak Git 2.32, kamu bisa menambahkannya tanpa perlu mengetik baris kosongnya sendiri:
+
+```bash
+git commit -m "feat(ui): add dark mode toggle" \
+  --trailer "Co-authored-by: Budi <budi@example.com>"
+```
+
+GitHub akan menampilkan kedua orang sebagai author commit tersebut. Keyword seperti `Closes #142` atau `Fixes #142` di mana pun dalam message akan menutup issue-nya saat commit masuk ke default branch.
+
+### Kalau subject-nya tidak bisa pendek, pecah commit-nya
+
+Kalau header-nya tidak muat dalam satu baris pendek, atau kamu butuh kata "and" dua kali, kemungkinan commit-nya mengerjakan lebih dari satu hal. `git add -p` memungkinkan kamu men-stage sebagian isi file, jadi satu perubahan besar bisa dipecah jadi dua atau tiga commit yang fokus, masing-masing dengan type yang jelas.
+
+### Perbaiki message terakhir dengan `--amend`
+
+Ada typo di message yang barusan kamu tulis? Tidak perlu bikin commit baru untuk itu:
+
+```bash
+git commit --amend                    # buka editor dengan message terakhir
+git commit --amend -m "fix(auth): ..." # atau ganti langsung dalam satu baris
+git commit --amend --no-edit          # tambahkan perubahan yang di-stage, message tetap
+```
+
+`--amend` menulis ulang commit, jadi lakukan hanya **sebelum di-push**. Hook `commit-msg` akan jalan lagi, jadi commitlint juga mengecek message yang baru.
+
+### Perbaiki commit lama dengan `--fixup`
+
+Menemukan kesalahan kecil di commit sebelumnya di branch kamu? Buat fixup commit yang menunjuk ke commit itu:
+
+```bash
+git commit --fixup a1b2c3d
+# membuat "fixup! feat(blog): add search and pagination"
+```
+
+commitlint mengabaikan message `fixup!` secara default, jadi hook-nya tidak akan memblokir. Sebelum membuka pull request, gabungkan ke commit aslinya:
+
+```bash
+git rebase -i --autosquash main
+```
+
+Git akan memindahkan setiap fixup tepat di bawah commit targetnya dan menandainya untuk di-squash. Simpan dan tutup editor-nya, dan history kamu rapi lagi.
+
+### Baca history seperti changelog
+
+Kalau message kamu sudah mengikuti format, `git log` jadi jauh lebih berguna:
+
+```bash
+git log --oneline                     # satu baris per commit
+git log --oneline --grep "^feat"      # hanya fitur
+git log --oneline --grep "^fix(auth)" # hanya perbaikan auth
+git log --oneline v1.4.0..HEAD        # semua sejak rilis terakhir
+```
+
+Simpan yang paling sering kamu pakai sebagai alias:
+
+```bash
+git config --global alias.lg "log --oneline --graph --decorate"
+git lg
+```
+
+## Menulis commit message di VS Code
+
+Kalau kamu commit dari panel **Source Control** VS Code dan bukan dari terminal, kamu tetap terlindungi. Di belakang layar VS Code menjalankan `git commit` biasa, jadi hook `commit-msg` dan commitlint tetap jalan. Kalau message-nya gagal, VS Code menampilkan error commitlint di sebuah dialog, dan kamu bisa membuka Git output untuk membaca lengkapnya.
+
+Ada beberapa hal yang membuat pengalamannya lebih enak.
+
+### Setting bawaan
+
+Kotak commit-nya sudah mendukung body. Tekan `Enter` untuk baris baru, dan `Ctrl+Enter` (`Cmd+Enter` di macOS) untuk commit. Baris pertama adalah header, jadi sisakan satu baris kosong sebelum body.
+
+VS Code juga bisa memberi peringatan saat kamu mengetik kalau sebuah baris terlalu panjang. Tambahkan ini ke settings:
+
+```json
+// .vscode/settings.json
+{
+  "git.inputValidation": true,
+  "git.inputValidationSubjectLength": 72,
+  "git.inputValidationLength": 100
+}
+```
+
+- `git.inputValidation` menyalakan peringatannya. Default-nya mati.
+- `git.inputValidationSubjectLength` adalah batas untuk baris pertama. Default-nya 50. Saya set ke 72 supaya sama dengan config commitlint saya.
+- `git.inputValidationLength` adalah batas untuk baris lainnya. 100 sama dengan `body-max-line-length` di preset.
+
+Kalau kamu memakai **GitHub Copilot**, ikon sparkle di kotak commit bisa membuatkan message dari perubahan yang di-stage. Ini titik awal yang bagus, tapi selalu baca dulu sebelum commit. Copilot menjelaskan *apa* yang berubah, tapi jarang tahu *kenapa*.
+
+### Extension
+
+Ini extension yang saya sarankan untuk commit message dan Git history:
+
+| Extension | Fungsinya |
+| --- | --- |
+| [commitlint](https://marketplace.visualstudio.com/items?itemName=joshbolduc.commitlint) | Menampilkan error commitlint sebagai garis bergelombang di editor commit message, memakai config project kamu sendiri. Kamu langsung lihat masalahnya sebelum menyimpan, bukan setelahnya. |
+| [Conventional Commits](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits) | Menambahkan tombol di panel Source Control yang memandu kamu mengisi type, scope, subject, body, dan breaking change. Mirip `@commitlint/prompt-cli`, tapi di editor. |
+| [Commit Message Editor](https://marketplace.visualstudio.com/items?itemName=adam-bender.commit-message-editor) | Membuka editor berbentuk form untuk commit message, dengan dropdown untuk type dan field untuk sisanya. Cocok untuk yang kurang suka terminal. |
+| [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens) | Menampilkan siapa yang mengubah setiap baris dan di commit mana, langsung di editor. Commit message yang bagus membuat fitur ini jauh lebih berguna. |
+| [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph) | Graph visual dari branch dan commit kamu. Berguna untuk mengecek history sebelum push atau rebase. |
+
+Extension commitlint paling pas dipakai kalau Git membuka VS Code sebagai editor commit. Set `git config --global core.editor "code --wait"` (dari bagian terminal di atas), jalankan `git commit`, dan extension-nya akan mengecek message di tab yang terbuka.
+
+Supaya seluruh tim juga dapat sarannya, tambahkan ke workspace recommendations. VS Code akan menampilkan popup yang meminta anggota tim baru untuk meng-install-nya:
+
+```json
+// .vscode/extensions.json
+{
+  "recommendations": [
+    "joshbolduc.commitlint",
+    "vivaxy.vscode-conventional-commits",
+    "eamodio.gitlens"
+  ]
+}
+```
+
+Extension cuma membantu orang yang memakai VS Code, dan cuma kalau mereka meng-install-nya. Yang benar-benar menegakkan formatnya tetap Git hook dan CI.
+
+## Manfaat terbesarnya: changelog dan versi
+
+Di sinilah format yang konsisten benar-benar terasa manfaatnya. Karena setiap commit menyebutkan jenis perubahannya, tool bisa membaca history kamu dan mengerjakan dua hal.
+
+**1. Menentukan versi berikutnya.** Conventional Commits langsung terhubung ke [semantic versioning](https://semver.org/lang/id/):
+
+| Commit sejak rilis terakhir | Versi berikutnya |
+| --- | --- |
+| Hanya `fix` (dan `docs`, `chore`, ...) | Patch: `1.4.2` → `1.4.3` |
+| Minimal satu `feat` | Minor: `1.4.2` → `1.5.0` |
+| Minimal satu breaking change (`!` atau `BREAKING CHANGE:`) | Major: `1.4.2` → `2.0.0` |
+
+**2. Menulis changelog.** Commit dikelompokkan berdasarkan type, jadi kamu dapat release notes seperti ini secara gratis:
+
+```md
+## 1.5.0
+
+### Features
+- **blog:** cover images, search & pagination
+- **i18n:** add Indonesian locale
+
+### Bug Fixes
+- **auth:** refresh token before it expires
+```
+
+Tool yang populer untuk ini:
+
+- **[release-please](https://github.com/googleapis/release-please)** dari Google. Dia membuka "release PR" yang meng-update versi dan changelog. Merge PR-nya, lalu dia membuat tag rilis. Ini favorit saya, karena tetap ada manusia yang menekan tombolnya.
+- **[semantic-release](https://github.com/semantic-release/semantic-release)**. Otomatis penuh: setiap merge ke `main` yang berisi `feat` atau `fix` akan langsung dirilis dan dipublish.
+- **[commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version)**, fork yang masih di-maintain dari `standard-version` yang lama. Command lokal untuk menaikkan versi, menulis changelog, dan membuat tag.
+
+Kalau kamu memakai **[Changesets](https://github.com/changesets/changesets)**, perlu dicatat bahwa Changesets tidak membaca commit message. Kamu menulis catatan perubahannya sendiri di file `.changeset/`. commitlint dan Changesets tetap bisa dipakai bersama, keduanya cuma menyelesaikan masalah yang berbeda.
+
+Situs portofolio seperti ini tidak butuh rilis, jadi saya tidak memakai tool-tool itu di sini. Tapi di library dan aplikasi yang punya proses rilis sungguhan, inilah alasan utama saya memasang commitlint.
+
+## Tips dari saya
+
+1. **Pakai preset conventional apa adanya dulu.** Preset ini sudah dikenal luas, dan anggota tim baru mungkin sudah tahu.
+2. **Tulis subject dalam bentuk perintah.** "add search", "fix login redirect". Terbaca seperti daftar perubahan, karena memang itu isinya.
+3. **Jelaskan *kenapa* di body.** Diff menunjukkan apa yang berubah. Cuma kamu yang tahu kenapa.
+4. **Satu commit, satu perubahan.** Kalau kamu tidak bisa memilih satu type, kemungkinan commit-nya terlalu banyak isinya. Pecah saja.
+5. **Jalankan di hook `commit-msg` dan di CI.** Hook untuk feedback cepat. CI adalah pengecekan yang sebenarnya.
+6. **Cek judul PR kalau kamu squash merge.** Itulah message yang benar-benar masuk ke `main`.
+7. **Tandai breaking change dengan jelas.** Tanda `!` cuma satu karakter dan bisa menyelamatkan sore seseorang.
+
+commitlint adalah tool paling kecil di setup saya. Satu file config tiga baris, satu hook, dan jalannya cuma beberapa milidetik. Tapi dampaknya ke cara history sebuah project terbaca lebih besar daripada linter mana pun. Enam bulan dari sekarang, saat kamu menjalankan `git log` untuk mencari tahu apa yang terjadi, kamu akan bersyukur sudah memasangnya.
+
+Selamat nge-commit! 📝
+
+## Referensi
+
+- [Dokumentasi commitlint](https://commitlint.js.org/), situs resmi
+- [Getting started](https://commitlint.js.org/guides/getting-started.html) dan [Local setup](https://commitlint.js.org/guides/local-setup.html), dokumentasi commitlint
+- [Rules reference](https://commitlint.js.org/reference/rules.html), semua aturan dan opsinya
+- [CI setup](https://commitlint.js.org/guides/ci-setup.html), termasuk GitHub Actions dan GitLab CI
+- [@commitlint/config-conventional](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional), aturan di preset-nya
+- [commitlint di GitHub](https://github.com/conventional-changelog/commitlint)
+- [Conventional Commits 1.0.0](https://www.conventionalcommits.org/id/v1.0.0/), spesifikasinya
+- [Semantic Versioning 2.0.0](https://semver.org/lang/id/)
+- [How to Write a Git Commit Message](https://cbea.ms/git-commit/) oleh Chris Beams, tulisan klasik soal bentuk perintah dan aturan 50/72
+- [release-please](https://github.com/googleapis/release-please), [semantic-release](https://github.com/semantic-release/semantic-release), dan [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version)
+- [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request), untuk mengecek judul PR

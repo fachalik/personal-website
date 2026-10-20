@@ -1,0 +1,647 @@
+---
+title: "Commitlint and Conventional Commits: Commit Messages That Actually Help"
+publishedAt: "2026-10-20"
+image: "/blog/commitlint/cover.png"
+summary: "What Conventional Commits are, why a consistent commit format pays off, and how to enforce it with commitlint. Setup, the default rules, custom config, breaking changes, Git hooks, CI, and generating changelogs from your history."
+tags: ["commitlint", "git", "tooling", "workflow", "javascript"]
+---
+
+Run `git log --oneline` in almost any project. It lists the commits, one line each: the hash on the left, the commit message on the right. The result often looks like this:
+
+```bash
+$ git log --oneline
+3f9a1c2 asdf
+8b2e7d4 final fix (beneran)
+c41f0a9 Update index.tsx
+5d6e2b1 fixed the thing
+a07c3f8 wip
+e92b4d0 fix
+1c7e4a9 bismillah it will run properly
+9f8e7d6 fix something
+b3d8f05 ya allah please work, please work
+```
+
+Try to guess what each of these commits does. Hard, right?
+
+- `fix` and `fixed the thing`: fixed **what**? Which bug, in which part of the code?
+- `wip` (_work in progress_): unfinished work. Unfinished where, and for which feature?
+- `Update index.tsx`: the diff already tells us the file. What we don't know is **why** it changed.
+- `final fix (beneran)`: usually a sign that the previous "final fix" wasn't final after all.
+- `asdf`: no information at all.
+
+When you write them, each of these commits feels clear enough, because you still remember the context. But six months later, when you need to find out **when** a bug was introduced or **what** changed between two releases, the list above doesn't help. You end up opening the diffs one by one.
+
+Compare that with a history that follows the format we'll cover in this post:
+
+```bash
+$ git log --oneline
+7c1d9e3 fix(auth): redirect to login when the token expires
+2a8f4b6 feat(blog): add post search
+f05e1c7 refactor(ui): split Card component out of the home page
+```
+
+Without opening any code, you already know the kind of change (`fix`, `feat`, `refactor`), which part was touched (`auth`, `blog`, `ui`), and what it does.
+
+Good commit messages are a habit, and habits are hard to keep in a team. So instead of hoping, you can make the format a rule and let a tool check it. That tool is **[commitlint](https://commitlint.js.org/)**.
+
+In this post I'll cover why a commit format is worth it, what the Conventional Commits format looks like, how to set up and customize commitlint, how to enforce it in Git hooks and CI, some tricks for writing messages in the terminal and VS Code, and finally how your history turns into changelogs. This is the fourth post in my small tooling series, after [Biome vs ESLint + Prettier](/blog/biome-vs-eslint-prettier), [Husky vs Lefthook](/blog/husky-vs-lefthook), and [Knip](/blog/knip-unused-code).
+
+## The short version
+
+- **Conventional Commits** is a simple format for commit messages: `type(scope): subject`, like `feat(blog): add search`.
+- **commitlint** checks every commit message against that format and **blocks the commit** if it doesn't match.
+- Setup is two packages and a three-line config file. The `@commitlint/config-conventional` preset gives you sensible rules out of the box.
+- Run it in a **`commit-msg` Git hook** for instant feedback, and in **CI** because hooks can be skipped.
+- The real payoff: a history that tools can read. You can **generate changelogs** and **pick the next version number** automatically.
+
+## Why bother?
+
+Before we get into the format, it's fair to ask if it's worth the ceremony. Here's what you get:
+
+- **A readable history.** `git log --oneline` becomes a list of features and fixes, not a list of moods.
+- **Easier code review.** A commit called `refactor: ...` tells the reviewer to expect no behavior change. If behavior changed, something is wrong.
+- **Easier debugging.** `git log --grep "^fix(auth)"` finds every auth fix in seconds. `git bisect` is nicer when each commit says what it does.
+- **Automatic changelogs and versions.** Because the format is machine-readable, tools can turn your history into release notes and decide the next version number. More on that at the end.
+- **One less thing to argue about.** The format is decided once, in a config file. Nobody has to point it out in review again.
+
+## The Conventional Commits format
+
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) is a small spec. A commit message looks like this:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Only the first line (the **header**) is required. Some real examples from this site's history:
+
+```
+feat(blog): cover images, search & pagination, home blog section
+perf: fix pagespeed issues across performance, a11y and seo
+chore(tooling): add lefthook, commitlint, knip and docker setup
+docs(blog): add knip post on finding unused code and dependencies
+```
+
+### Type
+
+The **type** says what kind of change this is. These are the types the conventional preset allows:
+
+| Type | Use it for |
+| --- | --- |
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, whitespace, missing semicolons. No change in behavior |
+| `refactor` | A code change that's neither a fix nor a feature |
+| `perf` | A change that makes things faster |
+| `test` | Adding or fixing tests |
+| `build` | Build system or dependencies |
+| `ci` | CI config and scripts |
+| `chore` | Other maintenance that doesn't touch `src` or tests |
+| `revert` | Reverting an earlier commit |
+
+If you only remember two, remember `feat` and `fix`. Those are the ones that matter for versioning, as we'll see later.
+
+### Scope
+
+The **scope** is optional and says which part of the project changed: `feat(auth)`, `fix(api)`, `docs(blog)`. It helps a lot when you scan the log, and it groups nicely in changelogs.
+
+### Subject
+
+The **subject** is a short summary of the change. The usual convention is:
+
+- Use the **imperative mood**: "add search", not "added search" or "adds search". Think of it as finishing the sentence *"If applied, this commit will..."*.
+- **Lowercase**, and **no period** at the end.
+- Keep the whole header short. The preset allows up to 100 characters, but under 72 reads better in most tools.
+
+### Body and footer
+
+For anything that isn't obvious, add a **body** after a blank line. Explain **why**, not what. The diff already shows what.
+
+The **footer** is for metadata, like issue references or breaking changes:
+
+```
+fix(auth): refresh token before it expires
+
+The old check compared against the current time, so a token that
+expired during a slow request was still sent once and failed.
+
+Closes #142
+```
+
+### Breaking changes
+
+A breaking change is marked with a `!` after the type or scope, a `BREAKING CHANGE:` footer, or both:
+
+```
+feat(api)!: drop the v1 endpoints
+
+BREAKING CHANGE: /api/v1/* is removed. Use /api/v2/* instead.
+```
+
+This is the most important signal in the whole format. It tells everyone (and every tool) that upgrading needs care.
+
+## What commitlint does
+
+The spec is just a document. Nothing stops anyone from ignoring it. **commitlint** is the tool that reads a commit message and checks it against a set of rules.
+
+Here's what that looks like. Pipe a message into it (we'll install it in the next section):
+
+```bash
+echo "Fixed the bug" | pnpm exec commitlint
+```
+
+```
+⧗   --- input ---
+Fixed the bug
+✖   subject may not be empty [subject-empty]
+✖   type may not be empty [type-empty]
+
+✖   found 2 problems, 0 warnings
+```
+
+It parsed `Fixed the bug` and couldn't find a type or a subject. A message that follows the format gets through silently, with exit code `0`:
+
+```bash
+echo "fix(auth): refresh token before it expires" | pnpm exec commitlint
+```
+
+That exit code is the whole trick. Put commitlint in a Git hook, and a non-zero exit code **stops the commit**.
+
+## Setup
+
+### 1. Install
+
+```bash
+pnpm add -D @commitlint/cli @commitlint/config-conventional
+```
+
+- `@commitlint/cli` is the tool itself.
+- `@commitlint/config-conventional` is a **shareable config** with the Conventional Commits rules.
+
+### 2. Add a config file
+
+This is the full config on this site:
+
+```js
+// commitlint.config.mjs
+/** @type {import('@commitlint/types').UserConfig} */
+const config = {
+  extends: ["@commitlint/config-conventional"],
+};
+
+export default config;
+```
+
+The `@type` comment gives you autocomplete in your editor. You need `@commitlint/types` installed for that (`pnpm add -D @commitlint/types`). If you prefer TypeScript, commitlint also reads `commitlint.config.ts`.
+
+### 3. Try it
+
+```bash
+echo "wip: stuff" | pnpm exec commitlint
+```
+
+```
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+```
+
+It works. Now let's make it run on every commit.
+
+## The default rules
+
+The conventional preset is a good starting point. These are the rules it turns on:
+
+| Rule | What it checks | Level |
+| --- | --- | --- |
+| `type-enum` | Type is one of the 11 types above | error |
+| `type-empty` / `subject-empty` | Type and subject are present | error |
+| `type-case` | Type is lowercase | error |
+| `subject-case` | Subject isn't Sentence case, Start Case, PascalCase, or UPPER CASE | error |
+| `subject-full-stop` | Subject doesn't end with `.` | error |
+| `header-max-length` | Header is at most 100 characters | error |
+| `header-trim` | No leading or trailing whitespace in the header | error |
+| `body-max-line-length` / `footer-max-line-length` | Lines are at most 100 characters | error |
+| `body-leading-blank` / `footer-leading-blank` | Blank line before body and footer | warning |
+
+The `subject-case` rule surprises people the most. `feat(blog): Add Post.` fails twice:
+
+```
+✖   subject must not be sentence-case [subject-case]
+✖   subject may not end with full stop [subject-full-stop]
+```
+
+Warnings are printed but don't block the commit:
+
+```
+⚠   body must have leading blank line [body-leading-blank]
+
+⚠   found 0 problems, 1 warnings
+```
+
+commitlint also **ignores some messages by default**: merge commits (`Merge branch ...`, `Merge pull request ...`), `Revert ...`, and `fixup!` / `squash!` / `amend!` commits. So `git merge` and `git commit --fixup` keep working without any extra config.
+
+## Customizing the rules
+
+Every rule has the same shape:
+
+```js
+"rule-name": [level, applicable, value]
+```
+
+- **level**: `0` off, `1` warning, `2` error.
+- **applicable**: `"always"` or `"never"`.
+- **value**: the rule's option, like a number or a list.
+
+You can import `RuleConfigSeverity` from `@commitlint/types` if you'd rather write `RuleConfigSeverity.Error` than `2`.
+
+Here's a config I'd use in a team project:
+
+```js
+// commitlint.config.mjs
+/** @type {import('@commitlint/types').UserConfig} */
+const config = {
+  extends: ["@commitlint/config-conventional"],
+  rules: {
+    // Only allow scopes we agreed on.
+    "scope-enum": [2, "always", ["blog", "i18n", "seo", "ui", "tooling", "deps"]],
+    // Ask for a scope, but don't block the commit.
+    "scope-empty": [1, "never"],
+    // Shorter headers read better in `git log --oneline` and on GitHub.
+    "header-max-length": [2, "always", 72],
+  },
+};
+
+export default config;
+```
+
+With that config:
+
+```bash
+echo "feat(home): add hero" | pnpm exec commitlint
+# ✖   scope must be one of [blog, i18n, seo, ui, tooling, deps] [scope-enum]
+
+echo "feat: add hero" | pnpm exec commitlint
+# ⚠   scope may not be empty [scope-empty]  (warning, commit still goes through)
+```
+
+A few tips on custom rules:
+
+- **Start with the preset as is.** Add rules only when you see a real problem in your history.
+- **A `scope-enum` is great in a monorepo**, where the scopes are your package names. In a small app, it often just annoys people. A warning is a nice middle ground.
+- **Don't add types you won't use.** Every extra type is one more thing to explain to a new teammate.
+- When in doubt, check what commitlint actually loaded with `pnpm exec commitlint --print-config`.
+
+## Running it in a Git hook
+
+commitlint needs the message you just typed. Git passes the path to that message file as the first argument of the `commit-msg` hook, and `--edit` tells commitlint to read it.
+
+With **Lefthook** (what this site uses):
+
+```yaml
+# lefthook.yml
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+```
+
+With **Husky**:
+
+```sh
+# .husky/commit-msg
+pnpm exec commitlint --edit "$1"
+```
+
+Now a bad message never makes it into the history:
+
+```bash
+git commit -m "fixed stuff"
+# ✖   subject may not be empty [subject-empty]
+# ✖   type may not be empty [type-empty]
+# (no commit created, your staged changes are still staged)
+```
+
+Nothing is lost. Your changes are still staged, so you just run the commit again with a better message. If you need to get out in an emergency, `git commit --no-verify` skips the hook. See the [Husky vs Lefthook post](/blog/husky-vs-lefthook) for how to set up hooks in the first place.
+
+## Running it in CI
+
+Hooks run on your machine, and anyone can skip them. So if the format really matters, check it in CI too.
+
+commitlint can lint a **range of commits** with `--from` and `--to`. On GitHub Actions, for a pull request:
+
+```yaml
+# .github/workflows/commitlint.yml
+name: Commitlint
+on: [pull_request]
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, so the base commit exists
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint commits in this PR
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+```
+
+`fetch-depth: 0` is the part people forget. Without it, the checkout only has one commit, and commitlint can't find the base of the range.
+
+You can also check a range locally. This is a nice way to see how your existing history would do:
+
+```bash
+pnpm exec commitlint --from HEAD~20 --to HEAD
+```
+
+### What about squash merges?
+
+If your team uses **squash and merge** on GitHub, the commits inside a pull request don't end up on `main`. Only one commit does, and its message is usually the **pull request title**. In that case, the PR title is what you should lint. The [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request) GitHub Action does exactly that.
+
+## Help writing the message
+
+If you or your teammates keep forgetting the types, an interactive prompt helps. commitlint has its own:
+
+```bash
+pnpm add -D @commitlint/prompt-cli
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "commit": "commit"
+  }
+}
+```
+
+`pnpm commit` then asks for the type, scope, and subject step by step, using the rules from your config. [Commitizen](https://github.com/commitizen/cz-cli) with the `@commitlint/cz-commitlint` adapter is a popular alternative.
+
+Honestly, after a week or two most people stop needing it. The format is small enough to remember, and the hook catches the mistakes.
+
+## Writing commit messages in the terminal
+
+Most people only know `git commit -m "..."`, so they write everything on one line and skip the body. Git has a few more options that make a good message just as quick to write. The tricks below go from writing a message, to fixing one, to reading your history.
+
+### Add a body with a second `-m`
+
+Each `-m` becomes its own paragraph, and Git puts a blank line between them. The first one is the header, the rest are the body and footer:
+
+```bash
+git commit \
+  -m "fix(auth): refresh token before it expires" \
+  -m "The old check compared against the current time, so a token that expired during a slow request was still sent once and failed." \
+  -m "Closes #142"
+```
+
+```
+fix(auth): refresh token before it expires
+
+The old check compared against the current time, so a token that expired during a slow request was still sent once and failed.
+
+Closes #142
+```
+
+The blank lines are already there, so `body-leading-blank` and `footer-leading-blank` pass.
+
+### Write longer messages with a heredoc
+
+If the body has several lines or a bullet list, `-F -` reads the message from stdin. Together with a heredoc, you can write it right in the terminal:
+
+```bash
+git commit -F - <<'EOF'
+feat(blog): add search and pagination
+
+- search filters posts by title, summary, and tags
+- pagination shows 10 posts per page
+- the query is kept in the URL, so results can be shared
+EOF
+```
+
+Use the quotes in `<<'EOF'`. They stop the shell from expanding `$variables` and backticks inside your message.
+
+### Or just let Git open your editor
+
+Run `git commit` with no `-m`, and Git opens an editor. For a longer message this is often the most comfortable option. Pick the editor once:
+
+```bash
+git config --global core.editor "code --wait"   # VS Code
+git config --global core.editor "nano"          # or anything else you like
+```
+
+Add `-v` (`git commit -v`) to show the full diff below the message in the editor. You can read your own changes while you describe them. The diff isn't included in the commit.
+
+### Use a commit template
+
+A template is a file Git pre-fills in the editor every time you run `git commit`. It's a handy cheat sheet for the format:
+
+```bash
+# ~/.gitmessage
+
+# <type>(<scope>): <subject>
+#
+# Why is this change needed?
+#
+# Closes #
+#
+# Types: feat fix docs style refactor perf test build ci chore revert
+```
+
+```bash
+git config --global commit.template ~/.gitmessage
+```
+
+Lines that start with `#` are comments. Git removes them, so they never end up in the commit.
+
+### Add trailers with `--trailer`
+
+Trailers are `Key: value` lines at the end of the message, like `Co-authored-by` for pair programming. Since Git 2.32 you can add them without typing the blank line yourself:
+
+```bash
+git commit -m "feat(ui): add dark mode toggle" \
+  --trailer "Co-authored-by: Budi <budi@example.com>"
+```
+
+GitHub shows both people as authors of the commit. Keywords like `Closes #142` or `Fixes #142` anywhere in the message close the issue when the commit lands on the default branch.
+
+### If you can't write a short subject, split the commit
+
+If the header won't fit in one short line, or you need "and" twice, the commit probably does more than one thing. `git add -p` lets you stage part of a file, so you can turn one big change into two or three focused commits, each with a clear type.
+
+### Fix the last message with `--amend`
+
+Typo in the message you just wrote? Don't add a new commit for that:
+
+```bash
+git commit --amend                    # opens the editor with the last message
+git commit --amend -m "fix(auth): ..." # or replace it in one line
+git commit --amend --no-edit          # add staged changes, keep the message
+```
+
+`--amend` rewrites the commit, so only do it **before you push**. The `commit-msg` hook runs again, so commitlint checks the new message too.
+
+### Fix older commits with `--fixup`
+
+Found a small mistake in a commit from earlier in your branch? Make a fixup commit that points to it:
+
+```bash
+git commit --fixup a1b2c3d
+# creates "fixup! feat(blog): add search and pagination"
+```
+
+commitlint ignores `fixup!` messages by default, so the hook doesn't block it. Before you open the pull request, fold it into the original commit:
+
+```bash
+git rebase -i --autosquash main
+```
+
+Git moves each fixup right under its target and marks it to be squashed. Save and close the editor, and the history is clean again.
+
+### Read your history like a changelog
+
+Once your messages follow the format, `git log` becomes much more useful:
+
+```bash
+git log --oneline                     # one line per commit
+git log --oneline --grep "^feat"      # only features
+git log --oneline --grep "^fix(auth)" # only auth fixes
+git log --oneline v1.4.0..HEAD        # everything since the last release
+```
+
+Save the one you use most as an alias:
+
+```bash
+git config --global alias.lg "log --oneline --graph --decorate"
+git lg
+```
+
+## Writing commit messages in VS Code
+
+If you commit from VS Code's **Source Control** panel instead of the terminal, you're covered too. VS Code runs a normal `git commit` under the hood, so the `commit-msg` hook and commitlint still run. If the message fails, VS Code shows the commitlint error in a dialog, and you can open the Git output to read all of it.
+
+A few things make the experience nicer.
+
+### Built-in settings
+
+The commit box already supports a body. Press `Enter` for a new line, and `Ctrl+Enter` (`Cmd+Enter` on macOS) to commit. The first line is the header, so leave an empty line before the body.
+
+VS Code can also warn you while you type when a line is too long. Add this to your settings:
+
+```json
+// .vscode/settings.json
+{
+  "git.inputValidation": true,
+  "git.inputValidationSubjectLength": 72,
+  "git.inputValidationLength": 100
+}
+```
+
+- `git.inputValidation` turns the warnings on. It's off by default.
+- `git.inputValidationSubjectLength` is the limit for the first line. The default is 50. I set it to 72 to match my commitlint config.
+- `git.inputValidationLength` is the limit for the other lines. 100 matches the preset's `body-max-line-length`.
+
+If you use **GitHub Copilot**, the sparkle icon in the commit box generates a message from your staged changes. It's a good starting point, but always read it before committing. It describes *what* changed and rarely knows *why*.
+
+### Extensions
+
+These are the extensions I'd suggest for commit messages and Git history:
+
+| Extension | What it does |
+| --- | --- |
+| [commitlint](https://marketplace.visualstudio.com/items?itemName=joshbolduc.commitlint) | Shows commitlint errors as squiggles in the commit message editor, using your project's own config. You see the problem before you save, not after. |
+| [Conventional Commits](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits) | Adds a button to the Source Control panel that walks you through type, scope, subject, body, and breaking changes. Like `@commitlint/prompt-cli`, but in the editor. |
+| [Commit Message Editor](https://marketplace.visualstudio.com/items?itemName=adam-bender.commit-message-editor) | Opens a form-style editor for the commit message, with a dropdown for the type and fields for the rest. Nice for people who don't like the terminal. |
+| [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens) | Shows who changed each line and in which commit, right in the editor. Good commit messages make this much more useful. |
+| [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph) | A visual graph of your branches and commits. Handy for checking your history before you push or rebase. |
+
+The commitlint extension works best when Git opens VS Code as the commit editor. Set `git config --global core.editor "code --wait"` (from the terminal section above), run `git commit`, and the extension checks the message in the tab that opens.
+
+To suggest these to your whole team, add them to the workspace recommendations. VS Code then shows a popup asking new teammates to install them:
+
+```json
+// .vscode/extensions.json
+{
+  "recommendations": [
+    "joshbolduc.commitlint",
+    "vivaxy.vscode-conventional-commits",
+    "eamodio.gitlens"
+  ]
+}
+```
+
+Extensions only help people who use VS Code, and only if they install them. The Git hook and CI are still what actually enforce the format.
+
+## The payoff: changelogs and versions
+
+This is where a consistent format really pays off. Because every commit says what kind of change it is, tools can read your history and do two jobs for you.
+
+**1. Pick the next version.** Conventional Commits maps directly to [semantic versioning](https://semver.org/):
+
+| Commits since the last release | Next version |
+| --- | --- |
+| Only `fix` (and `docs`, `chore`, ...) | Patch: `1.4.2` → `1.4.3` |
+| At least one `feat` | Minor: `1.4.2` → `1.5.0` |
+| At least one breaking change (`!` or `BREAKING CHANGE:`) | Major: `1.4.2` → `2.0.0` |
+
+**2. Write the changelog.** Commits are grouped by type, so you get release notes like this for free:
+
+```md
+## 1.5.0
+
+### Features
+- **blog:** cover images, search & pagination
+- **i18n:** add Indonesian locale
+
+### Bug Fixes
+- **auth:** refresh token before it expires
+```
+
+The popular tools for this:
+
+- **[release-please](https://github.com/googleapis/release-please)** by Google. It opens a "release PR" that updates the version and changelog. Merge it, and it tags the release. My favorite, because a human still clicks the button.
+- **[semantic-release](https://github.com/semantic-release/semantic-release)**. Fully automatic: every merge to `main` that contains a `feat` or `fix` gets released and published.
+- **[commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version)**, the maintained fork of the old `standard-version`. A local command that bumps the version, writes the changelog, and tags.
+
+If you use **[Changesets](https://github.com/changesets/changesets)**, note that it doesn't read commit messages. You write the change notes by hand in `.changeset/` files. commitlint and Changesets still work fine together, they just solve different problems.
+
+A portfolio site like this one doesn't need releases, so I don't use any of these here. But in libraries and in apps with a real release process, this is the main reason I set up commitlint in the first place.
+
+## My tips
+
+1. **Use the conventional preset as is, at first.** It's well known, and new teammates may already know it.
+2. **Write the subject in the imperative mood.** "add search", "fix login redirect". It reads like a list of changes, because it is one.
+3. **Explain *why* in the body.** The diff shows what changed. Only you know why.
+4. **One commit, one change.** If you can't pick a single type, the commit probably does too much. Split it.
+5. **Run it in the `commit-msg` hook and in CI.** The hook is for fast feedback. CI is the real check.
+6. **Lint the PR title if you squash merge.** That's the message that actually lands on `main`.
+7. **Mark breaking changes clearly.** A `!` costs one character and can save someone a whole afternoon.
+
+commitlint is the smallest tool in my setup. One config file with three lines, one hook, and it runs in a few milliseconds. But it changes how a project's history reads more than any linter does. Six months from now, when you run `git log` to find out what happened, you'll be glad you added it.
+
+Happy committing! 📝
+
+## References
+
+- [commitlint documentation](https://commitlint.js.org/), official site
+- [Getting started](https://commitlint.js.org/guides/getting-started.html) and [Local setup](https://commitlint.js.org/guides/local-setup.html), commitlint docs
+- [Rules reference](https://commitlint.js.org/reference/rules.html), every rule and its options
+- [CI setup](https://commitlint.js.org/guides/ci-setup.html), including GitHub Actions and GitLab CI
+- [@commitlint/config-conventional](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional), the preset's rules
+- [commitlint on GitHub](https://github.com/conventional-changelog/commitlint)
+- [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/), the spec
+- [Semantic Versioning 2.0.0](https://semver.org/)
+- [How to Write a Git Commit Message](https://cbea.ms/git-commit/) by Chris Beams, the classic post on the imperative mood and the 50/72 rule
+- [release-please](https://github.com/googleapis/release-please), [semantic-release](https://github.com/semantic-release/semantic-release), and [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version)
+- [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request), for linting PR titles
