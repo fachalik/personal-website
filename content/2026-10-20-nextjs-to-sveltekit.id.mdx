@@ -1,0 +1,666 @@
+---
+title: "Migrasi dari Next.js ke SvelteKit: Panduan untuk Developer React"
+publishedAt: "2026-10-20"
+image: "/blog/nextjs-to-sveltekit/cover.png"
+summary: "Belum pernah menyentuh Svelte? Panduan ini memetakan apa yang kamu tahu dari Next.js ke SvelteKit: routing, komponen, data loading, form, dan seluruh stack library kamu (shadcn/ui, React Hook Form, Formik, TanStack Query, dan lainnya), berdampingan dengan kode yang sudah biasa kamu tulis."
+tags: ["sveltekit", "svelte", "nextjs", "react"]
+---
+
+Sebagian besar project saya dibangun dengan React dan Next.js, termasuk situs ini. Belakangan saya makin sering memakai **SvelteKit**, dan minggu pertama penuh dengan pertanyaan yang sama: _`page.tsx` saya taruh di mana? Apa pengganti `useEffect`? Saya pakai shadcn/ui dan React Hook Form di mana-mana. Sekarang pakai apa?_
+
+Tulisan ini untuk kamu yang sudah paham Next.js dan **belum pernah menulis satu baris pun kode Svelte**. Setiap ide baru ditunjukkan berdampingan dengan kode Next.js yang sudah biasa kamu tulis.
+
+Kabar baiknya dulu: SvelteKit dan Next.js menyelesaikan masalah yang sama. Routing berbasis file, server rendering, layout, API route, form. Sebagian besar pengetahuanmu tetap terpakai. Perubahan terbesarnya bukan di framework, tapi perpindahan dari **React ke Svelte**. 🧡
+
+> Versi di tulisan ini: **Next.js 16** (App Router) dan **SvelteKit 2 dengan Svelte 5** (runes). Kalau kamu menemukan tutorial lama yang memakai `export let` atau `$:`, itu Svelte 4. Lewati saja.
+
+## Svelte dan SvelteKit dalam satu menit
+
+Kalau kamu benar-benar baru, ini petanya:
+
+- **Svelte** adalah lapisan UI, seperti **React**. Kamu menulis komponen di file `.svelte`.
+- **SvelteKit** adalah framework aplikasinya, seperti **Next.js**. Routing, server rendering, data loading, form, dan deployment.
+- Svelte adalah **compiler**. Saat build, komponenmu diubah jadi JavaScript biasa yang ringkas. Tidak ada virtual DOM dan tidak ada runtime besar di browser.
+- SvelteKit berjalan di atas **Vite**, jadi dev server-nya cepat dan ekosistem plugin Vite bisa dipakai.
+
+Memulai project kira-kira seperti ini:
+
+```bash
+npx sv create my-app
+cd my-app
+npx sv add tailwindcss eslint vitest
+npm run dev
+```
+
+`sv` adalah CLI Svelte. `sv add` menyiapkan tool yang umum untukmu: Tailwind, ESLint, Prettier, Vitest, Playwright, Drizzle, Paraglide (i18n), mdsvex (markdown), Storybook, dan lainnya.
+
+## Gambaran besarnya
+
+| Topik | Next.js | SvelteKit |
+| --- | --- | --- |
+| Library UI | React | Svelte |
+| Cara UI diperbarui | Virtual DOM, menjalankan ulang fungsi komponen | Compiler, hanya memperbarui node DOM yang berubah |
+| File komponen | `.tsx` (JSX) | `.svelte` (HTML + `<script>` + `<style>`) |
+| Bundler / dev server | Turbopack | Vite |
+| Folder route | `app/` | `src/routes/` |
+| Data di server | Server Components (komponen `async`) | Fungsi `load` |
+| Mutasi | Server Actions | Form actions (dan remote functions yang lebih baru) |
+| Middleware | `proxy.ts` (dulu `middleware.ts`) | `hooks.server.ts` |
+| Caching | Bawaan (`"use cache"`, `revalidate`) | Tidak ada data cache, pakai HTTP header |
+| Style | CSS Modules, Tailwind, dll. | `<style>` scoped secara default, Tailwind juga bisa |
+| UI kit populer | shadcn/ui | shadcn-svelte |
+| Form | React Hook Form, Formik | Superforms (+ Formsnap) |
+| Target deploy | Paling enak di Vercel, Node, atau static export | Adapter: Node, Vercel, Netlify, Cloudflare, static, ... |
+
+Jangan khawatir kalau ada baris yang terlihat aneh. Kita bahas satu per satu.
+
+## 1. Cara berpikirnya: tidak ada re-render
+
+Di React, komponenmu adalah fungsi yang **dijalankan ulang** setiap kali state berubah. Itu sebabnya kamu butuh `useMemo`, `useCallback`, dependency array, dan `React.memo`.
+
+Di Svelte, `<script>` di komponenmu hanya berjalan **sekali**. Compiler mencari tahu bagian HTML mana yang bergantung pada variabel mana, lalu hanya memperbarui bagian itu ketika variabelnya berubah.
+
+Satu ide ini menjelaskan sebagian besar perbedaan di bawah:
+
+- Tidak ada dependency array. Svelte melacak dependensi untukmu.
+- Tidak ada `useCallback`. Fungsi hanya dibuat sekali, jadi sudah stabil.
+- Tidak ada stale closure. Variabel yang kamu baca selalu berisi nilai terbaru.
+- Bundle lebih kecil. Svelte hanya mengirim runtime mungil, bukan library sebesar React.
+
+## 2. Komponen: JSX vs file `.svelte`
+
+**React**
+
+```tsx
+// components/Counter.tsx
+"use client";
+
+import { useState } from "react";
+
+export function Counter({ start = 0 }: { start?: number }) {
+  const [count, setCount] = useState(start);
+  const double = count * 2;
+
+  return (
+    <button className="btn" onClick={() => setCount(count + 1)}>
+      {count} (double: {double})
+    </button>
+  );
+}
+```
+
+**Svelte**
+
+```svelte
+<!-- src/lib/components/Counter.svelte -->
+<script lang="ts">
+  let { start = 0 }: { start?: number } = $props();
+
+  let count = $state(start); // hanya nilai awal, seperti useState(start)
+  let double = $derived(count * 2);
+</script>
+
+<button class="btn" onclick={() => count++}>
+  {count} (double: {double})
+</button>
+
+<style>
+  .btn {
+    padding: 0.5rem 1rem;
+  }
+</style>
+```
+
+**Yang sama**
+
+- Props, state, dan nilai turunan semuanya ada. Hanya namanya yang berbeda.
+- Event handler adalah fungsi biasa. Svelte 5 memakai `onclick`, yaitu nama atribut HTML biasa.
+- TypeScript langsung bisa dipakai dengan `lang="ts"`.
+
+**Yang berbeda**
+
+- **Tidak ada `"use client"`.** Setiap komponen Svelte dirender di server lalu di-hydrate di browser. Tidak ada Server Components.
+- **Kamu mengubah state dengan meng-assign nilainya.** `count++`, bukan `setCount(count + 1)`. Array dan object juga bisa: `todos.push(newTodo)` langsung jalan.
+- Pakai `class`, bukan `className`. Dan `for`, bukan `htmlFor`. Ini memang HTML.
+- `<style>` otomatis **scoped ke komponen**. Tidak perlu CSS Modules.
+- Satu komponen per file. Nama file adalah nama komponennya.
+
+Fungsi-fungsi `$` itu (`$state`, `$derived`, `$props`, `$effect`) disebut **runes**. Dengan runes, Svelte 5 tahu mana yang reaktif. Ini pemetaan hooks kamu:
+
+| React | Svelte 5 |
+| --- | --- |
+| `useState(0)` | `let count = $state(0)` |
+| `useMemo(() => a * b, [a, b])` | `let total = $derived(a * b)` |
+| `useEffect(() => { ... }, [x])` | `$effect(() => { ... })` (tanpa dependency array) |
+| `function C(props)` | `let { ... } = $props()` |
+| `children` / render props | Snippet + `{@render children()}` |
+| `useRef` untuk node DOM | `bind:this={node}` |
+| `useRef` untuk nilai | Variabel `let` biasa |
+| `useContext` / `createContext` | `getContext` / `setContext` |
+| `value` + `onChange` | `bind:value={name}` |
+| `<Suspense>` | `{#await promise}` |
+| `useCallback`, `React.memo` | Tidak perlu |
+
+### Sintaks template
+
+JSX memakai JavaScript untuk semuanya. Svelte punya beberapa blok kecil sebagai gantinya:
+
+```svelte
+{#if user}
+  <p>Hi, {user.name}</p>
+{:else}
+  <a href="/login">Log in</a>
+{/if}
+
+<ul>
+  {#each todos as todo (todo.id)}
+    <li class={{ done: todo.done }}>{todo.title}</li>
+  {:else}
+    <li>Nothing to do 🎉</li>
+  {/each}
+</ul>
+```
+
+Bagian `(todo.id)` adalah `key`-nya. `{:else}` di dalam `{#each}` tampil ketika list-nya kosong. Dan `class` menerima object dan array, seperti `clsx`.
+
+### `children` menjadi snippet
+
+Di React, kamu mengoper `children` lalu merendernya. Di Svelte 5, `children` adalah **snippet**, dan kamu merendernya dengan `{@render}`:
+
+```svelte
+<!-- Card.svelte -->
+<script lang="ts">
+  import type { Snippet } from "svelte";
+
+  let { title, children }: { title: string; children: Snippet } = $props();
+</script>
+
+<section class="card">
+  <h2>{title}</h2>
+  {@render children()}
+</section>
+```
+
+```svelte
+<Card title="Hello">
+  <p>This is the content.</p>
+</Card>
+```
+
+Butuh "slot" bernama seperti `header` atau `footer`? Deklarasikan dengan `{#snippet footer()}...{/snippet}` di dalam tag komponen, dan snippet itu masuk sebagai props. Idenya sama dengan mengoper JSX lewat props di React.
+
+## 3. Routing: `app/` vs `src/routes/`
+
+Kedua framework memakai folder untuk URL. Yang berubah adalah nama filenya. Di SvelteKit, setiap file khusus diawali dengan `+`.
+
+| Next.js (`app/`) | SvelteKit (`src/routes/`) | Fungsinya |
+| --- | --- | --- |
+| `page.tsx` | `+page.svelte` | UI halaman |
+| `layout.tsx` | `+layout.svelte` | Layout bersama |
+| `route.ts` | `+server.ts` | Endpoint API (`GET`, `POST`, ...) |
+| `error.tsx` | `+error.svelte` | UI error |
+| `not-found.tsx` | `+error.svelte` (cek `page.status === 404`) | Halaman 404 |
+| `loading.tsx` | Tidak ada file. Pakai streaming + `{#await}` | UI loading |
+| Data di komponen halaman `async` | `+page.ts` atau `+page.server.ts` | Memuat data halaman |
+| `[slug]`, `[...slug]`, `(group)` | Sama | Dinamis, catch-all, grup |
+| `[[...slug]]` | `[...slug]` (sudah cocok dengan nol segmen) | Catch-all opsional |
+| `@modal`, `(.)photo` | Tidak ada padanan langsung, pakai shallow routing | Parallel / intercepting route |
+| `middleware.ts` / `proxy.ts` | `src/hooks.server.ts` | Jalan di setiap request |
+| `public/` | `static/` | File statis |
+
+Layout merender halamannya dengan `{@render children()}`, seperti `{children}` di layout Next.js:
+
+```svelte
+<!-- src/routes/+layout.svelte -->
+<script lang="ts">
+  import Nav from "$lib/components/Nav.svelte";
+  import "../app.css";
+
+  let { children } = $props();
+</script>
+
+<Nav />
+<main>{@render children()}</main>
+```
+
+`$lib` adalah alias bawaan untuk `src/lib`. Di sanalah komponen dan utility kamu tinggal, seperti `@/` di Next.js.
+
+## 4. Data loading: Server Components vs `load`
+
+Ini perubahan terbesar dalam cara kamu **berpikir**.
+
+Di Next.js, komponennya sendiri yang mengambil data:
+
+```tsx
+// app/blog/[slug]/page.tsx
+import { notFound } from "next/navigation";
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await db.post.findUnique({ where: { slug } });
+  if (!post) notFound();
+
+  return <article>{post.title}</article>;
+}
+```
+
+Di SvelteKit, data datang dari **fungsi `load` di file terpisah**, dan halaman menerimanya sebagai prop `data`:
+
+```ts
+// src/routes/blog/[slug]/+page.server.ts
+import { error } from "@sveltejs/kit";
+import type { PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async ({ params }) => {
+  const post = await db.post.findUnique({ where: { slug: params.slug } });
+  if (!post) error(404, "Post not found");
+
+  return { post };
+};
+```
+
+```svelte
+<!-- src/routes/blog/[slug]/+page.svelte -->
+<script lang="ts">
+  import type { PageProps } from "./$types";
+
+  let { data }: PageProps = $props();
+</script>
+
+<svelte:head>
+  <title>{data.post.title}</title>
+</svelte:head>
+
+<article>
+  <h1>{data.post.title}</h1>
+</article>
+```
+
+**Yang berbeda**
+
+- **Data dan UI ada di file terpisah.** Awalnya terasa seperti kebanyakan file. Lama-lama terasa rapi: satu file untuk "data apa", satu file untuk "tampilannya seperti apa".
+- **Type dibuatkan otomatis.** `./$types` tahu params route kamu dan apa yang dikembalikan `load`.
+- **Ada dua jenis `load`:**
+  - `+page.server.ts` berjalan **hanya di server**. Pakai untuk database, secret, dan cookie.
+  - `+page.ts` berjalan di server untuk halaman pertama, lalu **di browser** untuk navigasi berikutnya. Pakai untuk memanggil API publik.
+- Layout juga bisa punya fungsi `load` (`+layout.server.ts`). Semua halaman di bawahnya mendapat data itu.
+- Metadata cukup ditulis di `<svelte:head>` di halaman, memakai `data` yang sama. Tidak perlu `generateMetadata` terpisah.
+
+**Streaming** menggantikan `loading.tsx` dan `<Suspense>`. Kembalikan promise **tanpa `await`**, lalu render dengan `{#await}`:
+
+```ts
+// +page.server.ts
+export const load: PageServerLoad = async ({ params }) => {
+  return {
+    post: await getPost(params.slug), // tunggu yang ini
+    comments: getComments(params.slug), // stream yang ini
+  };
+};
+```
+
+```svelte
+{#await data.comments}
+  <p>Loading comments...</p>
+{:then comments}
+  {#each comments as comment (comment.id)}
+    <p>{comment.body}</p>
+  {/each}
+{/await}
+```
+
+## 5. Mutasi: Server Actions vs form actions
+
+Di Next.js, kamu menulis fungsi `"use server"` lalu mengopernya ke `<form action>`. Versi SvelteKit adalah **form actions**: fungsi bernama di `+page.server.ts` yang menerima POST form biasa.
+
+```ts
+// src/routes/todos/+page.server.ts
+import { fail } from "@sveltejs/kit";
+import type { Actions, PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async () => {
+  return { todos: await db.todo.findMany() };
+};
+
+export const actions: Actions = {
+  create: async ({ request }) => {
+    const form = await request.formData();
+    const title = form.get("title");
+
+    if (typeof title !== "string" || !title.trim()) {
+      return fail(400, { error: "Title is required" });
+    }
+
+    await db.todo.create({ data: { title } });
+  },
+};
+```
+
+```svelte
+<!-- src/routes/todos/+page.svelte -->
+<script lang="ts">
+  import { enhance } from "$app/forms";
+  import type { PageProps } from "./$types";
+
+  let { data, form }: PageProps = $props();
+</script>
+
+<form method="POST" action="?/create" use:enhance>
+  <input name="title" />
+  <button>Add</button>
+  {#if form?.error}<p class="error">{form.error}</p>{/if}
+</form>
+
+<ul>
+  {#each data.todos as todo (todo.id)}
+    <li>{todo.title}</li>
+  {/each}
+</ul>
+```
+
+- Tanpa JavaScript, ini form HTML biasa. Tetap berfungsi. ✅
+- `use:enhance` meng-upgrade-nya: tanpa reload halaman penuh, dan **`load` otomatis dijalankan ulang**, jadi list-nya ikut ter-update. Kamu tidak perlu `revalidatePath`.
+- Apa pun yang kamu kembalikan lewat `fail()` muncul di prop `form`.
+
+SvelteKit juga sedang mengembangkan **remote functions** (`query`, `form`, `command` di file `.remote.ts`) yang bisa dipanggil dari komponen mana pun, mirip Server Actions. Saat tulisan ini dibuat, fitur ini masih **eksperimental** dan API-nya sempat berubah di antara versi minor. Pelajari `load` dan form actions dulu.
+
+## 6. Stack kamu: pengganti shadcn/ui, React Hook Form, Formik...
+
+Ini pertanyaan yang paling sering muncul di kepala saya, jadi bagian ini paling panjang. Buka `package.json` kamu dan cocokkan dengan tabel-tabel di bawah.
+
+### Library komponen UI
+
+| Yang kamu pakai di Next.js | Pakai di SvelteKit | Catatan |
+| --- | --- | --- |
+| **shadcn/ui** | **[shadcn-svelte](https://www.shadcn-svelte.com)** | Model copy-paste yang sama, variabel tema Tailwind yang sama, nama komponen yang sama. Perpindahan paling gampang. |
+| Radix UI / Headless UI | [Bits UI](https://bits-ui.com), [Melt UI](https://melt-ui.com) | Headless dan aksesibel. API Bits UI terasa seperti Radix, dan shadcn-svelte dibangun di atas Bits UI. |
+| Chakra UI | [Ark UI](https://ark-ui.com) (`@ark-ui/svelte`) | Dibuat oleh tim Chakra. Headless, hanya Svelte 5. |
+| MUI | [SMUI](https://sveltematerialui.com) | Kit Material Design dari komunitas. Tidak ada MUI resmi. |
+| Mantine, Ant Design | [Skeleton](https://www.skeleton.dev), [Flowbite Svelte](https://flowbite-svelte.com), [Carbon](https://svelte.carbondesignsystem.com) | Tidak ada port 1:1. Pilih kit yang cocok dengan gayamu. |
+| daisyUI | daisyUI | Cuma CSS. Langsung jalan. |
+
+Kalau kamu pakai shadcn/ui sekarang, setup shadcn-svelte akan terasa familiar:
+
+```bash
+npx shadcn-svelte@latest init
+npx shadcn-svelte@latest add button dialog form
+```
+
+```svelte
+<script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import * as Dialog from "$lib/components/ui/dialog";
+</script>
+
+<Dialog.Root>
+  <Dialog.Trigger>
+    {#snippet child({ props })}
+      <Button {...props} variant="outline">Edit profile</Button>
+    {/snippet}
+  </Dialog.Trigger>
+  <Dialog.Content>
+    <Dialog.Title>Edit profile</Dialog.Title>
+  </Dialog.Content>
+</Dialog.Root>
+```
+
+Bagian `{#snippet child({ props })}` adalah cara Bits UI melakukan `asChild` ala Radix. Kamu menyebar props trigger ke elemen milikmu sendiri.
+
+### Form: React Hook Form dan Formik → Superforms
+
+Tidak ada hook `useForm()` di Svelte, dan biasanya kamu memang tidak butuh. `bind:value` sudah menyinkronkan input dan state. Untuk form sungguhan (validasi, error, state loading), standar di komunitas adalah **[Superforms](https://superforms.rocks)**. Superforms bekerja _bersama_ form actions: satu schema Zod memvalidasi di server dan di client.
+
+| React Hook Form / Formik | Superforms |
+| --- | --- |
+| `useForm({ resolver: zodResolver(schema) })` | `superForm(data.form, { validators: zod4Client(schema) })` |
+| `register("email")` | `bind:value={$form.email}` |
+| `formState.errors` / `errors` | `$errors` |
+| `formState.isSubmitting` / `isSubmitting` | `$submitting` |
+| `formState.dirtyFields` / `dirty` | `$tainted` |
+| `handleSubmit(onSubmit)` | `use:enhance` + form action |
+| Validasi server: kamu tulis lagi | Schema yang sama, di dalam action |
+
+Ini form sign-up. Pertama, versi React Hook Form yang biasa kamu tulis:
+
+```tsx
+// app/signup/page.tsx
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { schema, type SignUp } from "./schema";
+import { signUp } from "./actions";
+
+export default function SignUpPage() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUp>({ resolver: zodResolver(schema) });
+
+  return (
+    <form onSubmit={handleSubmit(signUp)}>
+      <input type="email" {...register("email")} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input type="password" {...register("password")} />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <button disabled={isSubmitting}>Sign up</button>
+    </form>
+  );
+}
+```
+
+Form yang sama dengan Superforms. File schema-nya tidak berubah:
+
+```ts
+// src/routes/signup/schema.ts
+import { z } from "zod";
+
+export const schema = z.object({
+  email: z.email(),
+  password: z.string().min(8),
+});
+```
+
+```ts
+// src/routes/signup/+page.server.ts
+import { fail } from "@sveltejs/kit";
+import { message, superValidate } from "sveltekit-superforms";
+import { zod4 } from "sveltekit-superforms/adapters";
+import type { Actions, PageServerLoad } from "./$types";
+import { schema } from "./schema";
+
+export const load: PageServerLoad = async () => {
+  return { form: await superValidate(zod4(schema)) };
+};
+
+export const actions: Actions = {
+  default: async ({ request }) => {
+    const form = await superValidate(request, zod4(schema));
+    if (!form.valid) return fail(400, { form });
+
+    await createUser(form.data);
+    return message(form, "Welcome aboard!");
+  },
+};
+```
+
+```svelte
+<!-- src/routes/signup/+page.svelte -->
+<script lang="ts">
+  import { superForm } from "sveltekit-superforms";
+  import { zod4Client } from "sveltekit-superforms/adapters";
+  import { schema } from "./schema";
+
+  let { data } = $props();
+
+  const { form, errors, message, submitting, enhance } = superForm(data.form, {
+    validators: zod4Client(schema),
+  });
+</script>
+
+<form method="POST" use:enhance>
+  <input name="email" type="email" bind:value={$form.email} />
+  {#if $errors.email}<span>{$errors.email}</span>{/if}
+
+  <input name="password" type="password" bind:value={$form.password} />
+  {#if $errors.password}<span>{$errors.password}</span>{/if}
+
+  <button disabled={$submitting}>Sign up</button>
+  {#if $message}<p>{$message}</p>{/if}
+</form>
+```
+
+Beberapa hal yang perlu diperhatikan:
+
+- Tanda `$` di `$form` dan `$errors` **bukan rune**. Itu sintaks Svelte untuk membaca _store_ (nilai reaktif versi lama yang masih dipakai Superforms). Di dalam komponen, `$store` artinya "nilainya saat ini".
+- Validasi jalan di client sebelum submit **dan** di server di dalam action. Kamu tidak menulisnya dua kali.
+- Kalau JavaScript mati, form tetap ter-submit dan menampilkan error dari server.
+- Kalau sekarang kamu pakai `<Form>` dari shadcn/ui, Form di shadcn-svelte dibangun di atas **Superforms + [Formsnap](https://formsnap.dev)**, yang menambahkan label, deskripsi, dan error yang aksesibel.
+
+Datang dari **Formik**? Pemetaannya rapi: `values` → `$form`, `errors` → `$errors`, `dirty` → `$tainted`, `isSubmitting` → `$submitting`. Mau form yang hanya di client tanpa server action? [TanStack Form](https://tanstack.com/form/latest/docs/framework/svelte/quick-start) punya adapter Svelte resmi dengan API yang mungkin sudah kamu kenal dari React.
+
+**Schema Zod, Valibot, atau Yup kamu pindah tanpa perubahan**. Mereka memang tidak pernah tahu soal React.
+
+### Sisanya, singkat saja
+
+| Yang kamu pakai di Next.js | Pakai di SvelteKit |
+| --- | --- |
+| TanStack Query | `@tanstack/svelte-query`, tapi coba `load` + `invalidate()` dulu |
+| SWR | `load` + `invalidate()` (bawaan) |
+| tRPC | `trpc-sveltekit`, atau remote functions |
+| Zustand, Jotai, Redux | `$state` di file `.svelte.ts`, dibagikan lewat context |
+| Framer Motion | Bawaan: `svelte/transition`, `svelte/animate`, `svelte/motion` |
+| NextAuth / Auth.js | `@auth/sveltekit` |
+| Better Auth, Supabase | Package yang sama, dipasang di `hooks.server.ts` |
+| Clerk | `svelte-clerk` (komunitas) |
+| next-intl, react-i18next | Paraglide JS (`npx sv add paraglide`) |
+| lucide-react | `@lucide/svelte` |
+| sonner | `svelte-sonner` |
+| next-themes | `mode-watcher` |
+| TanStack Table | Data Table shadcn-svelte, atau `@tanstack/svelte-table` (v9 beta) |
+| Recharts | LayerChart (yang dipakai Charts di shadcn-svelte) |
+| `next/image` | `@sveltejs/enhanced-img` |
+| `next/font` | Fontsource (tidak ada optimizer bawaan) |
+| MDX | mdsvex |
+| React Testing Library, Jest | `@testing-library/svelte`, Vitest |
+| Prisma, Drizzle, SDK server Stripe | Sama, tanpa perubahan |
+
+Patokan saya: **apa pun yang tidak terikat framework (Zod, Prisma, Drizzle, date-fns, SDK server Stripe) pindah apa adanya. Apa pun yang ada kata "react" di namanya butuh pengganti.** Cek library yang lebih spesifik (editor tertentu, SDK vendor, library chart) **sebelum** kamu memutuskan migrasi.
+
+## 7. Caching: bagian yang tidak perlu kamu pusingkan lagi
+
+Next.js punya banyak lapisan cache. Next 16 membuatnya lebih sederhana dengan `"use cache"` yang opt-in, tapi kamu tetap harus memikirkan cache key, `cacheLife`, dan `revalidateTag`.
+
+**SvelteKit tidak punya data cache.** `load` berjalan di setiap request. Kalau mau caching, kamu memakai alat bawaan web:
+
+```ts
+// +page.server.ts
+export const load: PageServerLoad = async ({ setHeaders }) => {
+  setHeaders({ "cache-control": "public, max-age=60" });
+  return { posts: await getPosts() };
+};
+```
+
+| Next.js | SvelteKit |
+| --- | --- |
+| Halaman statis (SSG) | `export const prerender = true` |
+| `export const dynamic = "force-dynamic"` | Default (SSR di setiap request) |
+| `export const revalidate = 60` (ISR) | Dengan `adapter-vercel`: `export const config = { isr: { expiration: 60 } }` |
+| Halaman khusus client | `export const ssr = false` |
+| Halaman tanpa JavaScript | `export const csr = false` |
+
+Lebih sedikit sihir, lebih banyak kontrol. Buat saya, bagian ini terasa melegakan. 😌
+
+## 8. Middleware: `proxy.ts` vs `hooks.server.ts`
+
+`hooks.server.ts` berjalan di setiap request. `event.locals` adalah tempat kamu menyimpan sesuatu (misalnya user yang sedang login) supaya bisa dibaca `load` dan actions nanti:
+
+```ts
+// src/hooks.server.ts
+import { redirect, type Handle } from "@sveltejs/kit";
+
+export const handle: Handle = async ({ event, resolve }) => {
+  event.locals.user = await getUser(event.cookies.get("session"));
+
+  if (event.url.pathname.startsWith("/dashboard") && !event.locals.user) {
+    redirect(303, "/login");
+  }
+
+  return resolve(event);
+};
+```
+
+Deklarasikan type `locals` di `src/app.d.ts`. Setelah itu `load` mana pun bisa membacanya: `export const load = ({ locals }) => ({ user: locals.user })`.
+
+Satu lagi yang saya suka: SvelteKit **tidak mau build** kalau kamu meng-import dari `$env/static/private` di kode yang sampai ke browser. Next.js hanya memberimu `undefined`. Sangat sulit membocorkan secret secara tidak sengaja. 🔒
+
+## Jebakan di minggu pertama
+
+1. **Jangan simpan data request di state level modul.** Di server, `$state` (atau variabel apa pun) di level atas modul `.svelte.ts` **dipakai bersama oleh semua user**. Simpan data per user di `event.locals`, oper lewat `load`, atau pakai `setContext`.
+2. **Destructuring bisa memutus reaktivitas.** `let { count } = someState` hanya menyalin nilainya sekali. Baca `someState.count` langsung, atau pakai `$derived`.
+3. **Pakai `$derived`, bukan `$effect`, untuk nilai turunan.** `$effect` untuk side effect (DOM, timer, analytics). Kalau kamu mengubah state di dalam effect, kemungkinan besar yang kamu butuhkan adalah `$derived`.
+4. **`+page.ts` juga berjalan di browser.** Jangan import database client di sana. Pakai `+page.server.ts`, atau simpan kode server di `src/lib/server/`.
+5. **Pakai `fetch` yang diberikan oleh `load`.** `fetch` ini mengirim cookie, bisa memakai URL relatif di server, dan menghindari fetch dua kali saat hydration.
+6. **Runes hanya bekerja di file `.svelte` dan `.svelte.ts`.** Kalau file shared state kamu bernama `store.ts`, ganti namanya jadi `store.svelte.ts`.
+7. **`tsc` tidak mengecek file `.svelte`.** Jalankan `npx sv check` sebagai gantinya (atau sebagai tambahan).
+8. **Tutorial lama ada di mana-mana.** `export let`, `$:`, `on:click`, dan `<slot />` adalah Svelte 4. Masih jalan di legacy mode, tapi jangan dipelajari. Begitu juga library: pastikan sudah mendukung **Svelte 5**.
+
+## Cara saya melakukan migrasinya
+
+Next.js dan SvelteKit tidak bisa berjalan di aplikasi yang sama, jadi kamu tidak bisa migrasi komponen demi komponen seperti saat upgrade React. Bangun aplikasi baru di sebelah yang lama, mulai dari kode yang tidak ada hubungannya dengan React. Biasanya bagian itu lebih besar dari yang kamu kira. 🎉
+
+Ini urutan yang akan saya ikuti:
+
+1. **Kerjakan [tutorial Svelte](https://svelte.dev/tutorial).** Cuma satu sore, tapi menghemat berhari-hari.
+2. **Buat daftar.** Route, API route, middleware, env var, dan semua library yang ada kata "react" di namanya.
+3. **Temukan penghambatnya.** Library tanpa padanan yang bagus, parallel atau intercepting route. Putuskan soal ini sebelum menulis kode.
+4. **Buat project baru** dengan `npx sv create`, lalu `npx sv add tailwindcss eslint vitest`.
+5. **Pindahkan kode yang tidak terikat framework** (database, API client, schema Zod, utils, type) ke `src/lib/`.
+6. **Siapkan UI kit** (misalnya `npx shadcn-svelte@latest init`) dan tambahkan komponen yang kamu pakai.
+7. **Bangun ulang root layout**: nav, footer, tema, font, `<svelte:head>`.
+8. **Pindahkan halaman, mulai dari yang paling sederhana.** Setiap halaman `async` menjadi `+page.server.ts` (data) + `+page.svelte` (UI).
+9. **Pindahkan form dan mutasi.** Server Actions jadi form actions, React Hook Form/Formik jadi Superforms, `route.ts` jadi `+server.ts`.
+10. **Pindahkan middleware dan auth** ke `hooks.server.ts`, dan ganti `NEXT_PUBLIC_*` jadi `PUBLIC_*`.
+11. **Cek dan test.** `npx sv check` lolos, test E2E lolos, URL, redirect, sitemap, dan meta tag sama seperti sebelumnya.
+12. **Pilih adapter, deploy preview, lalu alihkan traffic.** Per route kalau bisa: reverse proxy bisa mengirim `/blog/*` ke aplikasi baru sementara aplikasi lama menangani sisanya.
+
+## Perlukah kamu migrasi?
+
+**Pilih SvelteKit kalau:**
+
+- Kamu ingin bundle lebih kecil dan halaman lebih cepat tanpa banyak tuning.
+- Caching Next.js dan pembagian server/client component terus membingungkan tim kamu.
+- Kamu memulai project baru, atau aplikasinya cukup kecil untuk ditulis ulang.
+- Kamu tidak ingin terikat ke satu platform hosting.
+
+**Tetap di Next.js kalau:**
+
+- Ada library penting di stack kamu yang tidak punya padanan Svelte yang bagus.
+- Tim kamu besar dan merekrut developer React lebih mudah.
+- Aplikasinya besar dan sudah berjalan dengan baik. Menulis ulang harus sepadan dengan hasilnya.
+- Kamu mengandalkan parallel dan intercepting route.
+
+Buat saya, bagian terbaik dari SvelteKit adalah betapa **sedikit** saya harus memikirkan framework-nya. Komponen adalah HTML dengan sedikit script. Data datang dari `load`. Form ya form. Caching ya HTTP. Setelah beberapa hari, saya berhenti mencari-cari dokumentasi dan langsung menulis kode.
+
+Masih ragu? [Tutorial resmi Svelte](https://svelte.dev/tutorial) dari langkah 1 adalah cara tercepat untuk tahu apakah Svelte cocok buat kamu.
+
+Selamat bermigrasi! 🧡
+
+## Referensi
+
+- [Dokumentasi SvelteKit](https://svelte.dev/docs/kit) dan [dokumentasi Svelte](https://svelte.dev/docs/svelte), resmi
+- [Routing](https://svelte.dev/docs/kit/routing), [Loading data](https://svelte.dev/docs/kit/load), dan [Form actions](https://svelte.dev/docs/kit/form-actions) di dokumentasi SvelteKit
+- [Remote functions](https://svelte.dev/docs/kit/remote-functions), dokumentasi SvelteKit (eksperimental)
+- [Hooks](https://svelte.dev/docs/kit/hooks), [Page options](https://svelte.dev/docs/kit/page-options), dan [State management](https://svelte.dev/docs/kit/state-management), dokumentasi SvelteKit
+- [What are runes?](https://svelte.dev/docs/svelte/what-are-runes) dan [Svelte 5 migration guide](https://svelte.dev/docs/svelte/v5-migration-guide), dokumentasi Svelte
+- [sv CLI](https://svelte.dev/docs/cli/overview), dokumentasi Svelte
+- [What's new in Svelte: June 2026](https://svelte.dev/blog/whats-new-in-svelte-june-2026), blog Svelte
+- [shadcn-svelte](https://www.shadcn-svelte.com) dan [dokumentasi Form](https://www.shadcn-svelte.com/docs/components/form)-nya (Formsnap + Superforms + Zod)
+- [Superforms](https://superforms.rocks) dan [Formsnap](https://formsnap.dev)
+- [Bits UI](https://bits-ui.com) dan [Introducing Ark UI for Svelte](https://ark-ui.com/blog/introducing-ark-ui-svelte)
+- [TanStack Table untuk Svelte](https://tanstack.com/table/latest/docs/framework/svelte/svelte-table) (v9, Svelte 5)
+- [Next.js 16](https://nextjs.org/blog/next-16), blog Next.js. Cache Components, `"use cache"`, dan `proxy.ts`
+- [Next.js 16: What's new](https://blog.logrocket.com/next-js-16-whats-new), LogRocket
+- [Tutorial interaktif Svelte](https://svelte.dev/tutorial)

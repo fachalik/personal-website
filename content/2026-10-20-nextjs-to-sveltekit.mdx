@@ -1,0 +1,666 @@
+---
+title: "Migrating from Next.js to SvelteKit: A Guide for React Developers"
+publishedAt: "2026-10-20"
+image: "/blog/nextjs-to-sveltekit/cover.png"
+summary: "Never touched Svelte? This guide maps what you know from Next.js to SvelteKit: routing, components, data loading, forms, and your whole library stack (shadcn/ui, React Hook Form, Formik, TanStack Query and more), side by side with the code you already write."
+tags: ["sveltekit", "svelte", "nextjs", "react"]
+---
+
+I've built most of my projects with React and Next.js, including this site. Lately I've been spending more time with **SvelteKit**, and the first week was full of the same questions: _where does my `page.tsx` go? What replaces `useEffect`? I use shadcn/ui and React Hook Form everywhere. What do I use now?_
+
+This post is for you if you know Next.js well and **have never written a line of Svelte**. Every new idea is shown next to the Next.js code you already write.
+
+The good news first: SvelteKit and Next.js solve the same problems. File-based routing, server rendering, layouts, API routes, forms. Most of your knowledge carries over. The biggest change isn't the framework. It's going from **React to Svelte**. 🧡
+
+> Versions in this post: **Next.js 16** (App Router) and **SvelteKit 2 with Svelte 5** (runes). If you find an old tutorial using `export let` or `$:`, that's Svelte 4. Skip it.
+
+## Svelte and SvelteKit in one minute
+
+If you're completely new, here's the map:
+
+- **Svelte** is the UI layer, like **React**. You write components in `.svelte` files.
+- **SvelteKit** is the app framework, like **Next.js**. Routing, server rendering, data loading, forms, and deployment.
+- Svelte is a **compiler**. Your components are turned into small, plain JavaScript at build time. There's no virtual DOM and no big runtime in the browser.
+- SvelteKit runs on **Vite**, so the dev server starts fast and the Vite plugin ecosystem works.
+
+Starting a project looks like this:
+
+```bash
+npx sv create my-app
+cd my-app
+npx sv add tailwindcss eslint vitest
+npm run dev
+```
+
+`sv` is Svelte's CLI. `sv add` sets up common tools for you: Tailwind, ESLint, Prettier, Vitest, Playwright, Drizzle, Paraglide (i18n), mdsvex (markdown), Storybook and more.
+
+## The big picture
+
+| Topic | Next.js | SvelteKit |
+| --- | --- | --- |
+| UI library | React | Svelte |
+| How the UI updates | Virtual DOM, re-runs your component function | Compiler, updates only the DOM nodes that changed |
+| Component file | `.tsx` (JSX) | `.svelte` (HTML + `<script>` + `<style>`) |
+| Bundler / dev server | Turbopack | Vite |
+| Routes folder | `app/` | `src/routes/` |
+| Server-side data | Server Components (`async` components) | `load` functions |
+| Mutations | Server Actions | Form actions (and the newer remote functions) |
+| Middleware | `proxy.ts` (was `middleware.ts`) | `hooks.server.ts` |
+| Caching | Built in (`"use cache"`, `revalidate`) | No data cache, you use HTTP headers |
+| Styles | CSS Modules, Tailwind, etc. | Scoped `<style>` by default, Tailwind works too |
+| Popular UI kit | shadcn/ui | shadcn-svelte |
+| Forms | React Hook Form, Formik | Superforms (+ Formsnap) |
+| Deploy target | Best on Vercel, Node, or static export | Adapters: Node, Vercel, Netlify, Cloudflare, static, ... |
+
+Don't worry if some rows look strange. We'll walk through each one.
+
+## 1. The mental model: no re-renders
+
+In React, your component is a function that **runs again** every time state changes. That's why you need `useMemo`, `useCallback`, dependency arrays, and `React.memo`.
+
+In Svelte, your component's `<script>` runs **once**. The compiler figures out which parts of the HTML depend on which variables, and updates just those parts when the variables change.
+
+This one idea explains most of the differences below:
+
+- No dependency arrays. Svelte tracks dependencies for you.
+- No `useCallback`. Functions are created once, so they're stable already.
+- No stale closures. The variable you read is always the current value.
+- Smaller bundles. Svelte ships a tiny runtime instead of a library like React.
+
+## 2. Components: JSX vs `.svelte` files
+
+**React**
+
+```tsx
+// components/Counter.tsx
+"use client";
+
+import { useState } from "react";
+
+export function Counter({ start = 0 }: { start?: number }) {
+  const [count, setCount] = useState(start);
+  const double = count * 2;
+
+  return (
+    <button className="btn" onClick={() => setCount(count + 1)}>
+      {count} (double: {double})
+    </button>
+  );
+}
+```
+
+**Svelte**
+
+```svelte
+<!-- src/lib/components/Counter.svelte -->
+<script lang="ts">
+  let { start = 0 }: { start?: number } = $props();
+
+  let count = $state(start); // initial value only, like useState(start)
+  let double = $derived(count * 2);
+</script>
+
+<button class="btn" onclick={() => count++}>
+  {count} (double: {double})
+</button>
+
+<style>
+  .btn {
+    padding: 0.5rem 1rem;
+  }
+</style>
+```
+
+**What's the same**
+
+- Props, state, and computed values all exist. Just with different names.
+- Event handlers are plain functions. Svelte 5 uses `onclick`, which is just the normal HTML attribute name.
+- TypeScript works out of the box with `lang="ts"`.
+
+**What's different**
+
+- **No `"use client"`.** Every Svelte component is rendered on the server and hydrated in the browser. There are no Server Components.
+- **You change state by assigning to it.** `count++` instead of `setCount(count + 1)`. Arrays and objects work too: `todos.push(newTodo)` just works.
+- It's `class`, not `className`. And `for`, not `htmlFor`. It's HTML.
+- `<style>` is **scoped to the component** by default. No CSS Modules needed.
+- One component per file. The file name is the component name.
+
+Those `$` functions (`$state`, `$derived`, `$props`, `$effect`) are called **runes**. They're how Svelte 5 knows what's reactive. Here's how your hooks map:
+
+| React | Svelte 5 |
+| --- | --- |
+| `useState(0)` | `let count = $state(0)` |
+| `useMemo(() => a * b, [a, b])` | `let total = $derived(a * b)` |
+| `useEffect(() => { ... }, [x])` | `$effect(() => { ... })` (no deps array) |
+| `function C(props)` | `let { ... } = $props()` |
+| `children` / render props | Snippets + `{@render children()}` |
+| `useRef` for a DOM node | `bind:this={node}` |
+| `useRef` for a value | A plain `let` variable |
+| `useContext` / `createContext` | `getContext` / `setContext` |
+| `value` + `onChange` | `bind:value={name}` |
+| `<Suspense>` | `{#await promise}` |
+| `useCallback`, `React.memo` | Not needed |
+
+### Template syntax
+
+JSX uses JavaScript for everything. Svelte has a few small blocks instead:
+
+```svelte
+{#if user}
+  <p>Hi, {user.name}</p>
+{:else}
+  <a href="/login">Log in</a>
+{/if}
+
+<ul>
+  {#each todos as todo (todo.id)}
+    <li class={{ done: todo.done }}>{todo.title}</li>
+  {:else}
+    <li>Nothing to do 🎉</li>
+  {/each}
+</ul>
+```
+
+The `(todo.id)` part is the `key`. The `{:else}` inside `{#each}` shows when the list is empty. And `class` accepts objects and arrays, like `clsx`.
+
+### `children` becomes snippets
+
+In React, you pass `children` and render it. In Svelte 5, `children` is a **snippet**, and you render it with `{@render}`:
+
+```svelte
+<!-- Card.svelte -->
+<script lang="ts">
+  import type { Snippet } from "svelte";
+
+  let { title, children }: { title: string; children: Snippet } = $props();
+</script>
+
+<section class="card">
+  <h2>{title}</h2>
+  {@render children()}
+</section>
+```
+
+```svelte
+<Card title="Hello">
+  <p>This is the content.</p>
+</Card>
+```
+
+Need named "slots" like `header` or `footer`? Declare them with `{#snippet footer()}...{/snippet}` inside the component tag, and they arrive as props. Same idea as passing JSX through props in React.
+
+## 3. Routing: `app/` vs `src/routes/`
+
+Both frameworks use folders for URLs. The file names are what change. In SvelteKit, every special file starts with a `+`.
+
+| Next.js (`app/`) | SvelteKit (`src/routes/`) | What it does |
+| --- | --- | --- |
+| `page.tsx` | `+page.svelte` | The page UI |
+| `layout.tsx` | `+layout.svelte` | Shared layout |
+| `route.ts` | `+server.ts` | API endpoint (`GET`, `POST`, ...) |
+| `error.tsx` | `+error.svelte` | Error UI |
+| `not-found.tsx` | `+error.svelte` (check `page.status === 404`) | 404 page |
+| `loading.tsx` | No file. Use streaming + `{#await}` | Loading UI |
+| Data in the `async` page component | `+page.ts` or `+page.server.ts` | Load data for the page |
+| `[slug]`, `[...slug]`, `(group)` | Same | Dynamic, catch-all, group |
+| `[[...slug]]` | `[...slug]` (already matches zero segments) | Optional catch-all |
+| `@modal`, `(.)photo` | No direct equivalent, use shallow routing | Parallel / intercepting routes |
+| `middleware.ts` / `proxy.ts` | `src/hooks.server.ts` | Runs on every request |
+| `public/` | `static/` | Static files |
+
+A layout renders its page with `{@render children()}`, like `{children}` in a Next.js layout:
+
+```svelte
+<!-- src/routes/+layout.svelte -->
+<script lang="ts">
+  import Nav from "$lib/components/Nav.svelte";
+  import "../app.css";
+
+  let { children } = $props();
+</script>
+
+<Nav />
+<main>{@render children()}</main>
+```
+
+`$lib` is a built-in alias for `src/lib`. That's where your components and utilities live, like `@/` in Next.js.
+
+## 4. Data loading: Server Components vs `load`
+
+This is the biggest change in how you **think**.
+
+In Next.js, the component itself fetches data:
+
+```tsx
+// app/blog/[slug]/page.tsx
+import { notFound } from "next/navigation";
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await db.post.findUnique({ where: { slug } });
+  if (!post) notFound();
+
+  return <article>{post.title}</article>;
+}
+```
+
+In SvelteKit, data comes from a **`load` function in a separate file**, and the page receives it as the `data` prop:
+
+```ts
+// src/routes/blog/[slug]/+page.server.ts
+import { error } from "@sveltejs/kit";
+import type { PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async ({ params }) => {
+  const post = await db.post.findUnique({ where: { slug: params.slug } });
+  if (!post) error(404, "Post not found");
+
+  return { post };
+};
+```
+
+```svelte
+<!-- src/routes/blog/[slug]/+page.svelte -->
+<script lang="ts">
+  import type { PageProps } from "./$types";
+
+  let { data }: PageProps = $props();
+</script>
+
+<svelte:head>
+  <title>{data.post.title}</title>
+</svelte:head>
+
+<article>
+  <h1>{data.post.title}</h1>
+</article>
+```
+
+**What's different**
+
+- **Data and UI live in separate files.** It feels like more files at first. Later it feels clean: one file for "what data", one file for "how it looks".
+- **Types are generated for you.** `./$types` knows your route params and what your `load` returns.
+- **Two kinds of `load`:**
+  - `+page.server.ts` runs **only on the server**. Use it for databases, secrets, cookies.
+  - `+page.ts` runs on the server for the first page, then **in the browser** for navigations after that. Use it for calling public APIs.
+- Layouts can have `load` functions too (`+layout.server.ts`). Every page below them gets that data.
+- Metadata is just `<svelte:head>` in the page, using the same `data`. No separate `generateMetadata`.
+
+**Streaming** replaces `loading.tsx` and `<Suspense>`. Return a promise **without `await`**, and render it with `{#await}`:
+
+```ts
+// +page.server.ts
+export const load: PageServerLoad = async ({ params }) => {
+  return {
+    post: await getPost(params.slug), // wait for this one
+    comments: getComments(params.slug), // stream this one
+  };
+};
+```
+
+```svelte
+{#await data.comments}
+  <p>Loading comments...</p>
+{:then comments}
+  {#each comments as comment (comment.id)}
+    <p>{comment.body}</p>
+  {/each}
+{/await}
+```
+
+## 5. Mutations: Server Actions vs form actions
+
+In Next.js, you write a `"use server"` function and pass it to `<form action>`. SvelteKit's version is **form actions**: named functions in `+page.server.ts` that receive a normal form POST.
+
+```ts
+// src/routes/todos/+page.server.ts
+import { fail } from "@sveltejs/kit";
+import type { Actions, PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async () => {
+  return { todos: await db.todo.findMany() };
+};
+
+export const actions: Actions = {
+  create: async ({ request }) => {
+    const form = await request.formData();
+    const title = form.get("title");
+
+    if (typeof title !== "string" || !title.trim()) {
+      return fail(400, { error: "Title is required" });
+    }
+
+    await db.todo.create({ data: { title } });
+  },
+};
+```
+
+```svelte
+<!-- src/routes/todos/+page.svelte -->
+<script lang="ts">
+  import { enhance } from "$app/forms";
+  import type { PageProps } from "./$types";
+
+  let { data, form }: PageProps = $props();
+</script>
+
+<form method="POST" action="?/create" use:enhance>
+  <input name="title" />
+  <button>Add</button>
+  {#if form?.error}<p class="error">{form.error}</p>{/if}
+</form>
+
+<ul>
+  {#each data.todos as todo (todo.id)}
+    <li>{todo.title}</li>
+  {/each}
+</ul>
+```
+
+- Without JavaScript, it's a normal HTML form. It still works. ✅
+- `use:enhance` upgrades it: no full page reload, and **`load` runs again automatically**, so the list updates. You don't need `revalidatePath`.
+- Whatever you return with `fail()` shows up in the `form` prop.
+
+SvelteKit is also working on **remote functions** (`query`, `form`, `command` in a `.remote.ts` file) that you can call from any component, a lot like Server Actions. As of this writing they're still **experimental** and the API has changed between minor versions. Learn `load` and form actions first.
+
+## 6. Your stack: what replaces shadcn/ui, React Hook Form, Formik...
+
+This is the question I had the most, so it gets the biggest section. Open your `package.json` and go through it with the tables below.
+
+### UI component libraries
+
+| You use in Next.js | Use in SvelteKit | Notes |
+| --- | --- | --- |
+| **shadcn/ui** | **[shadcn-svelte](https://www.shadcn-svelte.com)** | Same copy-paste model, same Tailwind theme variables, same component names. The easiest switch. |
+| Radix UI / Headless UI | [Bits UI](https://bits-ui.com), [Melt UI](https://melt-ui.com) | Headless and accessible. Bits UI's API feels like Radix, and shadcn-svelte is built on Bits UI. |
+| Chakra UI | [Ark UI](https://ark-ui.com) (`@ark-ui/svelte`) | Made by the Chakra team. Headless, Svelte 5 only. |
+| MUI | [SMUI](https://sveltematerialui.com) | Community Material Design kit. No official MUI. |
+| Mantine, Ant Design | [Skeleton](https://www.skeleton.dev), [Flowbite Svelte](https://flowbite-svelte.com), [Carbon](https://svelte.carbondesignsystem.com) | No 1:1 port. Pick a kit that matches your style. |
+| daisyUI | daisyUI | Just CSS. Works unchanged. |
+
+If you use shadcn/ui today, setting up shadcn-svelte feels familiar:
+
+```bash
+npx shadcn-svelte@latest init
+npx shadcn-svelte@latest add button dialog form
+```
+
+```svelte
+<script lang="ts">
+  import { Button } from "$lib/components/ui/button";
+  import * as Dialog from "$lib/components/ui/dialog";
+</script>
+
+<Dialog.Root>
+  <Dialog.Trigger>
+    {#snippet child({ props })}
+      <Button {...props} variant="outline">Edit profile</Button>
+    {/snippet}
+  </Dialog.Trigger>
+  <Dialog.Content>
+    <Dialog.Title>Edit profile</Dialog.Title>
+  </Dialog.Content>
+</Dialog.Root>
+```
+
+The `{#snippet child({ props })}` part is how Bits UI does Radix's `asChild`. You spread the trigger's props onto your own element.
+
+### Forms: React Hook Form and Formik → Superforms
+
+There's no `useForm()` hook in Svelte, and you mostly don't need one. `bind:value` already keeps inputs and state in sync. For real forms (validation, errors, loading state), the community standard is **[Superforms](https://superforms.rocks)**. It works _with_ form actions: one Zod schema validates on the server and on the client.
+
+| React Hook Form / Formik | Superforms |
+| --- | --- |
+| `useForm({ resolver: zodResolver(schema) })` | `superForm(data.form, { validators: zod4Client(schema) })` |
+| `register("email")` | `bind:value={$form.email}` |
+| `formState.errors` / `errors` | `$errors` |
+| `formState.isSubmitting` / `isSubmitting` | `$submitting` |
+| `formState.dirtyFields` / `dirty` | `$tainted` |
+| `handleSubmit(onSubmit)` | `use:enhance` + a form action |
+| Server validation: you write it again | Same schema, in the action |
+
+Here's a sign-up form. First, the React Hook Form version you'd write today:
+
+```tsx
+// app/signup/page.tsx
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { schema, type SignUp } from "./schema";
+import { signUp } from "./actions";
+
+export default function SignUpPage() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUp>({ resolver: zodResolver(schema) });
+
+  return (
+    <form onSubmit={handleSubmit(signUp)}>
+      <input type="email" {...register("email")} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input type="password" {...register("password")} />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <button disabled={isSubmitting}>Sign up</button>
+    </form>
+  );
+}
+```
+
+The same form with Superforms. The schema file doesn't change:
+
+```ts
+// src/routes/signup/schema.ts
+import { z } from "zod";
+
+export const schema = z.object({
+  email: z.email(),
+  password: z.string().min(8),
+});
+```
+
+```ts
+// src/routes/signup/+page.server.ts
+import { fail } from "@sveltejs/kit";
+import { message, superValidate } from "sveltekit-superforms";
+import { zod4 } from "sveltekit-superforms/adapters";
+import type { Actions, PageServerLoad } from "./$types";
+import { schema } from "./schema";
+
+export const load: PageServerLoad = async () => {
+  return { form: await superValidate(zod4(schema)) };
+};
+
+export const actions: Actions = {
+  default: async ({ request }) => {
+    const form = await superValidate(request, zod4(schema));
+    if (!form.valid) return fail(400, { form });
+
+    await createUser(form.data);
+    return message(form, "Welcome aboard!");
+  },
+};
+```
+
+```svelte
+<!-- src/routes/signup/+page.svelte -->
+<script lang="ts">
+  import { superForm } from "sveltekit-superforms";
+  import { zod4Client } from "sveltekit-superforms/adapters";
+  import { schema } from "./schema";
+
+  let { data } = $props();
+
+  const { form, errors, message, submitting, enhance } = superForm(data.form, {
+    validators: zod4Client(schema),
+  });
+</script>
+
+<form method="POST" use:enhance>
+  <input name="email" type="email" bind:value={$form.email} />
+  {#if $errors.email}<span>{$errors.email}</span>{/if}
+
+  <input name="password" type="password" bind:value={$form.password} />
+  {#if $errors.password}<span>{$errors.password}</span>{/if}
+
+  <button disabled={$submitting}>Sign up</button>
+  {#if $message}<p>{$message}</p>{/if}
+</form>
+```
+
+A few things to notice:
+
+- The `$` in `$form` and `$errors` is **not a rune**. It's Svelte's syntax for reading a _store_ (an older reactive value that Superforms still uses). Inside a component, `$store` just means "the current value".
+- Validation runs on the client before submitting **and** on the server in the action. You don't write it twice.
+- With JavaScript off, the form still submits and shows server errors.
+- If you use shadcn/ui's `<Form>` today, shadcn-svelte's Form is built on **Superforms + [Formsnap](https://formsnap.dev)**, which adds accessible labels, descriptions and error wiring.
+
+Coming from **Formik**? The idea maps cleanly: `values` → `$form`, `errors` → `$errors`, `dirty` → `$tainted`, `isSubmitting` → `$submitting`. Want a client-only form with no server action? [TanStack Form](https://tanstack.com/form/latest/docs/framework/svelte/quick-start) has an official Svelte adapter with the same API you may know from React.
+
+Your **Zod, Valibot or Yup schemas move over unchanged**. They never knew about React.
+
+### Everything else, in short
+
+| You use in Next.js | Use in SvelteKit |
+| --- | --- |
+| TanStack Query | `@tanstack/svelte-query`, but try `load` + `invalidate()` first |
+| SWR | `load` + `invalidate()` (built in) |
+| tRPC | `trpc-sveltekit`, or remote functions |
+| Zustand, Jotai, Redux | `$state` in a `.svelte.ts` file, shared with context |
+| Framer Motion | Built in: `svelte/transition`, `svelte/animate`, `svelte/motion` |
+| NextAuth / Auth.js | `@auth/sveltekit` |
+| Better Auth, Supabase | Same packages, wired up in `hooks.server.ts` |
+| Clerk | `svelte-clerk` (community) |
+| next-intl, react-i18next | Paraglide JS (`npx sv add paraglide`) |
+| lucide-react | `@lucide/svelte` |
+| sonner | `svelte-sonner` |
+| next-themes | `mode-watcher` |
+| TanStack Table | shadcn-svelte Data Table, or `@tanstack/svelte-table` (v9 beta) |
+| Recharts | LayerChart (what shadcn-svelte Charts use) |
+| `next/image` | `@sveltejs/enhanced-img` |
+| `next/font` | Fontsource (no built-in optimizer) |
+| MDX | mdsvex |
+| React Testing Library, Jest | `@testing-library/svelte`, Vitest |
+| Prisma, Drizzle, Stripe server SDK | Same, unchanged |
+
+My rule of thumb: **anything framework-agnostic (Zod, Prisma, Drizzle, date-fns, Stripe's server SDK) moves as-is. Anything with "react" in its name needs a replacement.** Check the niche ones (a specific editor, a vendor SDK, a chart library) **before** you commit to the migration.
+
+## 7. Caching: the part you can stop worrying about
+
+Next.js has many caching layers. Next 16 made it simpler with opt-in `"use cache"`, but you still think about cache keys, `cacheLife`, and `revalidateTag`.
+
+**SvelteKit doesn't have a data cache.** `load` runs on every request. If you want caching, you use the web's own tools:
+
+```ts
+// +page.server.ts
+export const load: PageServerLoad = async ({ setHeaders }) => {
+  setHeaders({ "cache-control": "public, max-age=60" });
+  return { posts: await getPosts() };
+};
+```
+
+| Next.js | SvelteKit |
+| --- | --- |
+| Static page (SSG) | `export const prerender = true` |
+| `export const dynamic = "force-dynamic"` | Default (SSR on every request) |
+| `export const revalidate = 60` (ISR) | With `adapter-vercel`: `export const config = { isr: { expiration: 60 } }` |
+| Client-only page | `export const ssr = false` |
+| Page with no JavaScript | `export const csr = false` |
+
+Less magic, more control. For me, this was the part that felt like a relief. 😌
+
+## 8. Middleware: `proxy.ts` vs `hooks.server.ts`
+
+`hooks.server.ts` runs on every request. `event.locals` is where you put things (like the current user) for `load` and actions to read later:
+
+```ts
+// src/hooks.server.ts
+import { redirect, type Handle } from "@sveltejs/kit";
+
+export const handle: Handle = async ({ event, resolve }) => {
+  event.locals.user = await getUser(event.cookies.get("session"));
+
+  if (event.url.pathname.startsWith("/dashboard") && !event.locals.user) {
+    redirect(303, "/login");
+  }
+
+  return resolve(event);
+};
+```
+
+Declare the type of `locals` in `src/app.d.ts`. Then any `load` can read it: `export const load = ({ locals }) => ({ user: locals.user })`.
+
+One more thing I love: SvelteKit **won't build** if you import from `$env/static/private` in code that reaches the browser. Next.js just gives you `undefined`. It's very hard to leak a secret by accident. 🔒
+
+## Gotchas that bite you in week one
+
+1. **Don't put request data in module-level state.** On the server, a `$state` (or any variable) at the top of a `.svelte.ts` module is **shared by every user**. Put per-user data in `event.locals`, pass it through `load`, or use `setContext`.
+2. **Destructuring can break reactivity.** `let { count } = someState` copies the value once. Read `someState.count` directly, or use `$derived`.
+3. **Use `$derived`, not `$effect`, for computed values.** `$effect` is for side effects (DOM, timers, analytics). If you're setting state inside an effect, you probably want `$derived`.
+4. **`+page.ts` runs in the browser too.** Don't import your database client there. Use `+page.server.ts`, or keep server code in `src/lib/server/`.
+5. **Use the `fetch` that `load` gives you.** It sends cookies, works with relative URLs on the server, and avoids fetching twice during hydration.
+6. **Runes only work in `.svelte` and `.svelte.ts` files.** If your shared state file is `store.ts`, rename it to `store.svelte.ts`.
+7. **`tsc` doesn't check `.svelte` files.** Run `npx sv check` instead (or as well).
+8. **Old tutorials are everywhere.** `export let`, `$:`, `on:click`, and `<slot />` are Svelte 4. They still work in legacy mode, but don't learn them. Same for libraries: check they support **Svelte 5**.
+
+## How I'd do the migration
+
+There's no way to run Next.js and SvelteKit in the same app, so you can't migrate one component at a time like a React upgrade. Build the new app next to the old one, starting with the code that has nothing to do with React. That's often a bigger chunk than you'd expect. 🎉
+
+Here's the order I'd follow:
+
+1. **Do the [Svelte tutorial](https://svelte.dev/tutorial).** It takes an afternoon and saves you days.
+2. **Make a list.** Routes, API routes, middleware, env vars, and every library with "react" in its name.
+3. **Find the blockers.** Libraries with no good equivalent, parallel or intercepting routes. Decide on these before writing any code.
+4. **Create a fresh project** with `npx sv create`, then `npx sv add tailwindcss eslint vitest`.
+5. **Move the framework-free code** (database, API clients, Zod schemas, utils, types) into `src/lib/`.
+6. **Set up your UI kit** (for example `npx shadcn-svelte@latest init`) and add the components you use.
+7. **Rebuild the root layout**: nav, footer, theme, fonts, `<svelte:head>`.
+8. **Port pages, simplest first.** Each `async` page becomes `+page.server.ts` (data) + `+page.svelte` (UI).
+9. **Port forms and mutations.** Server Actions become form actions, React Hook Form/Formik become Superforms, `route.ts` becomes `+server.ts`.
+10. **Move middleware and auth** into `hooks.server.ts`, and rename `NEXT_PUBLIC_*` to `PUBLIC_*`.
+11. **Check and test.** `npx sv check` passes, E2E tests pass, URLs, redirects, sitemap and meta tags are the same as before.
+12. **Pick an adapter, deploy a preview, then switch traffic.** Route by route if you can: a reverse proxy can send `/blog/*` to the new app while the old app keeps the rest.
+
+## Should you migrate?
+
+**Go for SvelteKit if:**
+
+- You want smaller bundles and faster pages without much tuning.
+- Next.js caching and the server/client component split keep confusing your team.
+- You're starting a new project, or the app is small enough to rewrite.
+- You don't want to be tied to one hosting platform.
+
+**Stay on Next.js if:**
+
+- Important libraries in your stack have no good Svelte equivalent.
+- Your team is large and hiring React developers is easier.
+- The app is big and working fine. A rewrite has to pay for itself.
+- You rely on parallel and intercepting routes.
+
+For me, the best part of SvelteKit is how **little** I have to think about the framework. A component is HTML with a bit of script. Data comes from `load`. Forms are forms. Caching is HTTP. After a few days, I stopped looking things up and just wrote code.
+
+Still on the fence? The [official Svelte tutorial](https://svelte.dev/tutorial) from step 1 is the fastest way to find out if Svelte clicks for you.
+
+Happy migrating! 🧡
+
+## References
+
+- [SvelteKit docs](https://svelte.dev/docs/kit) and [Svelte docs](https://svelte.dev/docs/svelte), official
+- [Routing](https://svelte.dev/docs/kit/routing), [Loading data](https://svelte.dev/docs/kit/load), and [Form actions](https://svelte.dev/docs/kit/form-actions) in the SvelteKit docs
+- [Remote functions](https://svelte.dev/docs/kit/remote-functions), SvelteKit docs (experimental)
+- [Hooks](https://svelte.dev/docs/kit/hooks), [Page options](https://svelte.dev/docs/kit/page-options) and [State management](https://svelte.dev/docs/kit/state-management), SvelteKit docs
+- [What are runes?](https://svelte.dev/docs/svelte/what-are-runes) and [Svelte 5 migration guide](https://svelte.dev/docs/svelte/v5-migration-guide), Svelte docs
+- [sv CLI](https://svelte.dev/docs/cli/overview), Svelte docs
+- [What's new in Svelte: June 2026](https://svelte.dev/blog/whats-new-in-svelte-june-2026), Svelte blog
+- [shadcn-svelte](https://www.shadcn-svelte.com) and its [Form docs](https://www.shadcn-svelte.com/docs/components/form) (Formsnap + Superforms + Zod)
+- [Superforms](https://superforms.rocks) and [Formsnap](https://formsnap.dev)
+- [Bits UI](https://bits-ui.com) and [Introducing Ark UI for Svelte](https://ark-ui.com/blog/introducing-ark-ui-svelte)
+- [TanStack Table for Svelte](https://tanstack.com/table/latest/docs/framework/svelte/svelte-table) (v9, Svelte 5)
+- [Next.js 16](https://nextjs.org/blog/next-16), Next.js blog. Cache Components, `"use cache"`, and `proxy.ts`
+- [Next.js 16: What's new](https://blog.logrocket.com/next-js-16-whats-new), LogRocket
+- [Interactive Svelte tutorial](https://svelte.dev/tutorial)
