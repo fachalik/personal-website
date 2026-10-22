@@ -1,0 +1,369 @@
+---
+title: "Fumadocs: What It Is, Where You Can Use It, and Why I'd Pick It for Docs"
+publishedAt: "2026-10-22"
+image: "/blog/fumadocs/cover.png"
+summary: "An overview and hands-on guide to Fumadocs, the React documentation framework. Its three layers, the different ways to use it, which frameworks it runs on, the features that matter, how to customize it, and how it compares with Nextra, Docusaurus, and Starlight."
+tags: ["fumadocs", "documentation", "nextjs", "mdx", "tooling"]
+---
+
+Every project needs docs at some point. A library needs a getting-started page. A product needs a help center. A team needs a place to write down how the deploy works, so the answer isn't "ask the one person who knows."
+
+You can build that yourself. This blog is a hand-rolled MDX setup: gray-matter for frontmatter, a remark and rehype pipeline, Shiki for code. It works well for a blog. But for **docs** you also want a sidebar, a table of contents, search, breadcrumbs, previous/next links, and URLs that stay stable as the docs grow. Building all of that by hand is a project of its own.
+
+**[Fumadocs](https://fumadocs.dev/)** gives you all of it, without taking control of your app. In this post I'll go over what Fumadocs is, the different ways to use it, where it runs, the features worth knowing, and when you should pick something else.
+
+## The short version
+
+- **Fumadocs** is a documentation framework for **React**. It's split into three layers: `fumadocs-core` (headless logic), `fumadocs-ui` (the docs theme), and `fumadocs-mdx` (the content source).
+- You can use it **four ways**: the full template, added to an existing app, headless with your own UI, or with a different content source like a CMS or GitHub.
+- It runs on **Next.js, React Router, TanStack Start, Waku**, and partly on **Astro**. It's not a Next.js-only tool anymore.
+- Search, i18n, OG images, OpenAPI pages, TypeScript type tables, and `llms.txt` for AI tools are all built in or one package away.
+- Pick it when you want docs that live **inside your own React app** and that you can fully customize. Pick something else if you don't use React, or if you need built-in docs versioning.
+
+## What Fumadocs is
+
+Most docs tools are a box: you put Markdown in, a website comes out, and the site's code belongs to the tool. Fumadocs works more like a library. Your app stays a normal Next.js (or React Router, or TanStack Start) app, and Fumadocs gives you the pieces.
+
+Those pieces come in three layers:
+
+| Package | What it does | Do you need it? |
+| --- | --- | --- |
+| `fumadocs-core` | Headless logic: page tree, sidebar data, search, table of contents, breadcrumbs, i18n | Always |
+| `fumadocs-ui` | The docs theme: layouts, sidebar, search dialog, MDX components | Only if you want the ready-made look |
+| `fumadocs-mdx` | Turns your `.mdx` files into typed, importable content | Only if your content is local MDX |
+
+The theme itself comes in two flavors with the same API: `fumadocs-ui` is built on **Radix UI**, and `@fumadocs/base-ui` is built on **Base UI**. Pick the one that matches the primitives you already use.
+
+This split is the main idea behind Fumadocs. You can take only the layers you need and replace the rest.
+
+## Where you can use it
+
+When you run the setup CLI, it offers these templates (from `create-fumadocs-app` 16.2):
+
+| Template | Notes |
+| --- | --- |
+| Next.js | Recommended, the most mature option |
+| Next.js Static | Same, but with `output: 'export'`, so you can host it on any static host |
+| Waku | Recommended, "fast and simple" |
+| React Router | Not React Server Components |
+| React Router SPA | Can be hosted statically on a CDN |
+| TanStack Start | Not React Server Components |
+| TanStack Start SPA | Can be hosted statically on a CDN |
+| Astro | Partial support, uses React islands and Astro Content Collections |
+
+On the build side, `fumadocs-mdx` has plugins for Next.js, Vite, Bun, Rolldown, and a Node loader. So it fits most React setups you're likely to have.
+
+What you can build with it:
+
+- **Library and framework docs**, the classic use case.
+- **Product help centers** that sit next to your marketing site in the same app.
+- **API references** generated from an OpenAPI spec.
+- **Internal knowledge bases** for a team or company.
+- Even a **blog**, because `fumadocs-mdx` can define any collection, not just docs.
+
+## Four ways to use it
+
+### 1. The full template
+
+The quickest way. One command and you have a working docs site:
+
+```bash
+pnpm create fumadocs-app
+```
+
+It asks a few questions: the template, a linter (ESLint, Biome, or Oxlint), the search provider, OG image generation, and optional AI chat. You can skip the prompts with flags:
+
+```bash
+pnpm create fumadocs-app my-docs --template +next+fuma-docs-mdx --linter biome --install
+```
+
+### 2. Added to an existing app
+
+Already have a Next.js app? Install the packages, wrap your root layout with the provider, and add a `/docs` route. Your homepage, auth, and dashboard stay exactly where they are. The docs are just another part of the app. This is the big difference from tools like Docusaurus, where the docs site *is* the whole app.
+
+### 3. Headless, with your own UI
+
+Don't like the theme? Skip `fumadocs-ui` and use only `fumadocs-core`. You still get the page tree, search, and table of contents as data, and you render them with your own components, for example with shadcn/ui. There's also a theme preset called `shadcn.css` if you want the default UI to match a shadcn project without going fully headless.
+
+### 4. A different content source
+
+Local MDX files with `fumadocs-mdx` are the default, but the `loader()` function in `fumadocs-core` accepts any source. You can load content from **GitHub**, from a **CMS**, or from a remote database, as long as you give it a list of pages and their data.
+
+## A quick tour of a project
+
+Here's what the Next.js template gives you (trimmed a little):
+
+```txt
+my-docs/
+├── app/
+│   ├── (home)/page.tsx          # landing page
+│   ├── docs/
+│   │   ├── layout.tsx           # DocsLayout with the sidebar
+│   │   └── [[...slug]]/page.tsx # renders one docs page
+│   ├── api/search/route.ts      # search endpoint
+│   ├── llms.txt/route.ts        # docs index for AI tools
+│   ├── og/docs/[...slug]/       # OG image per page
+│   ├── layout.tsx               # RootProvider
+│   └── global.css
+├── components/mdx.tsx           # MDX components
+├── content/docs/                # your .mdx files
+│   ├── index.mdx
+│   └── meta.json
+├── lib/
+│   ├── source.ts                # where content is loaded
+│   └── layout.shared.tsx        # nav title, GitHub link
+├── next.config.mjs
+└── proxy.ts                     # serves Markdown to AI agents
+```
+
+Three files do most of the work.
+
+**`lib/source.ts`** loads the content and turns it into a source the rest of the app can use:
+
+```ts
+// lib/source.ts
+import { loader } from "fumadocs-core/source";
+import { metaSchema, pageSchema } from "fumadocs-core/source/schema";
+import { defineDocs } from "fumadocs-mdx/macro";
+
+const docs = defineDocs({
+  dir: "content/docs",
+  docs: { schema: pageSchema },
+  meta: { schema: metaSchema },
+});
+
+export const source = loader({
+  baseUrl: "/docs",
+  source: docs.toFumadocsSource(),
+});
+```
+
+Older tutorials put `defineDocs` in a separate `source.config.ts` file. That still works, but the current templates define it directly in `lib/source.ts` with `fumadocs-mdx/macro`.
+
+**`app/docs/layout.tsx`** renders the sidebar from the page tree:
+
+```tsx
+// app/docs/layout.tsx
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { baseOptions } from "@/lib/layout.shared";
+import { source } from "@/lib/source";
+
+export default function Layout({ children }: LayoutProps<"/docs">) {
+  return (
+    <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+**`app/docs/[[...slug]]/page.tsx`** finds the page for the URL and renders it:
+
+```tsx
+// app/docs/[[...slug]]/page.tsx (simplified)
+import { DocsBody, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import { notFound } from "next/navigation";
+import { getMDXComponents } from "@/components/mdx";
+import { source } from "@/lib/source";
+
+export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+  const { slug } = await props.params;
+  const page = source.getPage(slug);
+  if (!page) notFound();
+
+  const MDX = page.data.body;
+
+  return (
+    <DocsPage toc={page.data.toc}>
+      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsBody>
+        <MDX components={getMDXComponents()} />
+      </DocsBody>
+    </DocsPage>
+  );
+}
+
+export function generateStaticParams() {
+  return source.generateParams();
+}
+```
+
+That's the whole pattern: **source → layout → page**. Every other feature plugs into the same `source` object.
+
+## Writing content
+
+A docs page is a normal MDX file with frontmatter:
+
+````mdx
+---
+title: Installation
+description: Install the package and set up your first project.
+---
+
+## Install
+
+```bash
+npm install my-library
+```
+````
+
+`title` is required by the default schema, and `description` is optional. You can also set `icon` and `full` (a full-width page without a table of contents), or extend the schema with Zod for your own fields.
+
+### Ordering the sidebar with `meta.json`
+
+By default, pages are sorted by name. To control the order, add a `meta.json` file to the folder:
+
+```json
+{
+  "title": "Guides",
+  "pages": [
+    "index",
+    "installation",
+    "---Core concepts---",
+    "routing",
+    "data-loading",
+    "...",
+    "!internal-notes",
+    "[GitHub](https://github.com/me/my-library)"
+  ]
+}
+```
+
+- `---Core concepts---` adds a separator with a label.
+- `...` means "all the other pages here, in the default order."
+- `!internal-notes` hides a page from the sidebar.
+- `[Text](url)` adds a link.
+
+You can also set `defaultOpen`, `collapsible`, and `icon` for the folder.
+
+### Built-in MDX components
+
+`fumadocs-ui` comes with the components you keep needing in docs:
+
+```mdx
+<Callout type="warn">This API is experimental.</Callout>
+
+<Cards>
+  <Card title="Quick start" href="/docs/quick-start" />
+  <Card title="API reference" href="/docs/api" />
+</Cards>
+```
+
+`Callout` and `Cards` work without any import. More components are one import away from `fumadocs-ui/components/*`: **Tabs**, **Steps**, **Accordion**, **Files** (a file tree), **Banner**, **Image zoom**, and **Type Table**.
+
+Code blocks are highlighted with Shiki and can show a title and line highlights. Write a code block with the language `npm`, and it turns into tabs for npm, pnpm, yarn, and bun. Mermaid diagrams are supported too.
+
+## Features worth knowing
+
+### Search
+
+Search works out of the box. The default is a **local search** built from your content, served from one route:
+
+```ts
+// app/api/search/route.ts
+import { createFromSource } from "fumadocs-core/search/server";
+import { source } from "@/lib/source";
+
+export const { GET } = createFromSource(source);
+```
+
+For a static export, use `staticGET` instead, and the search index is generated at build time. If your docs get big, you can switch to **Orama Cloud, Algolia, Meilisearch, Typesense**, or **Mixedbread** (AI search). The search dialog stays the same.
+
+### i18n
+
+Define your languages once, and Fumadocs finds translated pages either by file name (`page.id.mdx`, the `dot` parser) or by folder (`id/page.mdx`, the `dir` parser). That's the same file naming this blog uses. You can choose whether the default language shows in the URL (`hideLocale`), and the UI strings like "On this page" get translated too.
+
+### Ready for AI tools
+
+This is the part that surprised me most. The template sets up:
+
+- **`/llms.txt`**, an index of all your docs for language models.
+- **`/llms-full.txt`**, all your docs in one Markdown file.
+- A **Markdown version of every page**. Add `.md` to any docs URL, or send `Accept: text/markdown`, and the `proxy.ts` file returns plain Markdown instead of HTML.
+- A **"Copy Markdown" button** and a menu to open the page in ChatGPT, Claude, or Cursor.
+
+There's also an MCP server helper in `fumadocs-core`. If people use your docs with AI coding tools, and in 2026 they do, this saves you real work.
+
+### OG images
+
+Every page can get its own Open Graph image, generated with `next/og` or Takumi. The template already includes the route.
+
+### Extra packages
+
+- **`fumadocs-openapi`** generates API reference pages from an OpenAPI spec, with a request playground.
+- **`fumadocs-typescript`** generates type tables straight from your TypeScript types, so props docs never go out of date.
+- **`fumadocs-twoslash`** adds type information on hover inside code blocks, like on the TypeScript website.
+- **`@fumadocs/cli`** copies Fumadocs UI components into your project, so you can edit them yourself, a bit like shadcn/ui.
+
+## Customizing the look
+
+There are three levels, from easy to full control.
+
+**1. Pick a theme.** Change one CSS import:
+
+```css
+/* app/global.css */
+@import "tailwindcss";
+@import "fumadocs-ui/css/ocean.css";
+@import "fumadocs-ui/css/preset.css";
+```
+
+There are presets like `neutral`, `black`, `ocean`, `purple`, `catppuccin`, `vitepress`, and `shadcn`. Fumadocs uses Tailwind CSS v4, so you can override any color with CSS variables.
+
+**2. Pick a layout.** Besides the default docs layout, there are `notebook`, `flux`, `glass`, and a `home` layout for your landing page. Most layouts also have **slots**, so you can replace just the sidebar, header, footer, or table of contents.
+
+**3. Own the components.** Copy them in with `@fumadocs/cli`, or go fully headless with `fumadocs-core` and write your own UI.
+
+## Why pick Fumadocs?
+
+Here's how it compares with the other tools you're likely looking at:
+
+| | Fumadocs | Nextra | Docusaurus | Starlight | Hand-rolled MDX |
+| --- | --- | --- | --- | --- | --- |
+| Built on | React (many frameworks) | Next.js | React (own build) | Astro | Whatever you use |
+| Lives inside your app | Yes | Yes | No, separate site | No, separate site | Yes |
+| Swap the UI | Yes (layers, slots, headless) | Partly | Yes (swizzling) | Partly (overrides) | Fully, you build it |
+| Search included | Yes | Yes | Through plugins (Algolia) | Yes (Pagefind) | No |
+| Docs versioning | No built-in | No built-in | Yes | No built-in | No |
+| Setup time | Minutes | Minutes | Minutes | Minutes | Days |
+
+For me, the reasons come down to four things:
+
+1. **It lives in your app.** Your docs can use your real components, your auth, your design system. There's no second repo and no second deploy.
+2. **You only take what you need.** Use the whole theme today, swap one slot tomorrow, go headless next year. You never have to throw it all away.
+3. **Not locked to one framework.** If you move from Next.js to TanStack Start or React Router, your content and most of your setup come with you.
+4. **It's very active.** New releases come out almost every week, and newer needs like `llms.txt` and Markdown for AI agents are already in the default template.
+
+## When you shouldn't pick it
+
+To be fair, Fumadocs isn't always the right choice:
+
+- **Your team doesn't use React.** Starlight (Astro) or VitePress (Vue) will feel more natural.
+- **You need versioned docs out of the box**, like `v1`, `v2`, `v3` with a version switcher. Docusaurus has this built in. In Fumadocs you'd build it yourself, with separate folders and sidebar tabs.
+- **You just want to write and not touch code.** A hosted tool like Mintlify, or a wiki, is easier for non-developers.
+- **You only need a blog.** A small MDX setup, like the one on this site, is enough.
+- **Big version jumps take some work.** Fumadocs went from v10 to v16 in under two years, and the APIs do change. Expect to read the migration guide when you upgrade a major version, and check that a tutorial matches the version you have installed.
+
+## My tips
+
+1. **Start with the template**, even if you plan to add it to an existing app. Read the generated files first, then copy the parts you need.
+2. **Plan the folder structure early.** URLs come from file paths, so moving pages later means broken links. Use `meta.json` to control the order instead of renaming files.
+3. **Use `createRelativeLink`.** It lets you link between pages with relative file paths (`./installation.mdx`), so links keep working when you move things around.
+4. **Keep the AI routes.** `llms.txt` and the Markdown routes are already in the template and cost you nothing.
+5. **Try it on a real project.** Write docs for a small tool you've built. You'll learn more in one afternoon than from any comparison table, including this one.
+
+If I needed a docs site for a React project today, Fumadocs is where I'd start. It's quick to set up, and you can still customize everything later.
+
+Happy documenting! 📚
+
+## References
+
+- [Fumadocs documentation](https://fumadocs.dev/), official site
+- [Fumadocs on GitHub](https://github.com/fuma-nama/fumadocs)
+- [Quick start](https://fumadocs.dev/docs), creating your first app
+- [Source API](https://fumadocs.dev/docs/headless/source-api), how `loader()` and content sources work
+- [Page conventions](https://fumadocs.dev/docs/page-conventions), `meta.json` and file structure
+- [Search](https://fumadocs.dev/docs/headless/search), built-in and third-party search
+- [Internationalization](https://fumadocs.dev/docs/internationalization), setting up i18n
+- [Fumadocs OpenAPI](https://fumadocs.dev/docs/integrations/openapi), generating API references
+- [Nextra](https://nextra.site/), [Docusaurus](https://docusaurus.io/), and [Starlight](https://starlight.astro.build/), the alternatives

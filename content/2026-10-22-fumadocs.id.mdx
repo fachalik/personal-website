@@ -1,0 +1,369 @@
+---
+title: "Fumadocs: Apa Itu, Bisa Dipakai di Mana, dan Kenapa Saya Memilihnya untuk Dokumentasi"
+publishedAt: "2026-10-22"
+image: "/blog/fumadocs/cover.png"
+summary: "Gambaran umum sekaligus panduan praktis Fumadocs, framework dokumentasi berbasis React. Tiga lapisannya, berbagai cara memakainya, framework yang didukung, fitur-fitur penting, cara kustomisasi, dan perbandingannya dengan Nextra, Docusaurus, dan Starlight."
+tags: ["fumadocs", "documentation", "nextjs", "mdx", "tooling"]
+---
+
+Cepat atau lambat, setiap project butuh dokumentasi. Library butuh halaman getting started. Produk butuh help center. Tim butuh tempat untuk mencatat cara deploy, supaya jawabannya bukan "tanya saja ke satu orang yang tahu."
+
+Kamu bisa membangunnya sendiri. Blog ini sendiri pakai setup MDX buatan sendiri: gray-matter untuk frontmatter, pipeline remark dan rehype, Shiki untuk kode. Untuk blog, itu sudah cukup. Tapi untuk **dokumentasi**, kamu juga butuh sidebar, daftar isi, pencarian, breadcrumb, link halaman sebelumnya/berikutnya, dan URL yang tidak gampang rusak. Membangun semua itu sendiri sudah jadi project tersendiri.
+
+**[Fumadocs](https://fumadocs.dev/)** memberikan semua itu, tanpa mengambil alih aplikasimu. Di tulisan ini saya bahas apa itu Fumadocs, berbagai cara memakainya, di mana saja bisa dipakai, fitur-fitur yang perlu kamu tahu, dan kapan sebaiknya pakai tool lain.
+
+## Versi singkatnya
+
+- **Fumadocs** adalah framework dokumentasi untuk **React**. Terbagi jadi tiga lapisan: `fumadocs-core` (logika headless), `fumadocs-ui` (tema dokumentasi), dan `fumadocs-mdx` (sumber konten).
+- Ada **empat cara** memakainya: template lengkap, ditambahkan ke aplikasi yang sudah ada, headless dengan UI sendiri, atau dengan sumber konten lain seperti CMS atau GitHub.
+- Bisa jalan di **Next.js, React Router, TanStack Start, Waku**, dan sebagian di **Astro**. Sekarang bukan lagi tool khusus Next.js.
+- Pencarian, i18n, gambar OG, halaman OpenAPI, tabel type TypeScript, dan `llms.txt` untuk tools AI sudah bawaan atau tinggal tambah satu paket.
+- Pilih Fumadocs kalau kamu mau dokumentasi yang **tinggal di dalam aplikasi React-mu sendiri** dan bisa dikustomisasi sepenuhnya. Pilih tool lain kalau kamu tidak pakai React, atau butuh fitur versioning dokumentasi bawaan.
+
+## Apa itu Fumadocs
+
+Kebanyakan tool dokumentasi bekerja seperti kotak: Markdown masuk, website keluar, dan kode website-nya milik tool itu. Fumadocs lebih mirip library. Aplikasimu tetap aplikasi Next.js (atau React Router, atau TanStack Start) biasa, dan Fumadocs memberikan potongan-potongannya.
+
+Potongan-potongan itu dibagi jadi tiga lapisan:
+
+| Paket | Fungsinya | Perlu dipakai? |
+| --- | --- | --- |
+| `fumadocs-core` | Logika headless: page tree, data sidebar, pencarian, daftar isi, breadcrumb, i18n | Selalu |
+| `fumadocs-ui` | Tema dokumentasi: layout, sidebar, dialog pencarian, komponen MDX | Hanya kalau mau tampilan siap pakai |
+| `fumadocs-mdx` | Mengubah file `.mdx` jadi konten yang bisa di-import dan punya type | Hanya kalau kontenmu berupa file MDX lokal |
+
+Temanya sendiri ada dua versi dengan API yang sama: `fumadocs-ui` dibangun di atas **Radix UI**, dan `@fumadocs/base-ui` di atas **Base UI**. Pilih yang sesuai dengan primitive UI yang sudah kamu pakai.
+
+Pembagian lapisan inilah ide utama Fumadocs. Kamu bisa ambil lapisan yang dibutuhkan saja dan ganti sisanya.
+
+## Bisa dipakai di mana saja
+
+Saat menjalankan CLI setup, kamu akan ditawari template berikut (dari `create-fumadocs-app` 16.2):
+
+| Template | Catatan |
+| --- | --- |
+| Next.js | Direkomendasikan, opsi paling matang |
+| Next.js Static | Sama, tapi dengan `output: 'export'`, jadi bisa di-host di hosting statis mana pun |
+| Waku | Direkomendasikan, "cepat dan sederhana" |
+| React Router | Tanpa React Server Components |
+| React Router SPA | Bisa di-host statis di CDN |
+| TanStack Start | Tanpa React Server Components |
+| TanStack Start SPA | Bisa di-host statis di CDN |
+| Astro | Dukungan sebagian, pakai React islands dan Astro Content Collections |
+
+Dari sisi build, `fumadocs-mdx` punya plugin untuk Next.js, Vite, Bun, Rolldown, dan Node loader. Jadi cocok untuk hampir semua setup React yang mungkin kamu pakai.
+
+Yang bisa kamu bangun dengannya:
+
+- **Dokumentasi library dan framework**, use case klasiknya.
+- **Help center produk** yang berada di aplikasi yang sama dengan situs marketing-mu.
+- **API reference** yang di-generate dari spesifikasi OpenAPI.
+- **Knowledge base internal** untuk tim atau perusahaan.
+- Bahkan **blog**, karena `fumadocs-mdx` bisa mendefinisikan collection apa pun, bukan cuma docs.
+
+## Empat cara memakainya
+
+### 1. Template lengkap
+
+Cara paling cepat. Satu perintah dan kamu sudah punya situs dokumentasi yang jalan:
+
+```bash
+pnpm create fumadocs-app
+```
+
+CLI-nya akan menanyakan beberapa hal: template, linter (ESLint, Biome, atau Oxlint), penyedia pencarian, pembuatan gambar OG, dan AI chat opsional. Kamu juga bisa melewati pertanyaannya dengan flag:
+
+```bash
+pnpm create fumadocs-app my-docs --template +next+fuma-docs-mdx --linter biome --install
+```
+
+### 2. Ditambahkan ke aplikasi yang sudah ada
+
+Sudah punya aplikasi Next.js? Install paketnya, bungkus root layout dengan provider, lalu tambahkan route `/docs`. Homepage, auth, dan dashboard-mu tetap di tempatnya. Dokumentasi cuma jadi satu bagian lagi dari aplikasi. Inilah perbedaan besarnya dengan tool seperti Docusaurus, di mana situs dokumentasi *adalah* seluruh aplikasinya.
+
+### 3. Headless, dengan UI sendiri
+
+Tidak suka temanya? Lewati `fumadocs-ui` dan pakai `fumadocs-core` saja. Kamu tetap dapat page tree, pencarian, dan daftar isi dalam bentuk data, lalu kamu render dengan komponenmu sendiri, misalnya pakai shadcn/ui. Ada juga preset tema `shadcn.css` kalau kamu mau UI bawaannya serasi dengan project shadcn tanpa harus full headless.
+
+### 4. Sumber konten lain
+
+File MDX lokal dengan `fumadocs-mdx` adalah default-nya, tapi fungsi `loader()` di `fumadocs-core` menerima sumber apa pun. Kamu bisa memuat konten dari **GitHub**, dari **CMS**, atau dari database remote, selama kamu memberikan daftar halaman beserta datanya.
+
+## Tur singkat sebuah project
+
+Ini yang kamu dapat dari template Next.js (sedikit dipangkas):
+
+```txt
+my-docs/
+├── app/
+│   ├── (home)/page.tsx          # landing page
+│   ├── docs/
+│   │   ├── layout.tsx           # DocsLayout dengan sidebar
+│   │   └── [[...slug]]/page.tsx # me-render satu halaman docs
+│   ├── api/search/route.ts      # endpoint pencarian
+│   ├── llms.txt/route.ts        # indeks docs untuk tools AI
+│   ├── og/docs/[...slug]/       # gambar OG per halaman
+│   ├── layout.tsx               # RootProvider
+│   └── global.css
+├── components/mdx.tsx           # komponen MDX
+├── content/docs/                # file .mdx kamu
+│   ├── index.mdx
+│   └── meta.json
+├── lib/
+│   ├── source.ts                # tempat konten dimuat
+│   └── layout.shared.tsx        # judul nav, link GitHub
+├── next.config.mjs
+└── proxy.ts                     # menyajikan Markdown untuk agen AI
+```
+
+Ada tiga file yang mengerjakan sebagian besar pekerjaan.
+
+**`lib/source.ts`** memuat konten dan mengubahnya jadi source yang bisa dipakai bagian lain dari aplikasi:
+
+```ts
+// lib/source.ts
+import { loader } from "fumadocs-core/source";
+import { metaSchema, pageSchema } from "fumadocs-core/source/schema";
+import { defineDocs } from "fumadocs-mdx/macro";
+
+const docs = defineDocs({
+  dir: "content/docs",
+  docs: { schema: pageSchema },
+  meta: { schema: metaSchema },
+});
+
+export const source = loader({
+  baseUrl: "/docs",
+  source: docs.toFumadocsSource(),
+});
+```
+
+Tutorial yang lebih lama menaruh `defineDocs` di file terpisah bernama `source.config.ts`. Cara itu masih jalan, tapi template sekarang mendefinisikannya langsung di `lib/source.ts` dengan `fumadocs-mdx/macro`.
+
+**`app/docs/layout.tsx`** me-render sidebar dari page tree:
+
+```tsx
+// app/docs/layout.tsx
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { baseOptions } from "@/lib/layout.shared";
+import { source } from "@/lib/source";
+
+export default function Layout({ children }: LayoutProps<"/docs">) {
+  return (
+    <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+**`app/docs/[[...slug]]/page.tsx`** mencari halaman sesuai URL lalu me-render-nya:
+
+```tsx
+// app/docs/[[...slug]]/page.tsx (disederhanakan)
+import { DocsBody, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import { notFound } from "next/navigation";
+import { getMDXComponents } from "@/components/mdx";
+import { source } from "@/lib/source";
+
+export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+  const { slug } = await props.params;
+  const page = source.getPage(slug);
+  if (!page) notFound();
+
+  const MDX = page.data.body;
+
+  return (
+    <DocsPage toc={page.data.toc}>
+      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsBody>
+        <MDX components={getMDXComponents()} />
+      </DocsBody>
+    </DocsPage>
+  );
+}
+
+export function generateStaticParams() {
+  return source.generateParams();
+}
+```
+
+Itulah pola lengkapnya: **source → layout → page**. Semua fitur lain terhubung ke objek `source` yang sama.
+
+## Menulis konten
+
+Satu halaman docs adalah file MDX biasa dengan frontmatter:
+
+````mdx
+---
+title: Installation
+description: Install the package and set up your first project.
+---
+
+## Install
+
+```bash
+npm install my-library
+```
+````
+
+`title` wajib ada di schema default, `description` opsional. Kamu juga bisa mengisi `icon` dan `full` (halaman lebar penuh tanpa daftar isi), atau memperluas schema dengan Zod untuk field-mu sendiri.
+
+### Mengatur urutan sidebar dengan `meta.json`
+
+Secara default, halaman diurutkan berdasarkan nama. Untuk mengatur urutannya, tambahkan file `meta.json` di folder tersebut:
+
+```json
+{
+  "title": "Guides",
+  "pages": [
+    "index",
+    "installation",
+    "---Core concepts---",
+    "routing",
+    "data-loading",
+    "...",
+    "!internal-notes",
+    "[GitHub](https://github.com/me/my-library)"
+  ]
+}
+```
+
+- `---Core concepts---` menambahkan pemisah dengan label.
+- `...` artinya "semua halaman lain di folder ini, dengan urutan default."
+- `!internal-notes` menyembunyikan halaman dari sidebar.
+- `[Teks](url)` menambahkan link.
+
+Kamu juga bisa mengatur `defaultOpen`, `collapsible`, dan `icon` untuk folder tersebut.
+
+### Komponen MDX bawaan
+
+`fumadocs-ui` sudah menyediakan komponen yang selalu dibutuhkan di dokumentasi:
+
+```mdx
+<Callout type="warn">API ini masih eksperimental.</Callout>
+
+<Cards>
+  <Card title="Quick start" href="/docs/quick-start" />
+  <Card title="API reference" href="/docs/api" />
+</Cards>
+```
+
+`Callout` dan `Cards` bisa langsung dipakai tanpa import. Komponen lain tinggal di-import dari `fumadocs-ui/components/*`: **Tabs**, **Steps**, **Accordion**, **Files** (struktur file), **Banner**, **Image zoom**, dan **Type Table**.
+
+Code block di-highlight dengan Shiki dan bisa diberi judul serta highlight baris. Tulis code block dengan bahasa `npm`, dan hasilnya otomatis jadi tab untuk npm, pnpm, yarn, dan bun. Diagram Mermaid juga didukung.
+
+## Fitur yang perlu kamu tahu
+
+### Pencarian
+
+Pencarian langsung jalan tanpa setup tambahan. Default-nya adalah **pencarian lokal** yang dibangun dari kontenmu, disajikan dari satu route:
+
+```ts
+// app/api/search/route.ts
+import { createFromSource } from "fumadocs-core/search/server";
+import { source } from "@/lib/source";
+
+export const { GET } = createFromSource(source);
+```
+
+Untuk static export, pakai `staticGET`, dan indeks pencariannya dibuat saat build. Kalau dokumentasimu makin besar, kamu bisa pindah ke **Orama Cloud, Algolia, Meilisearch, Typesense**, atau **Mixedbread** (pencarian AI). Dialog pencariannya tetap sama.
+
+### i18n
+
+Definisikan bahasa-bahasamu sekali, lalu Fumadocs akan menemukan halaman terjemahan lewat nama file (`page.id.mdx`, parser `dot`) atau lewat folder (`id/page.mdx`, parser `dir`). Itu penamaan file yang sama dengan yang dipakai blog ini. Kamu bisa memilih apakah bahasa default muncul di URL atau tidak (`hideLocale`), dan teks UI seperti "On this page" juga ikut diterjemahkan.
+
+### Siap untuk tools AI
+
+Bagian ini yang paling bikin saya kaget. Template-nya sudah menyiapkan:
+
+- **`/llms.txt`**, indeks semua dokumentasimu untuk language model.
+- **`/llms-full.txt`**, semua dokumentasimu dalam satu file Markdown.
+- **Versi Markdown dari setiap halaman**. Tambahkan `.md` di URL docs mana pun, atau kirim header `Accept: text/markdown`, dan file `proxy.ts` akan mengembalikan Markdown biasa, bukan HTML.
+- **Tombol "Copy Markdown"** dan menu untuk membuka halaman di ChatGPT, Claude, atau Cursor.
+
+Ada juga helper untuk server MCP di `fumadocs-core`. Kalau orang membaca dokumentasimu lewat tools AI untuk coding, dan di 2026 mereka memang begitu, fitur ini menghemat banyak pekerjaan.
+
+### Gambar OG
+
+Setiap halaman bisa punya gambar Open Graph sendiri, dibuat dengan `next/og` atau Takumi. Route-nya sudah ada di template.
+
+### Paket tambahan
+
+- **`fumadocs-openapi`** membuat halaman API reference dari spesifikasi OpenAPI, lengkap dengan playground untuk mencoba request.
+- **`fumadocs-typescript`** membuat tabel type langsung dari type TypeScript-mu, jadi dokumentasi props tidak pernah ketinggalan.
+- **`fumadocs-twoslash`** menampilkan informasi type saat hover di dalam code block, seperti di website TypeScript.
+- **`@fumadocs/cli`** menyalin komponen Fumadocs UI ke dalam project-mu, jadi kamu bisa mengubahnya sendiri, mirip shadcn/ui.
+
+## Kustomisasi tampilan
+
+Ada tiga level, dari yang paling mudah sampai kontrol penuh.
+
+**1. Pilih tema.** Cukup ganti satu import CSS:
+
+```css
+/* app/global.css */
+@import "tailwindcss";
+@import "fumadocs-ui/css/ocean.css";
+@import "fumadocs-ui/css/preset.css";
+```
+
+Ada preset seperti `neutral`, `black`, `ocean`, `purple`, `catppuccin`, `vitepress`, dan `shadcn`. Fumadocs memakai Tailwind CSS v4, jadi kamu bisa menimpa warna apa pun lewat CSS variable.
+
+**2. Pilih layout.** Selain layout docs default, ada `notebook`, `flux`, `glass`, dan layout `home` untuk landing page. Kebanyakan layout juga punya **slot**, jadi kamu bisa mengganti sidebar, header, footer, atau daftar isinya saja.
+
+**3. Ambil alih komponennya.** Salin komponennya dengan `@fumadocs/cli`, atau full headless dengan `fumadocs-core` dan tulis UI-mu sendiri.
+
+## Kenapa memilih Fumadocs?
+
+Ini perbandingannya dengan tool lain yang mungkin sedang kamu pertimbangkan:
+
+| | Fumadocs | Nextra | Docusaurus | Starlight | MDX buatan sendiri |
+| --- | --- | --- | --- | --- | --- |
+| Dibangun di atas | React (banyak framework) | Next.js | React (build sendiri) | Astro | Apa pun yang kamu pakai |
+| Tinggal di dalam aplikasimu | Ya | Ya | Tidak, situs terpisah | Tidak, situs terpisah | Ya |
+| Bisa ganti UI | Ya (lapisan, slot, headless) | Sebagian | Ya (swizzling) | Sebagian (override) | Penuh, kamu yang bangun |
+| Pencarian bawaan | Ya | Ya | Lewat plugin (Algolia) | Ya (Pagefind) | Tidak |
+| Versioning dokumentasi | Tidak bawaan | Tidak bawaan | Ya | Tidak bawaan | Tidak |
+| Waktu setup | Hitungan menit | Hitungan menit | Hitungan menit | Hitungan menit | Berhari-hari |
+
+Buat saya, alasannya ada empat:
+
+1. **Tinggal di dalam aplikasimu.** Dokumentasimu bisa memakai komponen asli, auth, dan design system-mu. Tidak ada repo kedua dan tidak ada deploy kedua.
+2. **Ambil yang kamu butuhkan saja.** Pakai seluruh tema hari ini, ganti satu slot besok, jadi headless tahun depan. Kamu tidak pernah harus membuang semuanya.
+3. **Tidak terkunci di satu framework.** Kalau kamu pindah dari Next.js ke TanStack Start atau React Router, konten dan sebagian besar setup-mu ikut pindah.
+4. **Sangat aktif.** Rilis baru keluar hampir setiap minggu, dan kebutuhan baru seperti `llms.txt` dan Markdown untuk agen AI sudah ada di template default.
+
+## Kapan sebaiknya tidak memilihnya
+
+Supaya adil, Fumadocs tidak selalu jadi pilihan yang tepat:
+
+- **Timmu tidak pakai React.** Starlight (Astro) atau VitePress (Vue) akan terasa lebih natural.
+- **Kamu butuh dokumentasi berversi tanpa repot**, misalnya `v1`, `v2`, `v3` dengan pemilih versi. Docusaurus sudah punya fitur ini. Di Fumadocs kamu harus membangunnya sendiri, dengan folder terpisah dan tab di sidebar.
+- **Kamu cuma mau menulis tanpa menyentuh kode.** Tool hosted seperti Mintlify, atau wiki, lebih mudah untuk non-developer.
+- **Kamu cuma butuh blog.** Setup MDX kecil, seperti di situs ini, sudah cukup.
+- **Upgrade versi mayor butuh usaha.** Fumadocs naik dari v10 ke v16 dalam kurang dari dua tahun, dan API-nya memang berubah. Siap-siap membaca panduan migrasi saat upgrade versi mayor, dan pastikan tutorial yang kamu baca sesuai dengan versi yang ter-install.
+
+## Tips dari saya
+
+1. **Mulai dari template**, bahkan kalau kamu berencana menambahkannya ke aplikasi yang sudah ada. Baca dulu file-file yang di-generate, lalu salin bagian yang kamu butuhkan.
+2. **Rencanakan struktur folder dari awal.** URL berasal dari path file, jadi memindahkan halaman belakangan berarti link rusak. Pakai `meta.json` untuk mengatur urutan, jangan mengganti nama file.
+3. **Pakai `createRelativeLink`.** Dengan ini kamu bisa membuat link antar halaman pakai path file relatif (`./installation.mdx`), jadi link tetap jalan saat file dipindah.
+4. **Pertahankan route AI.** `llms.txt` dan route Markdown sudah ada di template dan gratis.
+5. **Coba di project nyata.** Tulis dokumentasi untuk tool kecil yang pernah kamu buat. Kamu akan belajar lebih banyak dalam satu sore daripada dari tabel perbandingan mana pun, termasuk yang ini.
+
+Kalau hari ini saya butuh situs dokumentasi untuk project React, Fumadocs adalah tempat saya mulai. Setup-nya cepat, dan semuanya tetap bisa dikustomisasi belakangan.
+
+Selamat menulis dokumentasi! 📚
+
+## Referensi
+
+- [Dokumentasi Fumadocs](https://fumadocs.dev/), situs resmi
+- [Fumadocs di GitHub](https://github.com/fuma-nama/fumadocs)
+- [Quick start](https://fumadocs.dev/docs), membuat aplikasi pertamamu
+- [Source API](https://fumadocs.dev/docs/headless/source-api), cara kerja `loader()` dan sumber konten
+- [Page conventions](https://fumadocs.dev/docs/page-conventions), `meta.json` dan struktur file
+- [Search](https://fumadocs.dev/docs/headless/search), pencarian bawaan dan pihak ketiga
+- [Internationalization](https://fumadocs.dev/docs/internationalization), setup i18n
+- [Fumadocs OpenAPI](https://fumadocs.dev/docs/integrations/openapi), membuat API reference
+- [Nextra](https://nextra.site/), [Docusaurus](https://docusaurus.io/), dan [Starlight](https://starlight.astro.build/), alternatifnya
