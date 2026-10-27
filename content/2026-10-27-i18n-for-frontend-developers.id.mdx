@@ -1,0 +1,669 @@
+---
+title: "Membangun Website Multi-Bahasa: i18n di React, Next.js, dan SvelteKit"
+publishedAt: "2026-10-27"
+image: "/blog/i18n-for-frontend-developers/cover.png"
+summary: "Panduan i18n ramah pemula untuk frontend developer: di mana sebaiknya bahasa disimpan, cara mengatur file terjemahan, cara kerjanya di React, Next.js, dan SvelteKit, dan siapa yang sebaiknya menerjemahkan pesan API: frontend atau backend."
+tags: ["i18n", "nextjs", "react", "svelte"]
+---
+
+Situs ini tersedia dalam dua bahasa: English dan Bahasa Indonesia. Klik bendera di navbar, dan semua halaman, semua tombol, serta sebagian besar tulisan blog langsung berganti bahasa.
+
+Awalnya menambahkan fitur ini kelihatan gampang. "Tinggal taruh teksnya di file JSON, kan?" Lalu pertanyaannya mulai menumpuk. Bahasanya disimpan di mana: di URL, cookie, atau `localStorage`? Bagaimana mengatur ratusan teks? Bagaimana dengan tanggal dan bentuk jamak? Dan kalau API mengembalikan pesan error, pesannya dalam bahasa apa?
+
+Tulisan ini berisi semua yang saya harap sudah saya tahu sebelum mulai. Kita akan bahas:
+
+1. Konsep dasar i18n
+2. Di mana menyimpan bahasa user
+3. Cara mengatur file terjemahan
+4. Cara melakukannya di **React**, **Next.js**, dan **SvelteKit**
+5. Siapa yang sebaiknya menerjemahkan pesan API: frontend atau backend
+6. Bagaimana situs ini melakukannya
+
+Ayo mulai 🌏
+
+## i18n, l10n, apa itu?
+
+- **i18n** (internationalization) artinya menyiapkan aplikasi supaya *bisa* mendukung banyak bahasa. Ada 18 huruf di antara "i" dan "n", makanya disingkat begitu.
+- **l10n** (localization) artinya benar-benar menambahkan satu bahasa tertentu: teks bahasa Indonesia, format tanggal Indonesia, dan seterusnya.
+
+i18n cukup dikerjakan sekali, lalu l10n untuk setiap bahasa yang ditambahkan.
+
+### Apa saja yang perlu diterjemahkan?
+
+Lebih banyak dari yang kamu kira:
+
+| Hal | Contoh (en → id) |
+| --- | --- |
+| Teks UI | "Download CV" → "Unduh CV" |
+| Konten | Tulisan blog, deskripsi produk |
+| Tanggal | `October 27, 2026` → `27 Oktober 2026` |
+| Angka | `1,250.5` → `1.250,5` |
+| Mata uang | `$10.00` → `Rp 10.000` |
+| Bentuk jamak | "1 post" / "2 posts" → "1 tulisan" / "2 tulisan" |
+| URL | `/blog` → `/id/blog` |
+| SEO | `<html lang>`, `hreflang`, judul dan deskripsi halaman |
+| Error | Pesan validasi dan error dari API |
+
+Perhatikan bahwa angka dan tanggal sebenarnya bukan "terjemahan". Itu **formatting**. Browser sudah tahu cara memformatnya untuk setiap locale lewat `Intl` API, jadi kamu tidak perlu library untuk itu:
+
+```ts
+new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date());
+// "27 Oktober 2026"
+
+new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(10000);
+// "Rp 10.000"
+```
+
+## Langkah 1: Tentukan di mana bahasa disimpan
+
+Ini keputusan paling penting, dan semua pilihan lain bergantung padanya. Ada beberapa opsi:
+
+| Di mana | Contoh | Cocok untuk |
+| --- | --- | --- |
+| Path URL | `/id/blog` | Situs publik, SEO, berbagi link |
+| Subdomain / domain | `id.example.com`, `example.co.id` | Situs besar dengan tim per negara |
+| Cookie | `NEXT_LOCALE=id` | Mengingat pilihan untuk server rendering |
+| `localStorage` | `lang=id` | Aplikasi client-only (SPA di balik login) |
+| Pengaturan browser | `Accept-Language: id-ID,id;q=0.9` | Tebakan **pertama** |
+| Profil user di database | `users.locale = 'id'` | Aplikasi dengan login, email, notifikasi |
+
+Rekomendasi saya:
+
+- **Website publik (landing page, blog, dokumentasi, e-commerce)?** Taruh bahasa di **URL**. Google bisa mengindeks setiap bahasa secara terpisah, orang bisa berbagi link dan penerimanya melihat bahasa yang sama, dan server sudah tahu bahasanya sebelum merender apa pun.
+- **Dashboard di balik login?** SEO tidak penting di sana. Simpan pilihannya di **profil user** (supaya ikut ke perangkat lain) dan simpan salinannya di cookie atau `localStorage` supaya cepat.
+
+Apa pun pilihannya, pastikan hanya ada **satu sumber kebenaran**. Bug mulai muncul saat URL bilang English, cookie bilang Indonesia, dan pengaturan browser bilang hal lain lagi.
+
+### Hati-hati dengan deteksi otomatis
+
+Godaannya adalah membaca bahasa browser lalu langsung me-redirect user. Saya sempat melakukan itu di situs ini, dan hasilnya bug yang lama tidak saya sadari: pengunjung dengan browser berbahasa Indonesia (atau cookie bahasa yang lama) di-redirect dari setiap URL English kembali ke `/id`. Jadi saat mereka memilih "English" di switcher, **seolah tidak terjadi apa-apa**.
+
+Solusinya adalah menjadikan URL satu-satunya sumber kebenaran dan mematikan deteksi. Kalau mau pakai deteksi, gunakan **sekali saja** sebagai saran ("Halaman ini juga tersedia dalam English"), bukan redirect paksa.
+
+## Langkah 2: Atur file terjemahan
+
+Hampir semua library memakai ide yang sama: satu file per bahasa, dengan key yang sama.
+
+```json
+// messages/en.json
+{
+  "Nav": {
+    "home": "Home",
+    "blog": "Blog"
+  },
+  "Blog": {
+    "title": "Blog",
+    "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}"
+  }
+}
+```
+
+```json
+// messages/id.json
+{
+  "Nav": {
+    "home": "Beranda",
+    "blog": "Blog"
+  },
+  "Blog": {
+    "title": "Blog",
+    "postCount": "{count, plural, =0 {Belum ada tulisan} other {# tulisan}}"
+  }
+}
+```
+
+Beberapa kebiasaan yang menghemat banyak masalah di kemudian hari:
+
+**Kelompokkan key berdasarkan fitur atau halaman**, bukan berdasarkan jenisnya. `Blog.title` dan `Nav.home` lebih mudah dicari daripada satu daftar raksasa yang datar. Banyak library menyebut kelompok ini **namespace**, dan bisa memuat hanya namespace yang dibutuhkan sebuah halaman.
+
+**Namai key berdasarkan makna, bukan teks English-nya.** `Hero.downloadCv` tetap aman saat copy-nya diubah. Key seperti `"Download my CV"` jadi salah begitu ada yang mengedit teks English-nya.
+
+**Jangan pernah menyusun kalimat dengan menyambung string.**
+
+```ts
+// ❌ Rusak di bahasa yang urutan katanya berbeda
+t("hello") + " " + name + ", " + t("youHave") + " " + count + " " + t("messages");
+
+// ✅ Satu message dengan placeholder
+t("inbox", { name, count });
+// en: "Hello {name}, you have {count, plural, one {# message} other {# messages}}"
+// id: "Halo {name}, kamu punya {count} pesan"
+```
+
+Bentuk kedua membiarkan setiap bahasa menyusun kata sesuai urutannya sendiri. Sintaks `{count, plural, ...}` disebut **ICU MessageFormat**. Ini standar yang dipahami kebanyakan library, dan menangani bentuk jamak dengan benar. Bahasa Indonesia tidak mengubah kata benda untuk jamak, tapi ada bahasa yang punya sampai enam bentuk jamak.
+
+**Buat key yang hilang ketahuan.** Tambahkan script kecil atau pengecekan CI yang membandingkan `en.json` dan `id.json` dan gagal kalau ada key yang hilang. Kalau tidak, seseorang menambah tombol dalam English, lupa versi Indonesianya, dan user melihat `Hero.newButton` di halaman.
+
+**Pakai key yang type-safe kalau library-nya mendukung.** Dengan TypeScript, `t("Nav.hoem")` (typo) bisa jadi error saat compile, bukan bug di production.
+
+**Sisakan ruang untuk teks yang lebih panjang.** Terjemahan sering lebih panjang dari English. "Settings" jadi "Pengaturan", "Back" jadi "Kembali". Jangan desain tombol yang hanya muat untuk kata English.
+
+**Tulis nama setiap bahasa dalam bahasanya sendiri.** Di language switcher, tampilkan "English" dan "Bahasa Indonesia", bukan "Inggris" dan "Indonesian". Orang yang tidak bisa membaca bahasa yang sedang tampil tetap harus bisa menemukan bahasanya.
+
+## Langkah 3: Pilih tool sesuai framework
+
+Konsep di atas sama di mana pun. Yang berbeda per framework adalah **dari mana bahasa didapat** dan **apakah terjemahan terjadi di server, client, atau keduanya**.
+
+### React (Vite / CRA, client-side saja)
+
+Di React SPA biasa, semuanya terjadi di browser. Library yang paling populer adalah **react-i18next**.
+
+```bash
+pnpm add i18next react-i18next i18next-browser-languagedetector
+```
+
+```ts
+// src/i18n.ts
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { initReactI18next } from "react-i18next";
+import en from "./locales/en.json";
+import id from "./locales/id.json";
+
+i18n
+  .use(LanguageDetector) // baca localStorage, lalu bahasa browser
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      id: { translation: id },
+    },
+    fallbackLng: "en",
+    supportedLngs: ["en", "id"],
+    interpolation: { escapeValue: false }, // React sudah melakukan escape
+  });
+
+export default i18n;
+```
+
+```tsx
+// src/main.tsx
+import "./i18n";
+
+// komponen mana pun
+import { useTranslation } from "react-i18next";
+
+export function Navbar() {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <nav>
+      <a href="/">{t("Nav.home")}</a>
+      <button onClick={() => i18n.changeLanguage("id")}>Bahasa Indonesia</button>
+    </nav>
+  );
+}
+```
+
+Yang perlu diketahui:
+
+- `changeLanguage` merender ulang setiap komponen yang memakai `t`. Tanpa reload halaman.
+- Kalau bahasanya banyak, jangan bundle semuanya. Muat sesuai kebutuhan dengan plugin backend seperti `i18next-http-backend` (dia mengambil `/locales/id/translation.json` saat dibutuhkan).
+- Jangan lupa update `<html lang>` sendiri saat bahasa berganti. Screen reader dan fitur terjemahan bawaan browser memakainya:
+
+```ts
+i18n.on("languageChanged", (lng) => {
+  document.documentElement.lang = lng;
+});
+```
+
+- Karena client-side, Google kebanyakan hanya melihat satu bahasa. Itu tidak masalah untuk dashboard. Untuk situs publik, pertimbangkan framework dengan server rendering.
+
+Alternatifnya adalah **react-intl** (dari FormatJS). Library ini dibangun di atas ICU MessageFormat sejak awal. Keduanya bagus. react-i18next punya ekosistem yang lebih besar.
+
+### Next.js (App Router)
+
+Di App Router, kebanyakan komponen adalah **Server Component**. Komponen ini dirender di server, jadi server harus tahu bahasanya **sebelum** merender. Karena itu URL adalah tempat yang paling pas: `/blog` vs `/id/blog`.
+
+Library yang paling populer adalah **next-intl**, dan ini yang dipakai situs ini. Setup-nya terdiri dari beberapa file, tapi masing-masing kecil.
+
+**1. Definisikan locale sekali saja**
+
+```ts
+// src/i18n/routing.ts
+import { defineRouting } from "next-intl/routing";
+
+export const routing = defineRouting({
+  locales: ["en", "id"],
+  defaultLocale: "en",
+  localePrefix: "as-needed", // English: /blog, Indonesia: /id/blog
+});
+```
+
+**2. Muat message yang tepat untuk setiap request**
+
+```ts
+// src/i18n/request.ts
+import { hasLocale } from "next-intl";
+import { getRequestConfig } from "next-intl/server";
+import { routing } from "./routing";
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  const requested = await requestLocale;
+  const locale = hasLocale(routing.locales, requested)
+    ? requested
+    : routing.defaultLocale;
+
+  return {
+    locale,
+    messages: (await import(`../messages/${locale}.json`)).default,
+  };
+});
+```
+
+**3. Tambahkan proxy yang membaca URL**
+
+Di Next.js 16, `middleware.ts` diganti namanya menjadi `proxy.ts`. File ini jalan sebelum setiap request dan menentukan locale dari URL.
+
+```ts
+// src/proxy.ts
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+
+export default createMiddleware(routing);
+
+export const config = {
+  // Lewati route API, internal Next, dan file seperti favicon.ico
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+};
+```
+
+**4. Taruh halaman di dalam folder `[locale]`**
+
+```
+src/app/
+└── [locale]/
+    ├── layout.tsx
+    ├── page.tsx
+    └── blog/
+        └── page.tsx
+```
+
+```tsx
+// src/app/[locale]/layout.tsx
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { routing } from "@/i18n/routing";
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: LayoutProps<"/[locale]">) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+
+  setRequestLocale(locale); // supaya halaman bisa dirender statis
+
+  return (
+    <html lang={locale}>
+      <body>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+**5. Pakai terjemahan di Server dan Client Component**
+
+```tsx
+// Server Component
+import { getTranslations } from "next-intl/server";
+
+export default async function BlogPage() {
+  const t = await getTranslations("Blog");
+  return <h1>{t("title")}</h1>;
+}
+```
+
+```tsx
+// Client Component
+"use client";
+import { useTranslations } from "next-intl";
+
+export function BackToTop() {
+  const t = useTranslations("Nav");
+  return <button>{t("backToTop")}</button>;
+}
+```
+
+Detail yang menyenangkan: di Server Component, terjemahannya tidak pernah sampai ke browser. Hanya HTML hasil render yang dikirim. Client Component mendapat message-nya lewat `NextIntlClientProvider`.
+
+**6. Jangan lupa SEO**
+
+Beri tahu mesin pencari bahwa kedua URL itu halaman yang sama dalam bahasa berbeda, lewat `alternates` di `generateMetadata`:
+
+```ts
+export async function generateMetadata() {
+  return {
+    alternates: {
+      canonical: "/blog",
+      languages: {
+        "en-US": "/blog",
+        "id-ID": "/id/blog",
+        "x-default": "/blog", // ditampilkan kalau tidak ada bahasa yang cocok
+      },
+    },
+  };
+}
+```
+
+> Masih pakai **Pages Router**? Di sana Next.js punya routing i18n bawaan lewat key `i18n` di `next.config.js`. App Router tidak lagi menyediakannya, itulah kenapa library seperti next-intl ada.
+
+### SvelteKit
+
+Rekomendasi resmi SvelteKit adalah **Paraglide JS** (dari inlang). Kamu bisa menambahkannya lewat Svelte CLI:
+
+```bash
+npx sv add paraglide
+```
+
+Paraglide bekerja sedikit berbeda. Alih-alih mencari key saat runtime dengan `t("key")`, dia **meng-compile** message kamu menjadi function sungguhan:
+
+```json
+// messages/en.json
+{
+  "hello": "Hello {name}!",
+  "nav_home": "Home"
+}
+```
+
+```svelte
+<script lang="ts">
+  import { m } from "$lib/paraglide/messages.js";
+  import { getLocale, setLocale } from "$lib/paraglide/runtime";
+</script>
+
+<h1>{m.hello({ name: "Fachalik" })}</h1>
+<a href="/">{m.nav_home()}</a>
+
+<button onclick={() => setLocale("id")}>Bahasa Indonesia</button>
+<p>Current: {getLocale()}</p>
+```
+
+Kenapa ini menarik:
+
+- **Type safety gratis.** `m.helo()` jadi error TypeScript, begitu juga kalau parameter `name` lupa diisi.
+- **Tree-shaking.** Halaman hanya membawa message yang dipakai, bukan seluruh file JSON.
+- **Runtime kecil.** Cocok untuk aplikasi Svelte yang mementingkan performa.
+
+Untuk routing berbasis URL (`/id/about`), setup dari `sv add` sudah membuatkan hook-nya. `src/hooks.ts` menghapus prefix locale sehingga `/id/about` dan `/about` mengarah ke route yang sama, dan `src/hooks.server.ts` mendeteksi locale di setiap request dan mengisi `<html lang>`. Link dibuat dengan `localizeHref("/about")` supaya tetap di bahasa yang sedang aktif.
+
+Alternatif yang lebih lama adalah **svelte-i18n**, yang cara kerjanya mirip react-i18next dengan store (`$_("nav.home")`). Masih oke untuk aplikasi yang berat di client, tapi untuk proyek SvelteKit baru, Paraglide adalah pilihan default yang lebih baik.
+
+### Framework lain sekilas
+
+| Framework | Pilihan umum |
+| --- | --- |
+| React SPA | react-i18next, react-intl |
+| Next.js App Router | next-intl |
+| SvelteKit | Paraglide JS |
+| Vue | vue-i18n |
+| Nuxt | @nuxtjs/i18n |
+| Astro | Routing i18n bawaan + JSON sendiri |
+| Remix / React Router | remix-i18next |
+
+Library-nya berbeda, tapi pertanyaan yang harus dijawab tetap sama: **bahasa didapat dari mana, message-nya di mana, dan apakah server membutuhkannya?**
+
+## Langkah 4: Siapa yang menerjemahkan pesan dari API, frontend atau backend?
+
+Ini pertanyaan yang paling membingungkan buat saya. API mengembalikan sesuatu seperti `"Email already registered"`. Di halaman berbahasa Indonesia, kalimat English itu terlihat janggal. Jadi siapa yang seharusnya menerjemahkan?
+
+Ada tiga pendekatan yang umum dipakai. Tidak ada yang "selalu benar", jadi kita lihat masing-masing dengan jujur.
+
+### Pendekatan 1: Frontend mengirim bahasa, backend yang menerjemahkan
+
+Ini yang saya lakukan di tempat kerja. Frontend mengirim bahasa user di setiap request, backend memilih pesan dalam bahasa itu, dan frontend tinggal menampilkannya.
+
+```ts
+const res = await fetch(`${API_URL}/register`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Accept-Language": locale, // "id" atau "en"
+  },
+  body: JSON.stringify(form),
+});
+```
+
+```json
+// Response saat locale "id"
+{ "code": "EMAIL_TAKEN", "message": "Email ini sudah terdaftar." }
+```
+
+```ts
+if (!res.ok) {
+  const error = await res.json();
+  toast.error(error.message); // sudah dalam bahasa user
+}
+```
+
+**Kelebihannya**
+
+- **Satu tempat untuk pesan API.** Web, iOS, dan Android mendapat teks yang sama. Tidak ada yang perlu menyalin terjemahan ke tiga aplikasi.
+- **Error baru langsung jalan.** Backend menambah aturan baru dengan pesan baru, dan semua client langsung menampilkannya dengan benar tanpa deploy frontend. Ini penting sekali untuk aplikasi mobile, karena versi lama tetap terpasang di HP user selama berbulan-bulan.
+- **Backend punya konteksnya.** Pesan seperti "Paket Free hanya bisa upload 5 file" bergantung pada aturan bisnis yang memang sudah diketahui backend.
+- **Kode frontend sederhana.** Tampilkan `error.message`, selesai.
+
+**Yang perlu diperhatikan**
+
+- **Tim backend ikut mengurus terjemahan.** Harus ada yang bertanggung jawab atas file message di backend, dan menjaganya tetap sinkron saat bahasa baru ditambahkan.
+- **Teks UI tersebar di dua tempat.** Label tombol ada di frontend, pesan error ada di backend. Sepakati istilah dan gaya bahasa yang sama (misalnya selalu "masuk", bukan campuran "login" dan "masuk").
+- **Ganti bahasa tidak mengubah pesan yang sudah tampil.** Pesan itu diterjemahkan saat diambil. Ambil ulang datanya, atau terima saja untuk hal yang cepat hilang seperti toast.
+- **Cache.** Kalau response berubah sesuai bahasa, cache harus tahu (dibahas di bawah).
+
+### Pendekatan 2: Backend mengirim kode, frontend yang menerjemahkan
+
+Di sini backend sama sekali tidak mengurus bahasa. Backend mengembalikan **kode error** yang stabil, dan semua teks dipegang frontend:
+
+```json
+{ "code": "EMAIL_TAKEN", "field": "email" }
+```
+
+```json
+// messages/en.json
+{ "Errors": { "EMAIL_TAKEN": "This email is already registered.", "UNKNOWN": "Something went wrong." } }
+
+// messages/id.json
+{ "Errors": { "EMAIL_TAKEN": "Email ini sudah terdaftar.", "UNKNOWN": "Terjadi kesalahan." } }
+```
+
+```ts
+const t = useTranslations("Errors");
+
+const message = t.has(error.code) ? t(error.code) : t("UNKNOWN");
+```
+
+**Kelebihannya**
+
+- Semua teks UI ada di satu tempat, jadi istilahnya tetap konsisten.
+- Backend tetap sederhana dan tidak perlu tahu soal bahasa.
+- Ganti bahasa langsung menerjemahkan ulang semuanya, termasuk error yang sudah tampil.
+
+**Yang perlu diperhatikan**
+
+- **Error baru butuh deploy frontend**, kalau tidak user akan melihat pesan umum "Terjadi kesalahan".
+- **Setiap client menduplikasi terjemahan.** Tidak masalah untuk satu web app, tapi merepotkan kalau ada web + iOS + Android.
+- **Kode saja tidak cukup** untuk pesan yang berisi nilai seperti "maksimal 5 file". API juga harus mengirim nilai itu sebagai parameter.
+
+### Pendekatan 3: Gabungan, yang dipakai API-API besar
+
+Coba lihat bagaimana API terkenal membentuk response error-nya, polanya ternyata sama:
+
+- **Stripe** mengembalikan `code` (seperti `card_declined`), `param` (field penyebabnya), dan `message` dalam bahasa Inggris. Kode kamu mengecek `code`; `message` untuk dibaca.
+- **GitHub** mengembalikan `message` bahasa Inggris plus array `errors` berisi `resource`, `field`, dan `code` (seperti `missing` atau `already_exists`).
+- **Google APIs** ([AIP-193](https://google.aip.dev/193)) mengembalikan kode `reason`, `metadata` berisi nilai-nilainya, `message` bahasa Inggris untuk developer, dan opsional `LocalizedMessage` yang sudah diterjemahkan sesuai locale request.
+- **[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details)**, standar HTTP untuk response error, punya `type`, `title`, `detail`, dan `status`, dan boleh ditambah field sendiri seperti `code` atau `errors`.
+
+Polanya: **kode yang stabil untuk mesin, parameter untuk nilai-nilainya, dan message sebagai fallback yang bisa dibaca.**
+
+```json
+{
+  "type": "https://api.example.com/errors/validation",
+  "status": 422,
+  "code": "VALIDATION_FAILED",
+  "message": "Beberapa data tidak valid.",
+  "errors": [
+    { "field": "email", "code": "EMAIL_TAKEN", "message": "Email ini sudah terdaftar." },
+    {
+      "field": "files",
+      "code": "FILE_LIMIT_EXCEEDED",
+      "params": { "max": 5 },
+      "message": "Maksimal 5 file."
+    }
+  ],
+  "requestId": "req_8f2a1c"
+}
+```
+
+Frontend lalu memakai terjemahannya sendiri kalau ada, dan memakai message dari backend kalau tidak ada:
+
+```ts
+const text = t.has(error.code)
+  ? t(error.code, error.params) // frontend punya kalimatnya sendiri
+  : error.message;              // fallback dari backend
+```
+
+Bagian menariknya: **ini sangat cocok dengan Pendekatan 1.** Kalau kamu sudah mengirim bahasa dan backend sudah menerjemahkan, cukup pastikan setiap error juga punya `code` (dan `field` / `params` kalau relevan). Fallback-nya otomatis sudah dalam bahasa user, dan frontend tetap bisa mengganti pesan tertentu atau bereaksi pada kode tertentu, misalnya menyorot input email saat `EMAIL_TAKEN`.
+
+### Jadi pilih yang mana?
+
+| Situasi | Pendekatan |
+| --- | --- |
+| Satu web app, error sedikit, tim frontend pegang semua teks | 2: kode, frontend menerjemahkan |
+| Web + mobile, atau aturan bisnis yang sering berubah | 1: kirim bahasa, backend menerjemahkan |
+| API publik, banyak client, atau ingin fleksibel | 3: kode + params + message |
+| Banyak client dan banyak tim | 1 atau 3, plus satu sumber terjemahan bersama |
+
+Untuk baris terakhir: tool seperti Tolgee, Crowdin, atau Lokalise (atau sekadar satu repo berisi file JSON) membuat backend, web, dan mobile memakai key dan terjemahan yang sama, jadi tidak perlu memilih siapa yang memegang teks.
+
+### Best practice, apa pun pendekatannya
+
+1. **Selalu kirim kode yang stabil.** Meskipun backend sudah menerjemahkan pesannya. Frontend tidak boleh mengambil keputusan dengan membaca isi teks, karena teksnya pasti berubah.
+2. **Kirim field dan nilainya.** `field: "email"` membuat frontend bisa menyorot input yang tepat. `params: { max: 5 }` membuat siapa pun bisa menyusun ulang kalimatnya.
+3. **Validasi di kedua sisi.** Validasi form di frontend (misalnya dengan zod) untuk feedback instan, dan di backend sebagai pengaman terakhir.
+4. **Jangan tampilkan error 500 mentah-mentah.** Tampilkan pesan umum yang ramah dan sertakan `requestId` supaya masalahnya bisa dicari di log.
+5. **Selalu sediakan fallback.** Kode yang tidak dikenal dapat pesan umum. Bahasa yang tidak didukung dapat bahasa default.
+6. **Simpan nilai, bukan teks terjemahan.** Simpan `status: "PAID"`, bukan `"Lunas"`. Simpan tanggal sebagai string ISO dalam UTC lalu format dengan `Intl` di client.
+
+### Hal yang hanya bisa diterjemahkan backend
+
+Apa pun pendekatan yang kamu pilih untuk error API, ada hal-hal yang hanya bisa datang dari backend:
+
+1. **Konten terjemahan dari database.** Nama produk, artikel, nama kategori. Backend yang harus memilih baris atau kolom yang tepat.
+2. **Sesuatu yang dikirim belakangan, tanpa request.** Email, push notification, SMS, invoice, laporan PDF. Saat cron job mengirim email "tagihan jatuh tempo" jam 3 pagi, tidak ada browser yang bisa ditanya. Bahasanya harus sudah tersimpan di **profil user**.
+3. **Sorting dan pencarian yang sadar locale.** Urutan alfabet dan penanganan aksen bisa bergantung pada bahasa.
+
+### Cara mengirim bahasa: `Accept-Language`
+
+Sudah ada header HTTP standar untuk ini. Browser mengirimkannya otomatis dengan bahasa browser, tapi sebaiknya kamu isi dengan bahasa **yang dipilih user di aplikasi kamu**. Header custom `lang` atau query parameter `?lang=id` juga bisa, tapi header standar inilah yang dibaca secara default oleh kebanyakan framework dan library backend.
+
+```ts
+// Wrapper fetch kecil
+export function apiFetch(path: string, locale: string, init: RequestInit = {}) {
+  return fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      ...init.headers,
+      "Accept-Language": locale,
+    },
+  });
+}
+```
+
+Atau dengan axios, sekali untuk semua request:
+
+```ts
+api.interceptors.request.use((config) => {
+  config.headers["Accept-Language"] = i18n.language;
+  return config;
+});
+```
+
+Di Server Component Next.js, kamu bisa membaca locale yang aktif di server lalu meneruskannya:
+
+```ts
+import { getLocale } from "next-intl/server";
+
+const locale = await getLocale();
+const res = await fetch(`${API_URL}/products`, {
+  headers: { "Accept-Language": locale },
+});
+```
+
+Beberapa aturan untuk sisi backend:
+
+- **Kembali ke bahasa default** kalau header-nya tidak ada atau bahasanya tidak didukung.
+- **Balas dengan `Content-Language: id`** supaya frontend tahu bahasa apa yang sebenarnya diterima.
+- **Perhatikan cache.** Kalau response berubah sesuai bahasa, tambahkan `Vary: Accept-Language`, atau taruh bahasanya di URL (`/api/products?lang=id`). Kalau tidak, CDN bisa saja menyajikan response bahasa Indonesia ke user English.
+- **Simpan pilihan user** ke profilnya saat dia menggantinya di aplikasi, supaya email dan notifikasi juga ikut memakainya.
+
+> **Bahasa bukan zona waktu.** Penutur bahasa Indonesia bisa saja tinggal di Tokyo. Simpan zona waktu sebagai pengaturan terpisah (atau baca dari `Intl.DateTimeFormat().resolvedOptions().timeZone`), dan jangan menebak yang satu dari yang lain.
+
+## Bagaimana situs ini melakukannya
+
+Sebagai penutup, ini setup sungguhan di balik situs ini: Next.js 16 dengan next-intl, dan dua bahasa.
+
+**Routing.** English tetap memakai URL biasa (`/blog`) dan bahasa Indonesia ada di bawah `/id` (`/id/blog`). Komentarnya sengaja ditulis supaya saya di masa depan ingat alasannya:
+
+```ts
+// src/i18n/routing.ts
+export const routing = defineRouting({
+  locales: ["en", "id"],
+  defaultLocale: "en",
+  // English keeps today's URLs (/blog); Indonesian lives under /id.
+  localePrefix: "as-needed",
+  // The URL is the only source of truth. With detection on, an Indonesian
+  // browser (or a stale NEXT_LOCALE cookie) bounced every unprefixed English
+  // URL back to /id, so switching to English appeared to do nothing.
+  localeDetection: false,
+  // hreflang is emitted in <head> via metadata (absolute, canonical host).
+  alternateLinks: false,
+});
+```
+
+`alternateLinks: false` juga hasil pelajaran. next-intl bisa menambahkan link `hreflang` lewat HTTP header, tapi header itu memakai host dari request. Saya sudah menambahkannya di `<head>` dengan domain canonical, jadi crawler melihat dua set yang berbeda. Lagi-lagi soal satu sumber kebenaran.
+
+**Teks UI** ada di `src/messages/en.json` dan `src/messages/id.json`, dikelompokkan per bagian: `Nav`, `Hero`, `About`, `Blog`, dan seterusnya.
+
+**Tulisan blog** berupa file MDX, satu per bahasa, dengan akhiran bahasa:
+
+```
+content/
+├── 2026-10-20-commitlint.mdx      ← English
+└── 2026-10-20-commitlint.id.mdx   ← Indonesia
+```
+
+Kalau sebuah tulisan belum punya versi Indonesia, `/id/blog/...` menampilkan versi English dengan catatan singkat, "Tulisan ini baru ada dalam bahasa Inggris.", bukan halaman 404. Menerjemahkan semuanya sebelum publish akan terlalu memperlambat saya, jadi fallback lebih baik daripada halaman yang hilang.
+
+**Tanggal dan angka** memakai `Intl.DateTimeFormat` dan `Intl.NumberFormat` dengan locale yang aktif, jadi tanggal yang sama tampil sebagai "October 20, 2026" atau "20 Oktober 2026".
+
+**Language switcher** menuliskan nama setiap bahasa dalam bahasanya sendiri ("English", "Bahasa Indonesia") dan hanya mengganti locale sambil tetap di halaman yang sama:
+
+```tsx
+const router = useRouter(); // dari createNavigation milik next-intl
+const pathname = usePathname();
+
+router.replace(pathname, { locale: next, scroll: false });
+```
+
+Jadi kalau kamu ganti bahasa di `/blog/commitlint`, kamu dibawa ke `/id/blog/commitlint`, bukan kembali ke halaman utama.
+
+## Ringkasan
+
+- **i18n lebih dari sekadar menerjemahkan teks.** Tanggal, angka, mata uang, bentuk jamak, URL, dan SEO semuanya berubah sesuai bahasa. Pakai `Intl` API untuk formatting, tidak perlu library.
+- **Bahasa harus punya satu sumber kebenaran.** Pakai URL untuk situs publik (`/id/blog`) dan profil user untuk aplikasi di balik login. Deteksi bahasa browser cukup jadi saran, bukan redirect paksa.
+- **Jaga file terjemahan tetap rapi.** Kelompokkan key per fitur, namai berdasarkan makna, pakai sintaks ICU untuk placeholder dan bentuk jamak, dan jangan pernah menyusun kalimat dengan menyambung string.
+- **Pilih tool yang memang dibuat untuk framework kamu.** react-i18next untuk React SPA, next-intl untuk Next.js App Router, dan Paraglide JS untuk SvelteKit. Konsepnya sama; yang berbeda hanya dari mana bahasa didapat.
+- **Pesan API bisa diterjemahkan backend atau frontend.** Mengirim bahasa dan membiarkan backend menerjemahkan cocok kalau client-nya banyak. Mengirim kode dan membiarkan frontend menerjemahkan cocok untuk satu web app. Apa pun pilihannya, selalu sertakan `code` yang stabil, plus `field` / `params` kalau perlu.
+- **Ada hal yang hanya bisa diterjemahkan backend.** Konten database, email, notifikasi, dan PDF butuh bahasa yang tersimpan di profil user.
+- **Selalu sediakan fallback.** Kode yang tidak dikenal dapat pesan umum, bahasa yang tidak didukung dapat bahasa default, dan tulisan yang belum diterjemahkan menampilkan versi aslinya, bukan 404.
+
+i18n termasuk hal yang jauh lebih mudah direncanakan dari awal daripada ditambahkan belakangan. Walaupun hari ini kamu baru punya satu bahasa, menaruh teks di file message sejak hari pertama membuat bahasa kedua jadi pekerjaan akhir pekan, bukan rewrite.
+
+Sampai jumpa! 👋

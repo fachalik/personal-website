@@ -1,0 +1,669 @@
+---
+title: "Building a Multi-Language Website: i18n in React, Next.js, and SvelteKit"
+publishedAt: "2026-10-27"
+image: "/blog/i18n-for-frontend-developers/cover.png"
+summary: "A beginner-friendly guide to i18n for frontend developers: where the language should live, how to organize translation files, how it works in React, Next.js, and SvelteKit, and who should translate API messages: the frontend or the backend."
+tags: ["i18n", "nextjs", "react", "svelte"]
+---
+
+This site is available in two languages: English and Bahasa Indonesia. Click the flag in the navbar and every page, every button, and most blog posts switch language.
+
+Adding that looked easy at first. "Just put the text in a JSON file, right?" Then the questions started piling up. Where should the language live: in the URL, a cookie, or `localStorage`? How do I organize hundreds of strings? What about dates and plurals? And when the API returns an error message, which language is it in?
+
+This post is everything I wish I had known before I started. We'll cover:
+
+1. The basic ideas of i18n
+2. Where to keep the user's language
+3. How to organize translation files
+4. How to do it in **React**, **Next.js**, and **SvelteKit**
+5. Who should translate API messages: the frontend or the backend
+6. How this site does it
+
+Let's go 🌏
+
+## i18n, l10n, what?
+
+- **i18n** (internationalization) means preparing your app so it *can* support many languages. There are 18 letters between the "i" and the "n", hence the name.
+- **l10n** (localization) means actually adding a specific language: the Indonesian text, Indonesian date format, and so on.
+
+You do i18n once, then l10n for every language you add.
+
+### What actually needs translating?
+
+More than you think:
+
+| Thing | Example (en → id) |
+| --- | --- |
+| UI text | "Download CV" → "Unduh CV" |
+| Content | Blog posts, product descriptions |
+| Dates | `October 27, 2026` → `27 Oktober 2026` |
+| Numbers | `1,250.5` → `1.250,5` |
+| Currency | `$10.00` → `Rp 10.000` |
+| Plurals | "1 post" / "2 posts" → "1 tulisan" / "2 tulisan" |
+| URLs | `/blog` → `/id/blog` |
+| SEO | `<html lang>`, `hreflang`, page titles and descriptions |
+| Errors | Validation and API error messages |
+
+Notice that numbers and dates are not "translations" at all. They're **formatting**. The browser already knows how to do that for every locale through the `Intl` API, so you don't need a library for it:
+
+```ts
+new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date());
+// "27 Oktober 2026"
+
+new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(10000);
+// "Rp 10.000"
+```
+
+## Step 1: Decide where the language lives
+
+This is the most important decision, and every other choice depends on it. You have a few options:
+
+| Where | Example | Good for |
+| --- | --- | --- |
+| URL path | `/id/blog` | Public sites, SEO, sharing links |
+| Subdomain / domain | `id.example.com`, `example.co.id` | Big sites with a team per country |
+| Cookie | `NEXT_LOCALE=id` | Remembering the choice for server rendering |
+| `localStorage` | `lang=id` | Client-only apps (SPAs behind a login) |
+| Browser setting | `Accept-Language: id-ID,id;q=0.9` | Picking a **first** guess |
+| User profile in the database | `users.locale = 'id'` | Logged-in apps, emails, notifications |
+
+My recommendation:
+
+- **Public website (landing page, blog, docs, e-commerce)?** Put the language in the **URL**. Google can index each language separately, people can share a link and the receiver sees the same language, and the server knows the language before rendering anything.
+- **Dashboard behind a login?** SEO doesn't matter there. Store the choice in the **user profile** (so it follows them across devices) and keep a copy in a cookie or `localStorage` for speed.
+
+Whatever you pick, have **one source of truth**. The bugs start when the URL says English, the cookie says Indonesian, and the browser setting says something else.
+
+### Be careful with automatic detection
+
+It's tempting to look at the browser language and redirect people automatically. I did that on this site at first, and it caused a bug I didn't notice for a while: visitors with an Indonesian browser (or an old language cookie) were redirected from every English URL back to `/id`. So when they picked "English" in the switcher, **nothing seemed to happen**.
+
+The fix was to make the URL the only source of truth and turn detection off. If you want detection, use it **once**, as a suggestion ("This page is also available in Bahasa Indonesia"), not as a forced redirect.
+
+## Step 2: Organize your translation files
+
+Almost every library uses the same idea: one file per language, with the same keys.
+
+```json
+// messages/en.json
+{
+  "Nav": {
+    "home": "Home",
+    "blog": "Blog"
+  },
+  "Blog": {
+    "title": "Blog",
+    "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}"
+  }
+}
+```
+
+```json
+// messages/id.json
+{
+  "Nav": {
+    "home": "Beranda",
+    "blog": "Blog"
+  },
+  "Blog": {
+    "title": "Blog",
+    "postCount": "{count, plural, =0 {Belum ada tulisan} other {# tulisan}}"
+  }
+}
+```
+
+A few habits that save a lot of pain later:
+
+**Group keys by feature or page**, not by type. `Blog.title` and `Nav.home` are easier to find than one giant flat list. Many libraries call these groups **namespaces**, and can load only the ones a page needs.
+
+**Name keys by meaning, not by the English text.** `Hero.downloadCv` survives a copy change. A key like `"Download my CV"` becomes wrong the day someone edits the English.
+
+**Never build sentences by gluing strings together.**
+
+```ts
+// ❌ Breaks in languages with a different word order
+t("hello") + " " + name + ", " + t("youHave") + " " + count + " " + t("messages");
+
+// ✅ One message with placeholders
+t("inbox", { name, count });
+// en: "Hello {name}, you have {count, plural, one {# message} other {# messages}}"
+// id: "Halo {name}, kamu punya {count} pesan"
+```
+
+The second form lets every language put the words in its own order. The `{count, plural, ...}` syntax is called **ICU MessageFormat**. It's a standard that most libraries understand, and it handles plurals properly. Indonesian doesn't change the noun for plurals, but some languages have up to six plural forms.
+
+**Make missing keys loud.** Add a small script or CI check that compares `en.json` and `id.json` and fails when a key is missing. Otherwise someone adds a button in English, forgets the Indonesian, and users see `Hero.newButton` on the page.
+
+**Use type-safe keys if your library supports it.** With TypeScript you can make `t("Nav.hoem")` (typo) a compile error instead of a bug in production.
+
+**Leave room for longer text.** Translations are often longer than English. "Settings" becomes "Pengaturan", "Back" becomes "Kembali". Don't design buttons that only fit the English word.
+
+**Name each language in itself.** In a language switcher, show "English" and "Bahasa Indonesia", not "Inggris" and "Indonesian". Someone who can't read the current language still needs to find their own.
+
+## Step 3: Pick your framework's tool
+
+The ideas above are the same everywhere. What changes per framework is **where the language comes from** and **whether translation happens on the server, the client, or both**.
+
+### React (Vite / CRA, client-side only)
+
+In a plain React SPA, everything happens in the browser. The most popular library is **react-i18next**.
+
+```bash
+pnpm add i18next react-i18next i18next-browser-languagedetector
+```
+
+```ts
+// src/i18n.ts
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { initReactI18next } from "react-i18next";
+import en from "./locales/en.json";
+import id from "./locales/id.json";
+
+i18n
+  .use(LanguageDetector) // reads localStorage, then the browser language
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      id: { translation: id },
+    },
+    fallbackLng: "en",
+    supportedLngs: ["en", "id"],
+    interpolation: { escapeValue: false }, // React already escapes
+  });
+
+export default i18n;
+```
+
+```tsx
+// src/main.tsx
+import "./i18n";
+
+// any component
+import { useTranslation } from "react-i18next";
+
+export function Navbar() {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <nav>
+      <a href="/">{t("Nav.home")}</a>
+      <button onClick={() => i18n.changeLanguage("id")}>Bahasa Indonesia</button>
+    </nav>
+  );
+}
+```
+
+Things to know:
+
+- `changeLanguage` re-renders every component that uses `t`. No page reload.
+- With many languages, don't bundle all of them. Load them on demand with a backend plugin like `i18next-http-backend` (it fetches `/locales/id/translation.json` when needed).
+- Remember to update `<html lang>` yourself when the language changes. Screen readers and the browser's built-in translate feature use it:
+
+```ts
+i18n.on("languageChanged", (lng) => {
+  document.documentElement.lang = lng;
+});
+```
+
+- Because it's client-side, Google mostly sees one language. That's fine for a dashboard. For a public site, consider a framework with server rendering.
+
+An alternative is **react-intl** (from FormatJS). It's built around ICU MessageFormat from the start. Both are good. react-i18next has the bigger ecosystem.
+
+### Next.js (App Router)
+
+With the App Router, most components are **Server Components**. They render on the server, so the server must know the language **before** rendering. That's why the URL is the natural place for it: `/blog` vs `/id/blog`.
+
+The most popular library is **next-intl**, and it's what this site uses. The setup has a few files, but each one is small.
+
+**1. Define your locales once**
+
+```ts
+// src/i18n/routing.ts
+import { defineRouting } from "next-intl/routing";
+
+export const routing = defineRouting({
+  locales: ["en", "id"],
+  defaultLocale: "en",
+  localePrefix: "as-needed", // English: /blog, Indonesian: /id/blog
+});
+```
+
+**2. Load the right messages for each request**
+
+```ts
+// src/i18n/request.ts
+import { hasLocale } from "next-intl";
+import { getRequestConfig } from "next-intl/server";
+import { routing } from "./routing";
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  const requested = await requestLocale;
+  const locale = hasLocale(routing.locales, requested)
+    ? requested
+    : routing.defaultLocale;
+
+  return {
+    locale,
+    messages: (await import(`../messages/${locale}.json`)).default,
+  };
+});
+```
+
+**3. Add the proxy that reads the URL**
+
+In Next.js 16, `middleware.ts` was renamed to `proxy.ts`. It runs before every request and works out the locale from the URL.
+
+```ts
+// src/proxy.ts
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+
+export default createMiddleware(routing);
+
+export const config = {
+  // Skip API routes, Next internals, and files like favicon.ico
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+};
+```
+
+**4. Put your pages under a `[locale]` folder**
+
+```
+src/app/
+└── [locale]/
+    ├── layout.tsx
+    ├── page.tsx
+    └── blog/
+        └── page.tsx
+```
+
+```tsx
+// src/app/[locale]/layout.tsx
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { routing } from "@/i18n/routing";
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: LayoutProps<"/[locale]">) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+
+  setRequestLocale(locale); // lets pages render statically
+
+  return (
+    <html lang={locale}>
+      <body>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+**5. Use translations in Server and Client Components**
+
+```tsx
+// Server Component
+import { getTranslations } from "next-intl/server";
+
+export default async function BlogPage() {
+  const t = await getTranslations("Blog");
+  return <h1>{t("title")}</h1>;
+}
+```
+
+```tsx
+// Client Component
+"use client";
+import { useTranslations } from "next-intl";
+
+export function BackToTop() {
+  const t = useTranslations("Nav");
+  return <button>{t("backToTop")}</button>;
+}
+```
+
+A nice detail: in Server Components the translations never reach the browser. Only the rendered HTML does. Client Components get the messages through `NextIntlClientProvider`.
+
+**6. Don't forget SEO**
+
+Tell search engines that the two URLs are the same page in different languages, using `alternates` in `generateMetadata`:
+
+```ts
+export async function generateMetadata() {
+  return {
+    alternates: {
+      canonical: "/blog",
+      languages: {
+        "en-US": "/blog",
+        "id-ID": "/id/blog",
+        "x-default": "/blog", // what to show when no language matches
+      },
+    },
+  };
+}
+```
+
+> Using **Pages Router** instead? Next.js has built-in i18n routing there through the `i18n` key in `next.config.js`. The App Router dropped it, which is why libraries like next-intl exist.
+
+### SvelteKit
+
+SvelteKit's official recommendation is **Paraglide JS** (from inlang). You can add it with the Svelte CLI:
+
+```bash
+npx sv add paraglide
+```
+
+Paraglide works a bit differently. Instead of looking up keys at runtime with `t("key")`, it **compiles** your messages into real functions:
+
+```json
+// messages/en.json
+{
+  "hello": "Hello {name}!",
+  "nav_home": "Home"
+}
+```
+
+```svelte
+<script lang="ts">
+  import { m } from "$lib/paraglide/messages.js";
+  import { getLocale, setLocale } from "$lib/paraglide/runtime";
+</script>
+
+<h1>{m.hello({ name: "Fachalik" })}</h1>
+<a href="/">{m.nav_home()}</a>
+
+<button onclick={() => setLocale("id")}>Bahasa Indonesia</button>
+<p>Current: {getLocale()}</p>
+```
+
+Why that's nice:
+
+- **Type safety for free.** `m.helo()` is a TypeScript error, and so is a missing `name` parameter.
+- **Tree-shaking.** Pages only ship the messages they use, not the whole JSON file.
+- **Small runtime.** Good for performance-minded Svelte apps.
+
+For URL-based routing (`/id/about`), the `sv add` setup creates the hooks for you. `src/hooks.ts` removes the locale prefix so `/id/about` and `/about` both resolve to the same route, and `src/hooks.server.ts` detects the locale on each request and sets `<html lang>`. You generate links with `localizeHref("/about")` so they keep the current language.
+
+The older alternative is **svelte-i18n**, which works like react-i18next with a store (`$_("nav.home")`). It's fine for client-heavy apps, but for new SvelteKit projects Paraglide is the better default.
+
+### Other frameworks at a glance
+
+| Framework | Common choice |
+| --- | --- |
+| React SPA | react-i18next, react-intl |
+| Next.js App Router | next-intl |
+| SvelteKit | Paraglide JS |
+| Vue | vue-i18n |
+| Nuxt | @nuxtjs/i18n |
+| Astro | Built-in i18n routing + your own JSON |
+| Remix / React Router | remix-i18next |
+
+The libraries differ, but the questions you have to answer are the same: **where does the language come from, where are the messages, and does the server need them?**
+
+## Step 4: Who translates API messages, frontend or backend?
+
+This was the question that confused me most. The API returns something like `"Email already registered"`. On the Indonesian page, that English sentence looks out of place. So who should translate it?
+
+There are three common approaches. None of them is "always right", so let's look at each one honestly.
+
+### Approach 1: The frontend sends the language, the backend translates
+
+This is what I do at work. The frontend sends the user's language with every request, the backend picks the message in that language, and the frontend simply shows it.
+
+```ts
+const res = await fetch(`${API_URL}/register`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Accept-Language": locale, // "id" or "en"
+  },
+  body: JSON.stringify(form),
+});
+```
+
+```json
+// Response when locale is "id"
+{ "code": "EMAIL_TAKEN", "message": "Email ini sudah terdaftar." }
+```
+
+```ts
+if (!res.ok) {
+  const error = await res.json();
+  toast.error(error.message); // already in the user's language
+}
+```
+
+**What's good about it**
+
+- **One place for API messages.** Web, iOS, and Android all get the same text. No one copies translations into three apps.
+- **New errors just work.** The backend adds a new rule with a new message, and every client shows it correctly without a frontend deploy. That matters a lot for mobile apps, where old versions stay installed for months.
+- **The backend has the context.** Messages like "You can only upload 5 files on the Free plan" depend on business rules the backend already knows.
+- **Simple frontend code.** Show `error.message`, done.
+
+**What to watch out for**
+
+- **The backend team maintains translations.** Someone has to own the backend's message files, and keep them in sync when a language is added.
+- **UI text lives in two places.** Button labels are in the frontend, error messages are in the backend. Agree on the same words and tone (for example, always "masuk", never a mix of "login" and "masuk").
+- **Switching language doesn't update messages already on screen.** They were translated when they were fetched. Refetch, or just accept it for short-lived things like toasts.
+- **Caching.** If a response changes by language, the cache has to know (more on that below).
+
+### Approach 2: The backend sends codes, the frontend translates
+
+Here the backend never deals with languages. It returns a stable **error code**, and the frontend owns all the text:
+
+```json
+{ "code": "EMAIL_TAKEN", "field": "email" }
+```
+
+```json
+// messages/en.json
+{ "Errors": { "EMAIL_TAKEN": "This email is already registered.", "UNKNOWN": "Something went wrong." } }
+
+// messages/id.json
+{ "Errors": { "EMAIL_TAKEN": "Email ini sudah terdaftar.", "UNKNOWN": "Terjadi kesalahan." } }
+```
+
+```ts
+const t = useTranslations("Errors");
+
+const message = t.has(error.code) ? t(error.code) : t("UNKNOWN");
+```
+
+**What's good about it**
+
+- All UI text lives in one place, so the wording stays consistent.
+- The backend stays simple and language-free.
+- Switching language re-translates everything instantly, including errors already on screen.
+
+**What to watch out for**
+
+- **A new error needs a frontend deploy**, or users see the generic "Something went wrong".
+- **Every client duplicates the translations.** Fine for a single web app, painful with web + iOS + Android.
+- **Codes alone aren't enough** for messages with values like "maximum 5 files". The API must also send those values as parameters.
+
+### Approach 3: Both, which is what big APIs do
+
+Look at how well-known APIs shape their errors and you'll see the same pattern:
+
+- **Stripe** returns `code` (like `card_declined`), `param` (the field that caused it), and an English `message`. Your code checks `code`; the `message` is for reading.
+- **GitHub** returns an English `message` plus an `errors` array with `resource`, `field`, and `code` (like `missing` or `already_exists`).
+- **Google APIs** ([AIP-193](https://google.aip.dev/193)) return a `reason` code, `metadata` with the values, an English `message` for developers, and an optional `LocalizedMessage` translated to the requested locale.
+- **[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details)**, the HTTP standard for error responses, has `type`, `title`, `detail`, and `status`, and lets you add your own fields like `code` or `errors`.
+
+The pattern: **a stable code for machines, parameters for the values, and a message as a readable fallback.**
+
+```json
+{
+  "type": "https://api.example.com/errors/validation",
+  "status": 422,
+  "code": "VALIDATION_FAILED",
+  "message": "Beberapa data tidak valid.",
+  "errors": [
+    { "field": "email", "code": "EMAIL_TAKEN", "message": "Email ini sudah terdaftar." },
+    {
+      "field": "files",
+      "code": "FILE_LIMIT_EXCEEDED",
+      "params": { "max": 5 },
+      "message": "Maksimal 5 file."
+    }
+  ],
+  "requestId": "req_8f2a1c"
+}
+```
+
+The frontend then uses its own translation when it has one, and falls back to the backend's message when it doesn't:
+
+```ts
+const text = t.has(error.code)
+  ? t(error.code, error.params) // the frontend has its own wording
+  : error.message;              // fallback from the backend
+```
+
+The nice part: **this fits Approach 1 perfectly.** If you already send the language and the backend already translates, just make sure every error also has a `code` (and `field` / `params` where it makes sense). Your fallback message is then already in the user's language, and the frontend can still override specific messages or react to specific codes, like highlighting the email input on `EMAIL_TAKEN`.
+
+### Which one should you pick?
+
+| Situation | Approach |
+| --- | --- |
+| One web app, few errors, frontend team owns all text | 2: codes, frontend translates |
+| Web + mobile, or rules that change often | 1: send the language, backend translates |
+| Public API, many clients, or you want flexibility | 3: code + params + message |
+| Many clients and teams | 1 or 3, plus one shared source of translations |
+
+For that last row: tools like Tolgee, Crowdin, or Lokalise (or simply one shared repo of JSON files) let the backend, web, and mobile all use the same keys and translations, so you don't have to choose who owns the text.
+
+### Best practices, whichever approach you use
+
+1. **Always send a stable code.** Even if the backend translates the message. The frontend should never make decisions by reading the text, because the text will change.
+2. **Send the field and the values.** `field: "email"` lets the frontend highlight the right input. `params: { max: 5 }` lets anyone rebuild the sentence.
+3. **Validate on both sides.** Validate forms on the frontend (for example with zod) for instant feedback, and on the backend as the final safety net.
+4. **Don't show raw 500 errors.** Show a friendly generic message and include a `requestId` so the problem can be found in the logs.
+5. **Always have a fallback.** An unknown code gets a generic message. An unsupported language gets the default language.
+6. **Store values, not translated text.** Save `status: "PAID"`, not `"Lunas"`. Save dates as ISO strings in UTC and format them with `Intl` on the client.
+
+### Things only the backend can translate
+
+Whichever approach you choose for API errors, some things can only come from the backend:
+
+1. **Translated content from the database.** Product names, articles, category names. The backend has to pick the right row or column.
+2. **Things sent later, without a request.** Emails, push notifications, SMS, invoices, PDF reports. When a cron job sends the "payment due" email at 3 AM, there is no browser to ask. The language must already be saved in the **user's profile**.
+3. **Locale-aware sorting and search.** Alphabetical order and accent handling can depend on the language.
+
+### How to send the language: `Accept-Language`
+
+There's already a standard HTTP header for this. Browsers send it automatically with the browser language, but you should set it to the language **the user picked in your app**. A custom `lang` header or a `?lang=id` query parameter works too, but the standard header is what most backend frameworks and libraries read by default.
+
+```ts
+// A tiny fetch wrapper
+export function apiFetch(path: string, locale: string, init: RequestInit = {}) {
+  return fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      ...init.headers,
+      "Accept-Language": locale,
+    },
+  });
+}
+```
+
+Or with axios, once for every request:
+
+```ts
+api.interceptors.request.use((config) => {
+  config.headers["Accept-Language"] = i18n.language;
+  return config;
+});
+```
+
+In Next.js Server Components, you can read the current locale on the server and pass it along:
+
+```ts
+import { getLocale } from "next-intl/server";
+
+const locale = await getLocale();
+const res = await fetch(`${API_URL}/products`, {
+  headers: { "Accept-Language": locale },
+});
+```
+
+A few rules for the backend side:
+
+- **Fall back to the default language** if the header is missing or unsupported.
+- **Reply with `Content-Language: id`** so the frontend knows which language it actually received.
+- **Mind the cache.** If the response changes by language, add `Vary: Accept-Language`, or put the language in the URL (`/api/products?lang=id`). Otherwise a CDN might serve the Indonesian response to an English user.
+- **Save the user's choice** to their profile when they change it in the app, so emails and notifications use it too.
+
+> **Language is not timezone.** An Indonesian speaker might live in Tokyo. Keep the timezone as a separate setting (or read it from `Intl.DateTimeFormat().resolvedOptions().timeZone`), and don't guess one from the other.
+
+## How this site does it
+
+To finish, here's the real setup behind this site. It's Next.js 16 with next-intl, and two languages.
+
+**Routing.** English keeps the plain URLs (`/blog`) and Indonesian lives under `/id` (`/id/blog`). The comments are there so future me remembers why:
+
+```ts
+// src/i18n/routing.ts
+export const routing = defineRouting({
+  locales: ["en", "id"],
+  defaultLocale: "en",
+  // English keeps today's URLs (/blog); Indonesian lives under /id.
+  localePrefix: "as-needed",
+  // The URL is the only source of truth. With detection on, an Indonesian
+  // browser (or a stale NEXT_LOCALE cookie) bounced every unprefixed English
+  // URL back to /id, so switching to English appeared to do nothing.
+  localeDetection: false,
+  // hreflang is emitted in <head> via metadata (absolute, canonical host).
+  alternateLinks: false,
+});
+```
+
+`alternateLinks: false` is another lesson learned. next-intl can add `hreflang` links as an HTTP header, but those used the request's host. I was already adding them in `<head>` with the canonical domain, so crawlers saw two different sets. One source of truth again.
+
+**UI text** lives in `src/messages/en.json` and `src/messages/id.json`, grouped by section: `Nav`, `Hero`, `About`, `Blog`, and so on.
+
+**Blog posts** are MDX files, one per language, with a language suffix:
+
+```
+content/
+├── 2026-10-20-commitlint.mdx      ← English
+└── 2026-10-20-commitlint.id.mdx   ← Indonesian
+```
+
+If a post has no Indonesian version yet, `/id/blog/...` shows the English one with a short notice, "This post is only available in English.", instead of a 404. Translating everything before publishing would slow me down too much, so a fallback is better than a missing page.
+
+**Dates and numbers** use `Intl.DateTimeFormat` and `Intl.NumberFormat` with the current locale, so the same date shows as "October 20, 2026" or "20 Oktober 2026".
+
+**The language switcher** names each language in itself ("English", "Bahasa Indonesia") and swaps only the locale while staying on the same page:
+
+```tsx
+const router = useRouter(); // from next-intl's createNavigation
+const pathname = usePathname();
+
+router.replace(pathname, { locale: next, scroll: false });
+```
+
+So switching on `/blog/commitlint` takes you to `/id/blog/commitlint`, not back to the home page.
+
+## Summary
+
+- **i18n is more than translating text.** Dates, numbers, currency, plurals, URLs, and SEO all change per language. Use the `Intl` API for formatting instead of a library.
+- **Give the language one source of truth.** Use the URL for public sites (`/id/blog`) and the user profile for apps behind a login. Use browser detection as a suggestion, not a forced redirect.
+- **Keep translation files tidy.** Group keys by feature, name them by meaning, use ICU syntax for placeholders and plurals, and never build sentences by gluing strings together.
+- **Pick the tool your framework is built for.** react-i18next for a React SPA, next-intl for the Next.js App Router, and Paraglide JS for SvelteKit. The ideas stay the same; only where the language comes from changes.
+- **API messages can be translated by the backend or the frontend.** Sending the language and letting the backend translate works well with many clients. Sending codes and letting the frontend translate works well for a single web app. Either way, always include a stable `code`, plus `field` / `params` where needed.
+- **Some things only the backend can translate.** Database content, emails, notifications, and PDFs need the language saved in the user profile.
+- **Always have a fallback.** An unknown code gets a generic message, an unsupported language gets the default, and an untranslated post shows the original instead of a 404.
+
+i18n is one of those things that's much easier to plan at the start than to add later. Even if you only have one language today, putting your text in a messages file from day one makes the second language a weekend job instead of a rewrite.
+
+Sampai jumpa! 👋
