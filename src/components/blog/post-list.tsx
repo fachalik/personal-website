@@ -12,7 +12,7 @@ function PostMeta({ post }: { post: Post }) {
   const locale = useLocale();
 
   return (
-    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+    <div className="text-muted-foreground flex items-center gap-2 text-xs">
       <time dateTime={post.metadata.publishedAt}>
         {formatDate(post.metadata.publishedAt, locale, "short")}
       </time>
@@ -44,7 +44,7 @@ function Cover({
   const { image, tags } = post.metadata;
 
   return (
-    <div className="relative aspect-[1200/630] overflow-hidden border-b bg-muted">
+    <div className="bg-muted relative aspect-[1200/630] overflow-hidden border-b">
       {image ? (
         <Image
           src={image}
@@ -58,7 +58,7 @@ function Cover({
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:14px_14px]">
           {tags?.[0] && (
-            <span className="rounded-md bg-background/80 px-2.5 py-1 font-mono text-muted-foreground text-xs backdrop-blur-sm">
+            <span className="bg-background/80 text-muted-foreground rounded-md px-2.5 py-1 font-mono text-xs backdrop-blur-sm">
               #{tags[0]}
             </span>
           )}
@@ -80,7 +80,7 @@ function PostCard({
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border bg-card/60 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-lg"
+      className="group bg-card/60 hover:border-foreground/30 flex h-full flex-col overflow-hidden rounded-xl border backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
     >
       <Cover
         post={post}
@@ -93,7 +93,7 @@ function PostCard({
       />
       <div className={cn("flex flex-1 flex-col p-4", featured && "sm:p-6")}>
         {featured && (
-          <span className="mb-3 self-start rounded-md bg-foreground px-2 py-0.5 text-background text-xs">
+          <span className="bg-foreground text-background mb-3 self-start rounded-md px-2 py-0.5 text-xs">
             {t("latest")}
           </span>
         )}
@@ -108,7 +108,7 @@ function PostCard({
         {post.metadata.summary && (
           <p
             className={cn(
-              "mt-2 text-muted-foreground text-sm leading-relaxed",
+              "text-muted-foreground mt-2 text-sm leading-relaxed",
               featured ? "line-clamp-3" : "line-clamp-2",
             )}
           >
@@ -117,7 +117,7 @@ function PostCard({
         )}
         <div className="mt-auto flex items-center justify-between gap-2 pt-4">
           <PostMeta post={post} />
-          <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+          <ArrowUpRight className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </div>
       </div>
     </Link>

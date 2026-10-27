@@ -51,7 +51,7 @@ function TocList({
           <a
             href={`#${h.id}`}
             className={cn(
-              "-ml-px block border-transparent border-l-2 py-1 text-muted-foreground transition-colors hover:text-foreground",
+              "text-muted-foreground hover:text-foreground -ml-px block border-l-2 border-transparent py-1 transition-colors",
               h.level === 3 ? "pl-6" : "pl-3",
               active === h.id && "border-accentBrand text-foreground",
             )}
@@ -70,14 +70,14 @@ export function TableOfContents({ headings, title, backToTop }: Props) {
 
   return (
     <nav aria-label={title} className="space-y-3">
-      <p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+      <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
         {title}
       </p>
       <TocList headings={headings} active={active} />
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="flex items-center gap-1.5 pt-2 text-muted-foreground text-xs transition-colors hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 pt-2 text-xs transition-colors"
       >
         <ArrowUp className="size-3.5" />
         {backToTop}
@@ -91,8 +91,8 @@ export function MobileTableOfContents({ headings, title }: Props) {
   const active = useActiveHeading(headings.map((h) => h.id));
 
   return (
-    <details className="group rounded-lg border bg-card/60 px-4 py-3 backdrop-blur-sm xl:hidden">
-      <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-sm">
+    <details className="group bg-card/60 rounded-lg border px-4 py-3 backdrop-blur-sm xl:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">
         {title}
         <span className="text-muted-foreground transition-transform group-open:rotate-180">
           ▾

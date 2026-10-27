@@ -33,7 +33,7 @@ export function CodeCopy({
       button.title = label;
       button.innerHTML = COPY_ICON;
       button.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(pre.innerText);
+        await navigator.clipboard.writeText(pre.textContent);
         button.innerHTML = CHECK_ICON;
         button.title = copiedLabel;
         button.dataset.copied = "true";

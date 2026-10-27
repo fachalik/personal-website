@@ -31,7 +31,7 @@ export function BackToTop() {
       }}
       className={cn(
         // Sits above the dock so the two never overlap on narrow screens.
-        "fixed right-4 bottom-20 z-40 inline-flex size-10 items-center justify-center rounded-full border bg-background/80 text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:border-foreground/30 hover:text-foreground sm:right-6 sm:bottom-6",
+        "bg-background/80 text-muted-foreground hover:border-foreground/30 hover:text-foreground fixed right-4 bottom-20 z-40 inline-flex size-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-all sm:right-6 sm:bottom-6",
         visible
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0",

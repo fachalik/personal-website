@@ -123,7 +123,7 @@ export async function markdownToHTML(markdown: string) {
     .use(rehypeCollectHeadings(headings))
     .use(rehypeAutolinkHeadings, {
       behavior: "append",
-      properties: { className: ["anchor"], ariaHidden: true, tabIndex: -1 },
+      properties: { className: ["anchor"], ariaHidden: "true", tabIndex: -1 },
       content: { type: "text", value: "#" },
     })
     .use(rehypePrettyCode, {

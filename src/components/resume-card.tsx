@@ -48,9 +48,9 @@ export const ResumeCard = ({
       className="block cursor-pointer"
       onClick={handleClick}
     >
-      <Card className="flex bg-transparent transition-[background-color,transform] duration-200 ease-out hover:scale-[1.01] hover:bg-accent/40">
+      <Card className="hover:bg-accent/40 flex bg-transparent transition-[background-color,transform] duration-200 ease-out hover:scale-[1.01]">
         <div className="flex-none">
-          <Avatar className="m-auto size-12 border bg-muted-background dark:bg-foreground">
+          <Avatar className="bg-muted-background dark:bg-foreground m-auto size-12 border">
             {logoUrl ? (
               <Image
                 src={logoUrl}
@@ -67,7 +67,7 @@ export const ResumeCard = ({
         <div className="group ml-4 flex-grow flex-col items-center">
           <CardHeader>
             <div className="flex flex-col gap-x-2 gap-y-0.5 text-base sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="inline-flex items-center justify-start font-semibold text-xs leading-none sm:text-sm">
+              <h3 className="inline-flex items-center justify-start text-xs leading-none font-semibold sm:text-sm">
                 {title}
                 {badges && (
                   <span className="inline-flex gap-x-1">
@@ -90,7 +90,7 @@ export const ResumeCard = ({
                   )}
                 />
               </h3>
-              <div className="shrink-0 whitespace-nowrap text-muted-foreground text-xs tabular-nums sm:text-right sm:text-sm">
+              <div className="text-muted-foreground shrink-0 text-xs whitespace-nowrap tabular-nums sm:text-right sm:text-sm">
                 {period}
               </div>
             </div>

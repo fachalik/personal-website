@@ -14,10 +14,10 @@ const LEVEL_CLASSES = [
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-bold font-display text-xl tabular-nums tracking-tight sm:text-2xl">
+      <span className="font-display text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
         {value}
       </span>
-      <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+      <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
         {label}
       </span>
     </div>
@@ -35,7 +35,7 @@ export function GithubActivityGraph({ data }: { data: GithubActivity }) {
   const columns = data.weeks.length;
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 sm:p-5">
+    <div className="bg-card flex flex-col gap-4 rounded-lg border p-4 sm:p-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           value={numberFormat.format(data.total)}
@@ -58,7 +58,7 @@ export function GithubActivityGraph({ data }: { data: GithubActivity }) {
       <div className="flex flex-col gap-1">
         <div
           aria-hidden
-          className="grid gap-px text-[10px] text-muted-foreground sm:gap-[2px]"
+          className="text-muted-foreground grid gap-px text-[10px] sm:gap-[2px]"
           style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
         >
           {data.months.map((month) => (
@@ -110,7 +110,7 @@ export function GithubActivityGraph({ data }: { data: GithubActivity }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+      <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-[11px]">
         <span className="flex items-center gap-1">
           {t("less")}
           {LEVEL_CLASSES.map((levelClass) => (

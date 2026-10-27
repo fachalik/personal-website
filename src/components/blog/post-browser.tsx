@@ -83,7 +83,7 @@ export function PostBrowser({
       <BlurFade delay={delay}>
         <div ref={topRef} className="scroll-mt-24 space-y-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
             <input
               type="search"
               value={query}
@@ -91,14 +91,14 @@ export function PostBrowser({
               onKeyDown={(e) => e.key === "Escape" && search("")}
               placeholder={t("searchPlaceholder")}
               aria-label={t("searchLabel")}
-              className="h-10 w-full rounded-lg border bg-card/60 pr-9 pl-9 text-sm backdrop-blur-sm transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+              className="bg-card/60 placeholder:text-muted-foreground focus-visible:border-foreground/40 h-10 w-full rounded-lg border pr-9 pl-9 text-sm backdrop-blur-sm transition-colors focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => search("")}
                 aria-label={t("clearSearch")}
-                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 transition-colors"
               >
                 <X className="size-4" />
               </button>
@@ -120,7 +120,7 @@ export function PostBrowser({
           delay={delay + BLUR_FADE_DELAY}
         />
       ) : (
-        <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm">
+        <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
           {t("noResults")}{" "}
           <button
             type="button"

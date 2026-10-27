@@ -34,7 +34,7 @@ export function ReadingProgress() {
       ref={ref}
       aria-hidden
       style={{ transform: "scaleX(0)" }}
-      className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-accentBrand transition-transform duration-150 ease-out"
+      className="bg-accentBrand fixed inset-x-0 top-0 z-50 h-1 origin-left transition-transform duration-150 ease-out"
     />
   );
 }

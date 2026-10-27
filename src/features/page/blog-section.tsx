@@ -21,30 +21,30 @@ export async function BlogSection() {
       <div className="flex min-h-0 flex-col gap-y-3">
         <BlurFade delay={BLUR_FADE_DELAY * 12}>
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-bold text-2xl tracking-tight">
+            <h2 className="text-2xl font-bold tracking-tight">
               {t("recentTitle")}
             </h2>
             <Link
               href="/blog"
-              className="group inline-flex shrink-0 items-center gap-1 text-muted-foreground text-sm transition-colors hover:text-foreground"
+              className="group text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1 text-sm transition-colors"
             >
               {t("viewAll")}
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
         </BlurFade>
-        <div className="divide-y divide-border/60">
+        <div className="divide-border/60 divide-y">
           {posts.map((post, i) => (
             <BlurFade key={post.slug} delay={BLUR_FADE_DELAY * 12.5 + i * 0.05}>
               <Link
                 href={`/blog/${post.slug}`}
-                className="group -mx-3 flex items-start justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-foreground/[0.04]"
+                className="group hover:bg-foreground/[0.04] -mx-3 flex items-start justify-between gap-4 rounded-lg px-3 py-3 transition-colors"
               >
                 <div className="min-w-0 space-y-1">
                   <h3 className="font-medium tracking-tight underline-offset-4 group-hover:underline">
                     {post.metadata.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
                     <time dateTime={post.metadata.publishedAt}>
                       {formatDate(post.metadata.publishedAt, locale, "short")}
                     </time>
@@ -52,7 +52,7 @@ export async function BlogSection() {
                     <span>{t("minRead", { minutes: post.readingTime })}</span>
                   </div>
                 </div>
-                <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:opacity-100" />
+                <ArrowUpRight className="text-muted-foreground mt-1 size-4 shrink-0 opacity-0 transition-all group-hover:opacity-100" />
               </Link>
             </BlurFade>
           ))}

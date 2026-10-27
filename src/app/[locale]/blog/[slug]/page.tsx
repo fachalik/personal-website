@@ -170,11 +170,11 @@ function AdjacentPost({
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className={`group flex flex-col gap-1 rounded-xl border bg-card/60 p-4 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-md ${
+      className={`group bg-card/60 hover:border-foreground/30 flex flex-col gap-1 rounded-xl border p-4 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
         direction === "next" ? "items-end text-right sm:col-start-2" : ""
       }`}
     >
-      <span className="flex items-center gap-1 text-muted-foreground text-xs">
+      <span className="text-muted-foreground flex items-center gap-1 text-xs">
         {direction === "prev" && (
           <Icon className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
         )}
@@ -183,7 +183,7 @@ function AdjacentPost({
           <Icon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         )}
       </span>
-      <span className="line-clamp-2 font-medium text-sm tracking-tight">
+      <span className="line-clamp-2 text-sm font-medium tracking-tight">
         {post.metadata.title}
       </span>
     </Link>
@@ -233,7 +233,7 @@ export default async function BlogPost({ params }: { params: Params }) {
       <BlurFade delay={BLUR_FADE_DELAY}>
         <Link
           href="/blog"
-          className="group mb-8 inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground"
+          className="group text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-1.5 text-sm transition-colors"
         >
           <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
           {t("backToBlog")}
@@ -242,13 +242,13 @@ export default async function BlogPost({ params }: { params: Params }) {
 
       <header className="space-y-5">
         <BlurFade delay={BLUR_FADE_DELAY * 2}>
-          <h1 className="text-balance font-bold font-display text-3xl tracking-tighter sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold tracking-tighter text-balance sm:text-4xl">
             {post.metadata.title}
           </h1>
         </BlurFade>
         {post.metadata.summary && (
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <p className="text-pretty text-lg text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground text-lg leading-relaxed text-pretty">
               {post.metadata.summary}
             </p>
           </BlurFade>
@@ -260,7 +260,7 @@ export default async function BlogPost({ params }: { params: Params }) {
                 <Link
                   key={tag}
                   href={`/blog/tag/${tag}`}
-                  className="rounded-full border bg-card/60 px-3 py-1 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
+                  className="bg-card/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground rounded-full border px-3 py-1 text-xs transition-colors"
                 >
                   #{tag}
                 </Link>
@@ -282,7 +282,7 @@ export default async function BlogPost({ params }: { params: Params }) {
               </Avatar>
               <div className="flex flex-col text-sm">
                 <span className="font-medium">{DATA.name}</span>
-                <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
                   <time dateTime={post.metadata.publishedAt}>
                     {formatDate(post.metadata.publishedAt, locale)}
                   </time>
@@ -298,7 +298,7 @@ export default async function BlogPost({ params }: { params: Params }) {
 
         {(post.isFallback || otherLocale) && (
           <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-muted-foreground text-sm">
+            <p className="text-muted-foreground flex items-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-sm">
               <Globe className="size-4 shrink-0" />
               {post.isFallback
                 ? t("fallbackNotice")
@@ -307,7 +307,7 @@ export default async function BlogPost({ params }: { params: Params }) {
                       <Link
                         href={`/blog/${post.slug}`}
                         locale={otherLocale}
-                        className="font-medium text-accentBrand hover:underline"
+                        className="text-accentBrand font-medium hover:underline"
                       >
                         {chunks}
                       </Link>
@@ -320,7 +320,7 @@ export default async function BlogPost({ params }: { params: Params }) {
 
       {post.metadata.image && (
         <BlurFade delay={BLUR_FADE_DELAY * 5}>
-          <div className="relative mt-8 aspect-[1200/630] overflow-hidden rounded-xl border bg-muted">
+          <div className="bg-muted relative mt-8 aspect-[1200/630] overflow-hidden rounded-xl border">
             <Image
               src={post.metadata.image}
               alt={post.metadata.imageAlt ?? ""}
@@ -350,7 +350,7 @@ export default async function BlogPost({ params }: { params: Params }) {
         <article
           id="post-body"
           lang={post.contentLocale}
-          className="prose prose-neutral dark:prose-invert max-w-none prose-headings:scroll-mt-24 prose-img:rounded-xl prose-headings:font-display prose-a:text-accentBrand prose-headings:tracking-tight prose-a:underline-offset-4"
+          className="prose prose-neutral dark:prose-invert prose-headings:scroll-mt-24 prose-img:rounded-xl prose-headings:font-display prose-a:text-accentBrand prose-headings:tracking-tight prose-a:underline-offset-4 max-w-none"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: post body is pre-rendered trusted MDX.
           dangerouslySetInnerHTML={{ __html: post.source }}
         />
@@ -363,7 +363,7 @@ export default async function BlogPost({ params }: { params: Params }) {
 
       <footer className="mt-16 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-8">
-          <p className="font-medium text-sm">{t("share")}</p>
+          <p className="text-sm font-medium">{t("share")}</p>
           <ShareButtons url={url} title={post.metadata.title} />
         </div>
         {(older || newer) && (

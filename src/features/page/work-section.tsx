@@ -13,7 +13,7 @@ export function WorkSection() {
     <section id="work">
       <div className="flex min-h-0 flex-col gap-y-3">
         <BlurFade delay={BLUR_FADE_DELAY * 7}>
-          <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
         </BlurFade>
         {DATA.work.map((work, id) => {
           const company =

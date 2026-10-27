@@ -13,7 +13,7 @@ export function EducationSection() {
     <section id="education">
       <div className="flex min-h-0 flex-col gap-y-3">
         <BlurFade delay={BLUR_FADE_DELAY * 9}>
-          <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
         </BlurFade>
         {DATA.education.map((education, id) => (
           <BlurFade

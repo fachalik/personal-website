@@ -31,7 +31,7 @@ export function HeroSection() {
           <div className="order-2 flex flex-1 flex-col space-y-1.5 sm:order-1">
             {DATA.openToWork && (
               <BlurFade delay={BLUR_FADE_DELAY}>
-                <span className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-medium text-xs">
+                <span className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
                   <span className="relative flex size-2">
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
                     <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
@@ -42,7 +42,7 @@ export function HeroSection() {
             )}
             <BlurFadeText
               delay={BLUR_FADE_DELAY}
-              className="font-bold font-display text-3xl tracking-tighter sm:text-5xl xl:text-6xl/none"
+              className="font-display xl:text-6xl/none text-3xl font-bold tracking-tighter sm:text-5xl"
               yOffset={8}
               text={t("greeting", { name: DATA.name })}
             />
@@ -91,14 +91,14 @@ export function HeroSection() {
         </BlurFade>
 
         <BlurFade delay={BLUR_FADE_DELAY * 2.5}>
-          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border">
+          <div className="bg-border grid grid-cols-3 gap-px overflow-hidden rounded-lg border">
             {stats.map((stat) => (
-              <div key={stat.label} className="flex flex-col bg-background p-3">
+              <div key={stat.label} className="bg-background flex flex-col p-3">
                 <NumberTicker
                   value={stat.value}
                   suffix={stat.suffix}
                   delay={BLUR_FADE_DELAY * 2.5}
-                  className="font-bold font-display text-2xl tracking-tight"
+                  className="font-display text-2xl font-bold tracking-tight"
                 />
                 <span className="text-muted-foreground text-xs">
                   {stat.label}

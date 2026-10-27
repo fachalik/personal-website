@@ -7,9 +7,9 @@ import "./globals.css";
 export default function GlobalError({ retry }: { retry: () => void }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 font-sans text-foreground antialiased">
+      <body className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center gap-4 px-6 font-sans antialiased">
         <title>Something went wrong</title>
-        <p className="font-bold text-7xl tracking-tighter">500</p>
+        <p className="text-7xl font-bold tracking-tighter">500</p>
         <p className="text-muted-foreground">Something went wrong.</p>
         <button
           type="button"

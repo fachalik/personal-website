@@ -18,7 +18,7 @@ const BlurFadeText = ({
 }: BlurFadeTextProps) => (
   <div className="flex">
     <span
-      className={cn("inline-block blur-fade", className)}
+      className={cn("blur-fade inline-block", className)}
       style={
         {
           "--blur-fade-delay": `${delay}s`,

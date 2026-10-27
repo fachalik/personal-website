@@ -145,7 +145,7 @@ export default async function LocaleLayout({
     <html lang={locale} suppressHydrationWarning>
       <body
         className={cn(
-          "mx-auto min-h-screen max-w-2xl bg-background px-6 py-12 font-sans antialiased sm:py-24 md:max-w-3xl",
+          "bg-background mx-auto min-h-screen max-w-2xl px-6 py-12 font-sans antialiased sm:py-24 md:max-w-3xl",
           fontSans.variable,
           fontDisplay.variable,
         )}

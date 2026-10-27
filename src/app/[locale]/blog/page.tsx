@@ -69,10 +69,10 @@ export default async function BlogPage({
     <section className="space-y-12">
       <BlurFade delay={BLUR_FADE_DELAY}>
         <div className="space-y-3">
-          <div className="inline-block rounded-lg bg-foreground px-3 py-1 text-background text-sm">
+          <div className="bg-foreground text-background inline-block rounded-lg px-3 py-1 text-sm">
             {t("badge")}
           </div>
-          <h1 className="font-bold text-3xl tracking-tighter sm:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
             {t("title")}
           </h1>
           <p className="text-muted-foreground md:text-lg/relaxed">
@@ -83,7 +83,7 @@ export default async function BlogPage({
           </p>
           <a
             href={localizedPath("/feed.xml", locale)}
-            className="inline-flex items-center gap-1.5 text-muted-foreground text-sm underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm underline-offset-4 transition-colors hover:underline"
           >
             <Rss className="size-3.5" />
             {t("rss")}

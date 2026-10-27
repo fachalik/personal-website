@@ -88,12 +88,12 @@ export default async function TagPage({ params }: { params: Params }) {
         <div className="space-y-3">
           <Link
             href="/blog"
-            className="group mb-5 inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground"
+            className="group text-muted-foreground hover:text-foreground mb-5 inline-flex items-center gap-1.5 text-sm transition-colors"
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
             {t("backToBlog")}
           </Link>
-          <h1 className="font-bold text-3xl tracking-tighter sm:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
             #{tag}
           </h1>
           <p className="text-muted-foreground md:text-lg/relaxed">

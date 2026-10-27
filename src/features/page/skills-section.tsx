@@ -11,9 +11,9 @@ export function SkillsSection() {
     <section id="skills">
       <div className="flex min-h-0 flex-col gap-y-3">
         <BlurFade delay={BLUR_FADE_DELAY * 5}>
-          <h2 className="font-bold text-2xl tracking-tight">{t("title")}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
         </BlurFade>
-        <dl className="divide-y divide-border/60">
+        <dl className="divide-border/60 divide-y">
           {DATA.skillGroups.map((group, id) => (
             // BlurFade renders the <div> that groups each dt/dd pair, which
             // must be a direct child of <dl>.
@@ -22,7 +22,7 @@ export function SkillsSection() {
               delay={BLUR_FADE_DELAY * 6 + id * 0.05}
               className="flex flex-col gap-2 py-3 sm:flex-row sm:gap-6"
             >
-              <dt className="shrink-0 pt-1 text-muted-foreground text-sm sm:w-44">
+              <dt className="text-muted-foreground shrink-0 pt-1 text-sm sm:w-44">
                 {t(`groups.${group.key}`)}
               </dt>
               <dd className="flex flex-wrap gap-1.5">
@@ -33,7 +33,7 @@ export function SkillsSection() {
                       "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm transition-colors",
                       // The day-to-day stack reads first.
                       "core" in skill && skill.core
-                        ? "border-foreground bg-foreground font-medium text-background"
+                        ? "border-foreground bg-foreground text-background font-medium"
                         : "bg-background/60 hover:border-foreground/30",
                     )}
                   >
