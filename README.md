@@ -33,16 +33,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Start the dev server |
-| `pnpm build` | Production build |
-| `pnpm start` | Serve the production build |
-| `pnpm lint` | Lint with Biome |
-| `pnpm format` | Format with Biome |
-| `pnpm check` | Lint + format with Biome, writing fixes |
-| `pnpm typecheck` | Generate route types and run `tsc` |
-| `pnpm check:unused` | Find unused files, exports and dependencies with Knip |
+| Command                            | What it does                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| `pnpm dev`                         | Start the dev server                                                          |
+| `pnpm build`                       | Production build                                                              |
+| `pnpm start`                       | Serve the production build                                                    |
+| `pnpm lint`                        | Lint with Biome                                                               |
+| `pnpm format`                      | Format with Biome                                                             |
+| `pnpm check`                       | Lint + format with Biome, writing fixes                                       |
+| `pnpm typecheck`                   | Generate route types and run `tsc`                                            |
+| `pnpm check:unused`                | Find unused files, exports and dependencies with Knip                         |
 | `pnpm blog:cover <slug> ["Label"]` | Generate `public/blog/<slug>/cover.png` and link it in the post's frontmatter |
 
 ## Project structure
@@ -79,8 +79,8 @@ title: "From React to Vue"
 publishedAt: "2026-10-29"
 summary: "One or two sentences shown in the post list and meta tags."
 image: "/blog/react-to-vue/cover.png" # optional, ideally 1200×630
-imageAlt: "Describe the cover"        # optional
-tags: ["vue", "react"]                # optional, lowercase
+imageAlt: "Describe the cover" # optional
+tags: ["vue", "react"] # optional, lowercase
 ---
 ```
 
