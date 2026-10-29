@@ -26,6 +26,7 @@ pre-push:
     # The build runs `pnpm build`, so types and the Next.js build are covered too.
     - name: docker-build
       run: |
+        set -e
         if ! docker info >/dev/null 2>&1; then
           echo "Docker is not running, skipping image build."
           exit 0
