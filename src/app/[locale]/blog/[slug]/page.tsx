@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CodeCopy } from "@/components/blog/code-copy";
+import { MermaidDiagrams } from "@/components/blog/mermaid-diagrams";
 import { ReadingProgress } from "@/components/blog/reading-progress";
 import { ShareButtons } from "@/components/blog/share-buttons";
 import {
@@ -359,6 +360,7 @@ export default async function BlogPost({ params }: { params: Params }) {
           label={t("copyCode")}
           copiedLabel={t("copied")}
         />
+        <MermaidDiagrams containerId="post-body" />
       </div>
 
       <footer className="mt-16 space-y-8">

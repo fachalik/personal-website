@@ -229,6 +229,14 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   @apply rounded-md border bg-muted/60 px-1.5 py-0.5 font-normal text-[0.85em] before:content-none after:content-none;
 }
 
+/* Filled in the browser by MermaidDiagrams; min-height avoids a jump on load. */
+#post-body .mermaid-diagram {
+  @apply my-6 flex min-h-32 justify-center overflow-x-auto rounded-xl border bg-card/70 p-4;
+}
+#post-body .mermaid-diagram svg {
+  @apply h-auto max-w-full;
+}
+
 /* Shiki notation transformers */
 #post-body pre .highlighted {
   @apply bg-accentBrand/10;

@@ -95,6 +95,35 @@ function getPostFiles(): PostFile[] {
     });
 }
 
+/**
+ * Turns ```mermaid blocks into empty placeholders before rehype-pretty-code
+ * sees them; `MermaidDiagrams` renders them in the browser so they follow the theme.
+ */
+function rehypeMermaid() {
+  return (tree: Root) => {
+    tree.children = tree.children.map((node) => {
+      if (node.type !== "element" || node.tagName !== "pre") return node;
+      const code = node.children[0];
+      if (
+        code?.type !== "element" ||
+        code.tagName !== "code" ||
+        !String(code.properties.className ?? "").includes("language-mermaid")
+      ) {
+        return node;
+      }
+      return {
+        type: "element",
+        tagName: "div",
+        properties: {
+          className: ["mermaid-diagram"],
+          dataMermaid: hastToString(code),
+        },
+        children: [],
+      } satisfies Element;
+    });
+  };
+}
+
 /** Collects h2/h3 for the table of contents; runs after rehype-slug assigns ids. */
 function rehypeCollectHeadings(headings: Heading[]) {
   return () => (tree: Root) => {
@@ -118,6 +147,7 @@ export async function markdownToHTML(markdown: string) {
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
+    .use(rehypeMermaid)
     .use(rehypeSlug)
     // Before autolink, so the "#" anchor text doesn't leak into TOC labels.
     .use(rehypeCollectHeadings(headings))
