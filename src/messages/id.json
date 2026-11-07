@@ -14,7 +14,8 @@
     "themeDark": "Gelap",
     "themeSystem": "Sistem",
     "language": "Bahasa",
-    "backToTop": "Kembali ke atas"
+    "backToTop": "Kembali ke atas",
+    "contact": "Kontak"
   },
   "Hero": {
     "openToWork": "Sedang terbuka untuk posisi frontend & fullstack",
@@ -24,7 +25,7 @@
     "email": "Kirim email",
     "stats": {
       "years": "Tahun pengalaman",
-      "companies": "Perusahaan",
+      "aiProducts": "Produk AI dipegang",
       "projects": "Proyek dikerjakan"
     }
   },
@@ -65,8 +66,8 @@
   },
   "Projects": {
     "badge": "Proyek",
-    "title": "Proyek terbaru saya",
-    "description": "Mulai dari website sederhana sampai aplikasi web yang kompleks. Ini beberapa yang paling saya suka."
+    "title": "Karya pilihan",
+    "description": "Dari platform AI sampai aplikasi macOS, ini yang sudah saya bangun."
   },
   "Contact": {
     "badge": "Terbuka untuk peluang baru",
@@ -83,11 +84,9 @@
   },
   "Blog": {
     "metaTitle": "Blog",
-    "metaDescription": "Catatan saya soal software development, kehidupan, dan hal-hal lainnya.",
-    "badge": "Blog",
+    "metaDescription": "Panduan praktis soal React, Next.js, TypeScript, dan tooling frontend, plus catatan saat belajar stack baru.",
     "title": "Tulisan & catatan",
     "postCount": "Sejauh ini ada {count} tulisan.",
-    "latest": "Terbaru",
     "minRead": "{minutes} menit baca",
     "englishOnly": "Hanya dalam bahasa Inggris",
     "backToBlog": "Semua tulisan",
@@ -115,7 +114,13 @@
     "pagination": "Navigasi halaman",
     "goToPage": "Halaman {page}",
     "recentTitle": "Tulisan terbaru",
-    "viewAll": "Lihat semua tulisan"
+    "viewAll": "Lihat semua tulisan",
+    "updated": "Diperbarui {date}",
+    "related": "Tulisan terkait",
+    "authorBio": "Fullstack developer yang fokus di frontend, membangun aplikasi web untuk produk AI dan fintech.",
+    "hireCta": "Terbuka untuk peluang baru. Yuk, ngobrol",
+    "latest": "Terbaru",
+    "nextUp": "Berikutnya di topik ini"
   },
   "Resume": {
     "work": {
@@ -158,22 +163,22 @@
         "description": "Aplikasi menu bar macOS untuk mengatur beberapa identitas Git di satu perangkat, misalnya untuk kerja, pribadi, dan klien. Semuanya lokal: tanpa akun, tanpa koneksi internet, tanpa telemetri."
       },
       "aliran": {
-        "description": "Kebanyakan aplikasi keuangan cuma fokus ke satu hal, misalnya mencatat pengeluaran pribadi atau patungan tagihan. Padahal, mengatur langganan bareng teman seperti Netflix atau Spotify masih ribet karena harus saling mengingatkan dan mencatat manual. Aplikasi kami menggabungkan pencatatan pengeluaran, langganan bersama yang rutin, patungan tagihan, dan pengingat pembayaran dalam satu platform yang simpel."
+        "description": "Pencatatan pengeluaran, langganan bersama seperti Netflix atau Spotify, patungan tagihan, dan pengingat pembayaran dalam satu aplikasi, jadi tidak perlu menagih teman secara manual."
       },
       "ppgSerdik": {
-        "description": "Aplikasi web untuk menampilkan sertifikasi guru PPG dan memberi tahu pengguna bahwa mereka sudah lulus sertifikasi."
+        "description": "Aplikasi web tempat guru peserta PPG bisa melihat sertifikasinya dan memastikan mereka sudah lulus."
       },
       "creditScoring": {
-        "description": "Sistem credit scoring berbasis AI untuk menilai kelayakan kredit individu maupun bisnis, dengan menganalisis berbagai data keuangan dan perilaku memakai algoritma machine learning."
+        "description": "Satu-satunya frontend engineer di platform credit scoring berbasis AI: dataset, eksperimen model, dan dashboard simulasi dengan confusion matrix dan feature importance."
       },
       "idp": {
-        "description": "Sistem pemrosesan dokumen berbasis AI yang mengotomatiskan ekstraksi, klasifikasi, dan validasi data dari berbagai jenis dokumen memakai algoritma machine learning."
+        "description": "Satu-satunya frontend engineer di platform AI yang mengekstrak, mengklasifikasi, dan memvalidasi data dari dokumen, termasuk layar untuk meninjau dan mengedit hasilnya."
       },
       "idpCms": {
-        "description": "CMS untuk membuat, mengedit, dan mengelola alur kerja pemrosesan dokumen berbasis AI, sehingga pengguna bisa menyesuaikan dan mengoptimalkan cara dokumen mereka diproses."
+        "description": "CMS admin untuk platform pemrosesan dokumen itu, dibangun dengan React Router: organisasi, pengguna, dan dashboard penggunaan API."
       },
       "clovePaper": {
-        "description": "Pemeriksaan kualitas cengkih di Indonesia masih dilakukan secara manual, sehingga kesalahan sering terjadi saat penyortiran. Kualitas cengkih juga bergantung pada cuaca: cuaca yang tidak menentu memperlama proses pengeringan dan membuat cengkih rusak serta berjamur. Penelitian ini menggunakan arsitektur CNN dengan beberapa kombinasi jumlah lapisan konvolusi, jumlah dense layer, dan ukuran layer. Arsitektur tersebut dilatih dengan beberapa variasi ruang warna dan segmentasi citra untuk mengklasifikasikan kualitas cengkih. Ruang warna yang digunakan ada tiga (RGB, HSV, dan YCbCr), dengan dua metode segmentasi (segmentasi Otsu dan segmentasi warna HSV). Hasil terbaik diperoleh dengan ruang warna HSV, dataset asli, dan arsitektur E-5C-64LS-4D, dengan accuracy, precision, recall, dan F1-score sebesar 96%. Untuk mendapatkan model yang lebih baik, kami memilih metode segmentasi citra yang tepat dan ruang warna yang sesuai agar performa arsitektur CNN meningkat."
+        "description": "Paper IEEE tentang otomatisasi penyortiran kualitas cengkih, yang di Indonesia masih manual. Saya membandingkan arsitektur CNN di berbagai ruang warna dan metode segmentasi; model terbaik mencapai akurasi 96%."
       },
       "orthophysio": {
         "description": "Website company profile untuk Orthophysio Brace, perusahaan penyedia brace ortopedi dan layanan fisioterapi."

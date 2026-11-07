@@ -207,6 +207,14 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 }
 
 /* ---------------------------------------------------------------------------
+   Blog: wider than the site's reading column. --blog-half is half the target
+   width; on small screens the page's own side padding wins.
+--------------------------------------------------------------------------- */
+.blog-wide {
+  margin-inline: calc(50% - min(50vw - 1.5rem, var(--blog-half, 36rem)));
+}
+
+/* ---------------------------------------------------------------------------
    Blog post body
 --------------------------------------------------------------------------- */
 #post-body .anchor {
@@ -217,7 +225,7 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 }
 
 #post-body figure[data-rehype-pretty-code-figure] {
-  @apply relative my-6 overflow-hidden rounded-xl border bg-card/70;
+  @apply relative my-8 overflow-hidden rounded-lg border bg-card;
 }
 #post-body figure[data-rehype-pretty-code-figure] pre {
   @apply my-0 rounded-none bg-transparent;
@@ -229,12 +237,30 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   @apply rounded-md border bg-muted/60 px-1.5 py-0.5 font-normal text-[0.85em] before:content-none after:content-none;
 }
 
-/* Filled in the browser by MermaidDiagrams; min-height avoids a jump on load. */
-#post-body .mermaid-diagram {
-  @apply my-6 flex min-h-32 justify-center overflow-x-auto rounded-xl border bg-card/70 p-4;
+/* Pele's SVG reads these, so diagrams follow the theme without re-rendering. */
+.pele {
+  --pele-bg: hsl(var(--card));
+  --pele-fg: hsl(var(--foreground));
+  --pele-muted: hsl(var(--muted-foreground));
+  --pele-line: hsl(var(--muted-foreground));
+  --pele-surface: hsl(var(--background));
+  --pele-surface-alt: hsl(var(--muted) / 0.6);
+  --pele-border: hsl(var(--accent-brand) / 0.5);
+  --pele-accent: hsl(var(--accent-brand));
+  --pele-font: var(--font-sans);
+  --pele-radius: 6px;
 }
-#post-body .mermaid-diagram svg {
-  @apply h-auto max-w-full;
+#post-body .diagram {
+  @apply my-8 overflow-x-auto rounded-lg border bg-card p-4;
+}
+#post-body .diagram svg {
+  @apply mx-auto block;
+}
+#post-body .diagram-narrow {
+  @apply sm:hidden;
+}
+#post-body .diagram-wide {
+  @apply hidden sm:block;
 }
 
 /* Shiki notation transformers */

@@ -4,10 +4,8 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PostBrowser } from "@/components/blog/post-browser";
 import { TagFilter } from "@/components/blog/post-list";
-import BlurFade from "@/components/magicui/blur-fade";
 import { getBlogPosts, getTags, toSummary } from "@/data/blog";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
-import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
   absoluteUrl,
   feedAlternate,
@@ -66,40 +64,28 @@ export default async function BlogPage({
   const t = await getTranslations("Blog");
   const posts = await getBlogPosts(locale);
   return (
-    <section className="space-y-12">
-      <BlurFade delay={BLUR_FADE_DELAY}>
-        <div className="space-y-3">
-          <div className="bg-foreground text-background inline-block rounded-lg px-3 py-1 text-sm">
-            {t("badge")}
-          </div>
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="text-muted-foreground md:text-lg/relaxed">
-            {t("metaDescription")}{" "}
-            <span className="whitespace-nowrap">
-              {t("postCount", { count: posts.length })}
-            </span>
-          </p>
+    <section className="blog-wide space-y-8 pb-16">
+      <header className="space-y-3">
+        <h1 className="font-display text-4xl leading-tight font-bold tracking-tighter sm:text-5xl">
+          {t("title")}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl text-lg/relaxed text-pretty">
+          {t("metaDescription")}
+        </p>
+        <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span>{t("postCount", { count: posts.length })}</span>
           <a
             href={localizedPath("/feed.xml", locale)}
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm underline-offset-4 transition-colors hover:underline"
+            className="hover:text-foreground inline-flex items-center gap-1.5 underline-offset-4 transition-colors hover:underline"
           >
             <Rss className="size-3.5" />
             {t("rss")}
           </a>
-        </div>
-      </BlurFade>
+        </p>
+      </header>
 
-      <BlurFade delay={BLUR_FADE_DELAY * 2}>
-        <TagFilter tags={getTags(posts)} />
-      </BlurFade>
-
-      <PostBrowser
-        posts={posts.map(toSummary)}
-        featured
-        delay={BLUR_FADE_DELAY * 3}
-      />
+      <TagFilter tags={getTags(posts)} />
+      <PostBrowser posts={posts.map(toSummary)} lead />
     </section>
   );
 }

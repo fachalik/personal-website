@@ -3,6 +3,7 @@ title: "Ngetik 'react' di Search, Kok Fetch-nya 5 Kali?"
 publishedAt: "2026-11-03"
 image: "/blog/debounce-search/cover.png"
 summary: "r, re, rea, reac, react: lima ketikan, lima request, dan hasilnya bisa datang nggak urut. Di sini saya bahas kenapa itu terjadi, gimana debounce nyelesainnya, kenapa debounce di React sering gagal diam-diam, sampai race condition yang tetap muncul walaupun udah di-debounce."
+description: "Lima ketikan, lima request, hasilnya nggak urut. Kenapa search box boros request, gimana debounce nyelesainnya, dan race condition yang masih tersisa."
 tags: ["react", "javascript", "performance"]
 ---
 
@@ -524,7 +525,7 @@ Kenapa `replace`? Kalau pakai `push`, tiap kata kunci jadi satu entri di history
 
 Tiga hal ini sering ketuker, padahal gunanya beda.
 
-| | Debounce | Throttle | `useDeferredValue` |
+| Aspek | Debounce | Throttle | `useDeferredValue` |
 | --- | --- | --- | --- |
 | Kapan jalan | Setelah user **berhenti** selama X ms | Paling banyak **sekali tiap** X ms, walaupun user belum berhenti | Secepat mungkin, tapi dengan prioritas lebih rendah dari ketikan |
 | Ada jeda tetap? | Ada | Ada | **Nggak ada**, ngikutin kecepatan device |

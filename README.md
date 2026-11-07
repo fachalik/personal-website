@@ -84,7 +84,7 @@ tags: ["vue", "react"] # optional, lowercase
 ---
 ```
 
-Fenced ` ```mermaid ` blocks are rendered as diagrams. To generate a cover, run `pnpm blog:cover react-to-vue "React → Vue"`.
+Fenced ` ```mermaid ` blocks are rendered to SVG at build time with [Pele](https://pele.run), and a diagram with invalid syntax fails the build. Colors come from the `--pele-*` variables in `globals.css`. To generate a cover, run `pnpm blog:cover react-to-vue "React → Vue"`.
 
 ## GitHub activity
 

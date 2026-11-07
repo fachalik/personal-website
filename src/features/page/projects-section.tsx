@@ -1,10 +1,12 @@
-import { useTranslations } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations } from "next-intl/server";
 import BlurFade from "@/components/magicui/blur-fade";
 import { ProjectListCard } from "@/components/projects-list-card";
 import { BLUR_FADE_DELAY } from "@/lib/constants";
 
-export function ProjectsSection() {
-  const t = useTranslations("Projects");
+export async function ProjectsSection() {
+  const t = await getTranslations("Projects");
+  const { Resume, Work } = await getMessages();
   return (
     <section id="projects">
       <div className="w-full space-y-12 py-12">
@@ -23,7 +25,10 @@ export function ProjectsSection() {
             </div>
           </div>
         </BlurFade>
-        <ProjectListCard />
+        {/* The only client component that needs these; the layout leaves them out. */}
+        <NextIntlClientProvider messages={{ Resume, Work }}>
+          <ProjectListCard />
+        </NextIntlClientProvider>
       </div>
     </section>
   );

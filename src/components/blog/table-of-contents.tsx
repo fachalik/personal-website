@@ -70,9 +70,7 @@ export function TableOfContents({ headings, title, backToTop }: Props) {
 
   return (
     <nav aria-label={title} className="space-y-3">
-      <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-        {title}
-      </p>
+      <p className="text-sm font-medium">{title}</p>
       <TocList headings={headings} active={active} />
       <button
         type="button"
@@ -91,7 +89,7 @@ export function MobileTableOfContents({ headings, title }: Props) {
   const active = useActiveHeading(headings.map((h) => h.id));
 
   return (
-    <details className="group bg-card/60 rounded-lg border px-4 py-3 backdrop-blur-sm xl:hidden">
+    <details className="group bg-card rounded-lg border px-4 py-3 xl:hidden">
       <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">
         {title}
         <span className="text-muted-foreground transition-transform group-open:rotate-180">

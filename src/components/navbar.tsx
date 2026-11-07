@@ -76,7 +76,8 @@ export default function Navbar() {
               </Tooltip>
             </DockIcon>
           ))}
-        <DockIcon>
+        {/* Hidden on the narrowest phones so the dock fits; the hero has this link too. */}
+        <DockIcon className="max-[345px]:hidden">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className={TAP}>

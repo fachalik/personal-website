@@ -1,24 +1,29 @@
-import { ArrowLeft, ArrowRight, Clock, Globe } from "lucide-react";
+import { ArrowLeft, Globe } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CodeCopy } from "@/components/blog/code-copy";
-import { MermaidDiagrams } from "@/components/blog/mermaid-diagrams";
+import { PostList } from "@/components/blog/post-list";
 import { ReadingProgress } from "@/components/blog/reading-progress";
 import { ShareButtons } from "@/components/blog/share-buttons";
 import {
   MobileTableOfContents,
   TableOfContents,
 } from "@/components/blog/table-of-contents";
-import BlurFade from "@/components/magicui/blur-fade";
 import { Avatar } from "@/components/ui/avatar";
-import { getBlogPosts, getPost, type Post } from "@/data/blog";
+import {
+  getBlogPosts,
+  getPost,
+  getRelatedPosts,
+  getTags,
+  type Post,
+  toSummary,
+} from "@/data/blog";
 import { DATA } from "@/data/resume";
 import { Link } from "@/i18n/navigation";
 import { LOCALE_TAGS, type Locale, routing } from "@/i18n/routing";
-import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
   absoluteUrl,
   feedAlternate,
@@ -57,9 +62,11 @@ export async function generateMetadata({
   const {
     title,
     publishedAt: publishedTime,
-    summary: description,
+    updatedAt: modifiedTime,
+    summary,
     image,
   } = post.metadata;
+  const description = post.metadata.description ?? summary;
   const ogImage = image ? absoluteUrl(image) : ogImageUrl(title);
   const path = `/blog/${post.slug}`;
   // A fallback page duplicates the English one, so point search engines there.
@@ -79,6 +86,7 @@ export async function generateMetadata({
       description,
       type: "article",
       publishedTime,
+      modifiedTime,
       authors: [DATA.name],
       siteName: DATA.name,
       locale: LOCALE_TAGS[locale].og,
@@ -112,8 +120,8 @@ function structuredData(
         "@id": `${url}#post`,
         headline: post.metadata.title,
         datePublished: post.metadata.publishedAt,
-        dateModified: post.metadata.publishedAt,
-        description: post.metadata.summary,
+        dateModified: post.metadata.updatedAt ?? post.metadata.publishedAt,
+        description: post.metadata.description ?? post.metadata.summary,
         keywords: post.metadata.tags,
         image,
         url,
@@ -158,39 +166,6 @@ function structuredData(
   };
 }
 
-function AdjacentPost({
-  post,
-  label,
-  direction,
-}: {
-  post: Post;
-  label: string;
-  direction: "prev" | "next";
-}) {
-  const Icon = direction === "prev" ? ArrowLeft : ArrowRight;
-  return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className={`group bg-card/60 hover:border-foreground/30 flex flex-col gap-1 rounded-xl border p-4 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        direction === "next" ? "items-end text-right sm:col-start-2" : ""
-      }`}
-    >
-      <span className="text-muted-foreground flex items-center gap-1 text-xs">
-        {direction === "prev" && (
-          <Icon className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-        )}
-        {label}
-        {direction === "next" && (
-          <Icon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-        )}
-      </span>
-      <span className="line-clamp-2 text-sm font-medium tracking-tight">
-        {post.metadata.title}
-      </span>
-    </Link>
-  );
-}
-
 export default async function BlogPost({ params }: { params: Params }) {
   const resolved = await resolve(params);
   if (!resolved) notFound();
@@ -200,10 +175,9 @@ export default async function BlogPost({ params }: { params: Params }) {
   const t = await getTranslations("Blog");
   const tNav = await getTranslations("Nav");
   const posts = await getBlogPosts(locale);
-  const index = posts.findIndex((p) => p.slug === post.slug);
-  // Posts are newest first: "previous" is older, "next" is newer.
-  const older = posts[index + 1];
-  const newer = index > 0 ? posts[index - 1] : undefined;
+  const [nextUp, ...related] = getRelatedPosts(post, posts);
+  const tagsWithPages = new Set(getTags(posts).map(({ tag }) => tag));
+  const tags = post.metadata.tags?.filter((tag) => tagsWithPages.has(tag));
 
   const url = absoluteUrl(localizedPath(`/blog/${post.slug}`, locale));
   const otherLocale = post.availableLocales.find((l) => l !== locale);
@@ -231,116 +205,114 @@ export default async function BlogPost({ params }: { params: Params }) {
         }}
       />
 
-      <BlurFade delay={BLUR_FADE_DELAY}>
+      <header className="flex flex-col items-center gap-4 text-center">
         <Link
           href="/blog"
-          className="group text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-1.5 text-sm transition-colors"
+          className="group text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
         >
           <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
           {t("backToBlog")}
         </Link>
-      </BlurFade>
-
-      <header className="space-y-5">
-        <BlurFade delay={BLUR_FADE_DELAY * 2}>
-          <h1 className="font-display text-3xl font-bold tracking-tighter text-balance sm:text-4xl">
-            {post.metadata.title}
-          </h1>
-        </BlurFade>
-        {post.metadata.summary && (
-          <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <p className="text-muted-foreground text-lg leading-relaxed text-pretty">
-              {post.metadata.summary}
-            </p>
-          </BlurFade>
-        )}
-        {post.metadata.tags && post.metadata.tags.length > 0 && (
-          <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <div className="flex flex-wrap gap-2">
-              {post.metadata.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/blog/tag/${tag}`}
-                  className="bg-card/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground rounded-full border px-3 py-1 text-xs transition-colors"
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          </BlurFade>
-        )}
-        <BlurFade delay={BLUR_FADE_DELAY * 4}>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-y py-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="size-9 border">
-                <Image
-                  src={DATA.avatarUrl}
-                  alt={DATA.name}
-                  width={36}
-                  height={36}
-                  className="aspect-square size-full object-cover"
-                />
-              </Avatar>
-              <div className="flex flex-col text-sm">
-                <span className="font-medium">{DATA.name}</span>
-                <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                  <time dateTime={post.metadata.publishedAt}>
-                    {formatDate(post.metadata.publishedAt, locale)}
-                  </time>
-                  <span aria-hidden>·</span>
-                  <Clock className="size-3" />
-                  {t("minRead", { minutes: post.readingTime })}
-                </span>
-              </div>
-            </div>
-            <ShareButtons url={url} title={post.metadata.title} />
+        {tags && tags.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm font-semibold">
+            {tags.map((tag) => (
+              <Link
+                key={tag}
+                href={`/blog/tag/${tag}`}
+                className="text-accentBrand underline-offset-4 hover:underline"
+              >
+                #{tag}
+              </Link>
+            ))}
           </div>
-        </BlurFade>
-
-        {(post.isFallback || otherLocale) && (
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <p className="text-muted-foreground flex items-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-sm">
-              <Globe className="size-4 shrink-0" />
-              {post.isFallback
-                ? t("fallbackNotice")
-                : t.rich("readIn", {
-                    link: (chunks) => (
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        locale={otherLocale}
-                        className="text-accentBrand font-medium hover:underline"
-                      >
-                        {chunks}
-                      </Link>
-                    ),
-                  })}
-            </p>
-          </BlurFade>
         )}
+        <h1 className="font-display text-4xl leading-[1.08] font-bold tracking-tighter text-balance sm:text-5xl">
+          {post.metadata.title}
+        </h1>
+        {post.metadata.summary && (
+          <p className="text-muted-foreground max-w-2xl text-lg/relaxed text-pretty">
+            {post.metadata.summary}
+          </p>
+        )}
+        <div className="flex items-center gap-3 text-left text-sm">
+          <Avatar className="size-9 border">
+            <Image
+              src={DATA.avatarUrl}
+              alt=""
+              width={36}
+              height={36}
+              className="aspect-square size-full object-cover"
+            />
+          </Avatar>
+          <div>
+            <p className="font-medium">{DATA.name}</p>
+            <p className="text-muted-foreground text-xs">
+              <time dateTime={post.metadata.publishedAt}>
+                {formatDate(post.metadata.publishedAt, locale)}
+              </time>
+              {", "}
+              {t("minRead", { minutes: post.readingTime })}
+              {post.metadata.updatedAt && (
+                <>
+                  {", "}
+                  <time dateTime={post.metadata.updatedAt}>
+                    {t("updated", {
+                      date: formatDate(post.metadata.updatedAt, locale),
+                    })}
+                  </time>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+          {(post.isFallback || otherLocale) && (
+            <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+              <Globe className="size-3.5 shrink-0" />
+              <span>
+                {post.isFallback
+                  ? t("fallbackNotice")
+                  : t.rich("readIn", {
+                      link: (chunks) => (
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          locale={otherLocale}
+                          className="text-accentBrand font-medium underline-offset-4 hover:underline"
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                    })}
+              </span>
+            </p>
+          )}
+          <ShareButtons url={url} title={post.metadata.title} />
+        </div>
       </header>
 
       {post.metadata.image && (
-        <BlurFade delay={BLUR_FADE_DELAY * 5}>
-          <div className="bg-muted relative mt-8 aspect-[1200/630] overflow-hidden rounded-xl border">
+        <div className="blog-wide mt-10 [--blog-half:31.25rem]">
+          <div className="bg-muted relative aspect-[1200/630] overflow-hidden rounded-2xl border">
             <Image
               src={post.metadata.image}
-              alt={post.metadata.imageAlt ?? ""}
+              // Decorative: it repeats the title above it.
+              alt=""
               fill
               priority
-              sizes="(min-width: 768px) 720px, 100vw"
+              sizes="(min-width: 1048px) 1000px, 100vw"
               className="object-cover"
             />
           </div>
-        </BlurFade>
+        </div>
       )}
 
-      <div className="relative mt-10">
+      <div className="relative mt-12">
         {showToc && (
           <>
-            <div className="mb-8">
+            <div className="mx-auto mb-8 max-w-[42.5rem]">
               <MobileTableOfContents {...tocProps} />
             </div>
-            <aside className="absolute top-0 left-full hidden h-full pl-12 xl:block">
+            <aside className="absolute top-0 left-full hidden h-full pl-8 xl:block">
               <div className="sticky top-24 w-56">
                 <TableOfContents {...tocProps} />
               </div>
@@ -351,7 +323,7 @@ export default async function BlogPost({ params }: { params: Params }) {
         <article
           id="post-body"
           lang={post.contentLocale}
-          className="prose prose-neutral dark:prose-invert prose-headings:scroll-mt-24 prose-img:rounded-xl prose-headings:font-display prose-a:text-accentBrand prose-headings:tracking-tight prose-a:underline-offset-4 max-w-none"
+          className="prose prose-neutral dark:prose-invert sm:prose-lg prose-headings:scroll-mt-24 prose-headings:font-display prose-headings:tracking-tight prose-a:text-accentBrand prose-a:underline-offset-4 prose-img:rounded-lg mx-auto max-w-[42.5rem]"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: post body is pre-rendered trusted MDX.
           dangerouslySetInnerHTML={{ __html: post.source }}
         />
@@ -360,27 +332,60 @@ export default async function BlogPost({ params }: { params: Params }) {
           label={t("copyCode")}
           copiedLabel={t("copied")}
         />
-        <MermaidDiagrams containerId="post-body" />
       </div>
 
-      <footer className="mt-16 space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-8">
-          <p className="text-sm font-medium">{t("share")}</p>
-          <ShareButtons url={url} title={post.metadata.title} />
-        </div>
-        {(older || newer) && (
-          <nav className="grid gap-3 sm:grid-cols-2">
-            {older && (
-              <AdjacentPost
-                post={older}
-                label={t("previous")}
-                direction="prev"
+      <footer className="mt-16 space-y-12">
+        <div className="mx-auto max-w-[42.5rem] space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm font-medium">{t("share")}</p>
+            <ShareButtons url={url} title={post.metadata.title} />
+          </div>
+          {nextUp && (
+            <Link
+              href={`/blog/${nextUp.slug}`}
+              className="group bg-accentBrand/10 focus-visible:outline-accentBrand block rounded-xl p-5 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              <p className="text-accentBrand text-sm font-semibold">
+                {t("nextUp")}
+              </p>
+              <p className="font-display decoration-accentBrand mt-1 text-xl leading-snug font-bold underline-offset-4 group-hover:underline">
+                {nextUp.metadata.title}
+              </p>
+            </Link>
+          )}
+          <div className="bg-card flex items-start gap-4 rounded-xl border p-5">
+            <Avatar className="size-12 shrink-0 border">
+              <Image
+                src={DATA.avatarUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="aspect-square size-full object-cover"
               />
-            )}
-            {newer && (
-              <AdjacentPost post={newer} label={t("next")} direction="next" />
-            )}
-          </nav>
+            </Avatar>
+            <div className="min-w-0 space-y-1 text-sm">
+              <p className="font-medium">{DATA.name}</p>
+              <p className="text-muted-foreground text-pretty">
+                {t("authorBio")}
+              </p>
+              {DATA.openToWork && (
+                <Link
+                  href="/#contact"
+                  className="text-accentBrand inline-block pt-1 font-medium underline-offset-4 hover:underline"
+                >
+                  {t("hireCta")}
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+        {related.length > 0 && (
+          <div className="blog-wide space-y-5">
+            <h2 className="font-display text-2xl font-bold tracking-tight">
+              {t("related")}
+            </h2>
+            <PostList posts={related.map(toSummary)} heading="h3" />
+          </div>
         )}
       </footer>
     </section>

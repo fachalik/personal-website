@@ -7,7 +7,11 @@ import {
 } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import { BackToTop } from "@/components/back-to-top";
 import Navbar from "@/components/navbar";
 import { PaperTexture } from "@/components/paper-texture";
@@ -141,6 +145,10 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
+  // Only what shared client components read, so every page doesn't ship the
+  // whole site's copy. The homepage adds the resume strings it needs itself.
+  const { Nav, Blog, Contact, Error: ErrorMessages } = await getMessages();
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
@@ -150,7 +158,9 @@ export default async function LocaleLayout({
           fontDisplay.variable,
         )}
       >
-        <NextIntlClientProvider>
+        <NextIntlClientProvider
+          messages={{ Nav, Blog, Contact, Error: ErrorMessages }}
+        >
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <TooltipProvider delayDuration={0}>
               <PaperTexture variant="genkoyoshi" />

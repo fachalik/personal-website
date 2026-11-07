@@ -39,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...posts.flatMap((post) =>
       entry(
         `/blog/${post.slug}`,
-        new Date(post.metadata.publishedAt),
+        new Date(post.metadata.updatedAt ?? post.metadata.publishedAt),
         "yearly",
         0.6,
         post.availableLocales,

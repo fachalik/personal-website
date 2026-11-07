@@ -5,11 +5,9 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PostBrowser } from "@/components/blog/post-browser";
 import { TagFilter } from "@/components/blog/post-list";
-import BlurFade from "@/components/magicui/blur-fade";
 import { getBlogPosts, getTags, toSummary } from "@/data/blog";
 import { Link } from "@/i18n/navigation";
 import { LOCALE_TAGS, routing } from "@/i18n/routing";
-import { BLUR_FADE_DELAY } from "@/lib/constants";
 import {
   absoluteUrl,
   feedAlternate,
@@ -83,30 +81,25 @@ export default async function TagPage({ params }: { params: Params }) {
   const t = await getTranslations("Blog");
 
   return (
-    <section className="space-y-12">
-      <BlurFade delay={BLUR_FADE_DELAY}>
-        <div className="space-y-3">
-          <Link
-            href="/blog"
-            className="group text-muted-foreground hover:text-foreground mb-5 inline-flex items-center gap-1.5 text-sm transition-colors"
-          >
-            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
-            {t("backToBlog")}
-          </Link>
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-            #{tag}
-          </h1>
-          <p className="text-muted-foreground md:text-lg/relaxed">
-            {t("postCount", { count: posts.length })}
-          </p>
-        </div>
-      </BlurFade>
+    <section className="blog-wide space-y-8 pb-16">
+      <header className="space-y-3">
+        <Link
+          href="/blog"
+          className="group text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+        >
+          <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+          {t("backToBlog")}
+        </Link>
+        <h1 className="font-display text-4xl leading-tight font-bold tracking-tighter break-words sm:text-5xl">
+          #{tag}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          {t("postCount", { count: posts.length })}
+        </p>
+      </header>
 
-      <BlurFade delay={BLUR_FADE_DELAY * 2}>
-        <TagFilter tags={getTags(allPosts)} active={tag} />
-      </BlurFade>
-
-      <PostBrowser posts={posts.map(toSummary)} delay={BLUR_FADE_DELAY * 3} />
+      <TagFilter tags={getTags(allPosts)} active={tag} />
+      <PostBrowser posts={posts.map(toSummary)} />
     </section>
   );
 }

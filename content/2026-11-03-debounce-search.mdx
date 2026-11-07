@@ -3,6 +3,7 @@ title: "I Typed 'react' and My Search Box Fetched 5 Times. Why?"
 publishedAt: "2026-11-03"
 image: "/blog/debounce-search/cover.png"
 summary: "r, re, rea, reac, react: five keystrokes, five requests, and the responses can even land out of order. Here's why it happens, how debounce fixes it, why debounce in React often breaks silently, and the race condition that survives even after you debounce."
+description: "Five keystrokes, five requests, out-of-order responses. Why search boxes over-fetch, how debounce fixes it, and the race condition that survives it."
 tags: ["react", "javascript", "performance"]
 ---
 
@@ -524,7 +525,7 @@ Why `replace`? With `push`, every term becomes its own entry in the browser hist
 
 These three get mixed up a lot, but they solve different problems.
 
-| | Debounce | Throttle | `useDeferredValue` |
+| Aspect | Debounce | Throttle | `useDeferredValue` |
 | --- | --- | --- | --- |
 | When it runs | After the user **stops** for X ms | At most **once every** X ms, even while the user keeps going | As soon as possible, at a lower priority than typing |
 | Fixed delay? | Yes | Yes | **No**, it adapts to the device |

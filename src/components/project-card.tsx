@@ -83,6 +83,22 @@ export function ProjectCard({
   links,
   className,
 }: Props) {
+  const media = (
+    <>
+      {video && <DemoVideo src={video} />}
+      {image && (
+        <Image
+          src={image}
+          alt={title}
+          width={500}
+          height={300}
+          className="h-40 w-full overflow-hidden object-cover object-top transition-transform duration-300 ease-out group-hover:scale-105"
+        />
+      )}
+    </>
+  );
+  const mediaClass = cn("group block overflow-hidden", className);
+
   return (
     <div className="h-full transition-transform duration-200 ease-out hover:-translate-y-1">
       <Card
@@ -90,26 +106,19 @@ export function ProjectCard({
           "flex h-full flex-col overflow-hidden border transition-all duration-300 ease-out hover:shadow-lg"
         }
       >
-        <Link
-          target={href ? "_blank" : undefined}
-          href={href || "#"}
-          aria-label={title}
-          className={cn(
-            "group block cursor-pointer overflow-hidden",
-            className,
-          )}
-        >
-          {video && <DemoVideo src={video} />}
-          {image && (
-            <Image
-              src={image}
-              alt={title}
-              width={500}
-              height={300}
-              className="h-40 w-full overflow-hidden object-cover object-top transition-transform duration-300 ease-out group-hover:scale-105"
-            />
-          )}
-        </Link>
+        {href ? (
+          <Link
+            target="_blank"
+            rel="noopener noreferrer"
+            href={href}
+            aria-label={title}
+            className={mediaClass}
+          >
+            {media}
+          </Link>
+        ) : (
+          <div className={mediaClass}>{media}</div>
+        )}
         <CardHeader className="px-2">
           <div className="space-y-1">
             <CardTitle className="mt-1 text-base">{title}</CardTitle>

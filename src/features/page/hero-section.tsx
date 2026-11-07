@@ -2,7 +2,6 @@ import { DownloadIcon, MailIcon } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import BlurFade from "@/components/magicui/blur-fade";
-import BlurFadeText from "@/components/magicui/blur-fade-text";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,7 +19,7 @@ export function HeroSection() {
 
   const stats = [
     { value: DATA.yearsOfExperience, suffix: "+", label: t("stats.years") },
-    { value: DATA.work.length, label: t("stats.companies") },
+    { value: DATA.aiProductsOwned, label: t("stats.aiProducts") },
     { value: builtProjects, label: t("stats.projects") },
   ];
 
@@ -33,26 +32,19 @@ export function HeroSection() {
               <BlurFade delay={BLUR_FADE_DELAY}>
                 <span className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
                   <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75 motion-reduce:animate-none" />
                     <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                   </span>
                   {t("openToWork")}
                 </span>
               </BlurFade>
             )}
-            <BlurFadeText
-              delay={BLUR_FADE_DELAY}
-              className="font-display xl:text-6xl/none text-3xl font-bold tracking-tighter sm:text-5xl"
-              yOffset={8}
-              text={t("greeting", { name: DATA.name })}
-            />
-            <BlurFadeText
-              className="max-w-[600px] md:text-xl"
-              delay={BLUR_FADE_DELAY}
-              text={t("description")}
-            />
+            {/* Not animated: the description is the LCP element, so paint it immediately. */}
+            <h1 className="font-display xl:text-6xl/none text-3xl font-bold tracking-tighter sm:text-5xl">
+              {t("greeting", { name: DATA.name })}
+            </h1>
+            <p className="max-w-[600px] md:text-xl">{t("description")}</p>
           </div>
-          {/* Not animated: it's the LCP element, so it should paint immediately. */}
           <Avatar className="order-1 size-20 border sm:order-2 sm:size-28">
             <Image
               src={DATA.avatarUrl}

@@ -4,13 +4,11 @@ import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PostList } from "@/components/blog/post-list";
-import BlurFade from "@/components/magicui/blur-fade";
 import type { PostSummary } from "@/data/blog";
-import { BLUR_FADE_DELAY } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-// Even, so the two-column grid never ends on a lone card.
-const PAGE_SIZE = 6;
+// Large enough that every post on page 1 is a crawlable link in the HTML.
+const PAGE_SIZE = 25;
 
 function matches(post: PostSummary, terms: string[]) {
   const { title, summary, tags = [] } = post.metadata;
@@ -28,15 +26,13 @@ function syncUrl(query: string, page: number) {
   window.history.replaceState(window.history.state, "", url);
 }
 
-/** Search box + paginated list. Featured card only on the unfiltered first page. */
+/** Search box + paginated list. Lead post only on the unfiltered first page. */
 export function PostBrowser({
   posts,
-  featured = false,
-  delay = BLUR_FADE_DELAY * 2,
+  lead: hasLead = false,
 }: {
   posts: PostSummary[];
-  featured?: boolean;
-  delay?: number;
+  lead?: boolean;
 }) {
   const t = useTranslations("Blog");
   const [query, setQuery] = useState("");
@@ -56,8 +52,8 @@ export function PostBrowser({
     return terms.length ? posts.filter((p) => matches(p, terms)) : posts;
   }, [posts, trimmed]);
 
-  // The full-width featured card rides on top of page 1's regular grid.
-  const lead = featured && !trimmed ? 1 : 0;
+  // The lead post rides on top of page 1's regular grid.
+  const lead = hasLead && !trimmed ? 1 : 0;
   const totalPages = Math.max(
     1,
     Math.ceil((filtered.length - lead) / PAGE_SIZE),
@@ -80,47 +76,42 @@ export function PostBrowser({
 
   return (
     <>
-      <BlurFade delay={delay}>
-        <div ref={topRef} className="scroll-mt-24 space-y-2">
-          <div className="relative">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => search(e.target.value)}
-              onKeyDown={(e) => e.key === "Escape" && search("")}
-              placeholder={t("searchPlaceholder")}
-              aria-label={t("searchLabel")}
-              className="bg-card/60 placeholder:text-muted-foreground focus-visible:border-foreground/40 h-10 w-full rounded-lg border pr-9 pl-9 text-sm backdrop-blur-sm transition-colors focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => search("")}
-                aria-label={t("clearSearch")}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-          <p aria-live="polite" className="text-muted-foreground text-xs">
-            {trimmed &&
-              t("searchResults", { count: filtered.length, query: trimmed })}
-          </p>
+      <div ref={topRef} className="scroll-mt-24 space-y-2">
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => search(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && search("")}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
+            className="placeholder:text-muted-foreground focus-visible:border-accentBrand bg-card/60 h-11 w-full rounded-full border pr-10 pl-10 text-base transition-colors focus-visible:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => search("")}
+              aria-label={t("clearSearch")}
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
-      </BlurFade>
+        <p
+          aria-live="polite"
+          className="text-muted-foreground min-h-4 px-1 text-xs"
+        >
+          {trimmed &&
+            t("searchResults", { count: filtered.length, query: trimmed })}
+        </p>
+      </div>
 
       {visible.length > 0 ? (
-        <PostList
-          // Remount on change so each page/result set fades in fresh.
-          key={`${trimmed}:${current}`}
-          posts={visible}
-          featured={lead === 1 && current === 1}
-          delay={delay + BLUR_FADE_DELAY}
-        />
+        <PostList posts={visible} lead={lead === 1 && current === 1} />
       ) : (
-        <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
+        <p className="text-muted-foreground py-8 text-center text-sm">
           {t("noResults")}{" "}
           <button
             type="button"
@@ -129,7 +120,7 @@ export function PostBrowser({
           >
             {t("clearSearch")}
           </button>
-        </div>
+        </p>
       )}
 
       {totalPages > 1 && (

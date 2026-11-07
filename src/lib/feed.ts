@@ -18,6 +18,11 @@ function cdata(value: string) {
   return `<![CDATA[${value.replace(/]]>/g, "]]]]><![CDATA[>")}]]>`;
 }
 
+/** Feed readers have no CSS to pick a size, so they only get the wide diagram. */
+function withoutNarrowDiagrams(html: string) {
+  return html.replace(/<div class="diagram-narrow">[\s\S]*?<\/div>/g, "");
+}
+
 /** RSS 2.0 document for the blog in one locale, newest first. */
 export async function buildFeed(locale: Locale) {
   const t = await getTranslations({ locale, namespace: "Blog" });
@@ -36,7 +41,7 @@ export async function buildFeed(locale: Locale) {
       <guid isPermaLink="true">${url}</guid>
       <pubDate>${new Date(post.metadata.publishedAt).toUTCString()}</pubDate>
       <description>${escapeXml(post.metadata.summary ?? "")}</description>
-      <content:encoded>${cdata(post.source)}</content:encoded>
+      <content:encoded>${cdata(withoutNarrowDiagrams(post.source))}</content:encoded>
     </item>`;
   });
 

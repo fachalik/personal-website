@@ -24,11 +24,11 @@ export default async function Page({
       <PersonStructuredData />
       <HeroSection />
       <AboutSection />
-      <SkillsSection />
-      <WorkSection />
-      <EducationSection />
       <ProjectsSection />
+      <WorkSection />
       <BlogSection />
+      <SkillsSection />
+      <EducationSection />
       <GithubSection />
       <ContactSection />
       <Credits />

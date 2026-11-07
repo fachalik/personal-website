@@ -25,6 +25,17 @@ const nextConfig = {
         destination: "https://www.fachalik.my.id/:path*",
         permanent: true,
       },
+      // Removed placeholder post.
+      {
+        source: "/blog/hello-world",
+        destination: "/blog",
+        permanent: true,
+      },
+      {
+        source: "/id/blog/hello-world",
+        destination: "/id/blog",
+        permanent: true,
+      },
     ];
   },
 };

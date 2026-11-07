@@ -1,10 +1,7 @@
-import { ArrowUpRight, Globe } from "lucide-react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import BlurFade from "@/components/magicui/blur-fade";
 import type { PostSummary as Post } from "@/data/blog";
 import { Link } from "@/i18n/navigation";
-import { BLUR_FADE_DELAY } from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
 
 function PostMeta({ post }: { post: Post }) {
@@ -12,22 +9,14 @@ function PostMeta({ post }: { post: Post }) {
   const locale = useLocale();
 
   return (
-    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+    <p className="text-muted-foreground text-sm">
       <time dateTime={post.metadata.publishedAt}>
         {formatDate(post.metadata.publishedAt, locale, "short")}
       </time>
-      <span aria-hidden>·</span>
-      <span>{t("minRead", { minutes: post.readingTime })}</span>
-      {post.isFallback && (
-        <>
-          <span aria-hidden>·</span>
-          <span className="inline-flex items-center gap-1">
-            <Globe className="size-3" />
-            {t("englishOnly")}
-          </span>
-        </>
-      )}
-    </div>
+      {", "}
+      {t("minRead", { minutes: post.readingTime })}
+      {post.isFallback && `, ${t("englishOnly")}`}
+    </p>
   );
 }
 
@@ -44,82 +33,75 @@ function Cover({
   const { image, tags } = post.metadata;
 
   return (
-    <div className="bg-muted relative aspect-[1200/630] overflow-hidden border-b">
+    <div className="bg-muted relative aspect-[1200/630] overflow-hidden rounded-xl border">
       {image ? (
         <Image
           src={image}
-          // Decorative: the title sits right below it.
+          // Decorative: the title sits right beside it.
           alt=""
           fill
           sizes={sizes}
           priority={priority}
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          className="object-cover transition-transform duration-300 ease-out motion-safe:group-hover:scale-[1.02]"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:14px_14px]">
-          {tags?.[0] && (
-            <span className="bg-background/80 text-muted-foreground rounded-md px-2.5 py-1 font-mono text-xs backdrop-blur-sm">
-              #{tags[0]}
-            </span>
-          )}
-        </div>
+        tags?.[0] && (
+          <span className="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm">
+            #{tags[0]}
+          </span>
+        )
       )}
     </div>
   );
 }
 
-function PostCard({
-  post,
-  featured = false,
-}: {
-  post: Post;
-  featured?: boolean;
-}) {
+const CARD_LINK =
+  "group focus-visible:outline-accentBrand rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4";
+const TITLE_HOVER =
+  "font-display decoration-accentBrand font-bold text-balance underline-offset-4 group-hover:underline";
+
+/** The newest post: a large cover beside its title. */
+function LeadPost({ post }: { post: Post }) {
   const t = useTranslations("Blog");
+  const { title, description, summary } = post.metadata;
 
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group bg-card/60 hover:border-foreground/30 flex h-full flex-col overflow-hidden rounded-xl border backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      className={cn(
+        CARD_LINK,
+        "grid items-center gap-6 md:grid-cols-[7fr_5fr] md:gap-10",
+      )}
+    >
+      <Cover post={post} priority sizes="(min-width: 768px) 60vw, 100vw" />
+      <div className="space-y-3">
+        <p className="text-accentBrand text-sm font-semibold">{t("latest")}</p>
+        <h2 className={cn(TITLE_HOVER, "text-3xl leading-tight lg:text-4xl")}>
+          {title}
+        </h2>
+        <p className="text-muted-foreground text-base/relaxed text-pretty">
+          {description ?? summary}
+        </p>
+        <PostMeta post={post} />
+      </div>
+    </Link>
+  );
+}
+
+function PostCard({ post, Heading }: { post: Post; Heading: "h2" | "h3" }) {
+  return (
+    <Link
+      href={`/blog/${post.slug}`}
+      className={cn(CARD_LINK, "flex flex-col gap-3")}
     >
       <Cover
         post={post}
-        priority={featured}
-        sizes={
-          featured
-            ? "(min-width: 768px) 720px, 100vw"
-            : "(min-width: 768px) 360px, (min-width: 640px) 50vw, 100vw"
-        }
+        sizes="(min-width: 1024px) 370px, (min-width: 640px) 50vw, 100vw"
       />
-      <div className={cn("flex flex-1 flex-col p-4", featured && "sm:p-6")}>
-        {featured && (
-          <span className="bg-foreground text-background mb-3 self-start rounded-md px-2 py-0.5 text-xs">
-            {t("latest")}
-          </span>
-        )}
-        <h2
-          className={cn(
-            "font-semibold tracking-tight underline-offset-4 group-hover:underline",
-            featured ? "text-xl sm:text-2xl" : "line-clamp-2",
-          )}
-        >
-          {post.metadata.title}
-        </h2>
-        {post.metadata.summary && (
-          <p
-            className={cn(
-              "text-muted-foreground mt-2 text-sm leading-relaxed",
-              featured ? "line-clamp-3" : "line-clamp-2",
-            )}
-          >
-            {post.metadata.summary}
-          </p>
-        )}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-          <PostMeta post={post} />
-          <ArrowUpRight className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </div>
-      </div>
+      <Heading className={cn(TITLE_HOVER, "text-xl leading-snug")}>
+        {post.metadata.title}
+      </Heading>
+      <PostMeta post={post} />
     </Link>
   );
 }
@@ -136,9 +118,9 @@ export function TagFilter({
   if (tags.length === 0) return null;
 
   const chip =
-    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors";
+    "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors";
   const idle =
-    "bg-card/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground";
+    "text-muted-foreground hover:border-foreground/30 hover:text-foreground";
   const current = "border-foreground bg-foreground text-background";
 
   return (
@@ -157,38 +139,37 @@ export function TagFilter({
           aria-current={tag === active ? "page" : undefined}
           className={cn(chip, tag === active ? current : idle)}
         >
-          #{tag}
-          <span className="opacity-60">{count}</span>
+          {tag}
+          <span className="text-xs tabular-nums opacity-70">{count}</span>
         </Link>
       ))}
     </nav>
   );
 }
 
-/** Card grid; with `featured`, the first post spans the full width. */
+/** Card grid; with `lead`, the first post sits large above it. */
 export function PostList({
   posts,
-  featured = false,
-  delay = BLUR_FADE_DELAY * 2,
+  lead = false,
+  heading = "h2",
 }: {
   posts: Post[];
-  featured?: boolean;
-  delay?: number;
+  lead?: boolean;
+  heading?: "h2" | "h3";
 }) {
+  const [first, ...rest] = posts;
+  const cards = lead ? rest : posts;
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {posts.map((post, i) => {
-        const isFeatured = featured && i === 0;
-        return (
-          <BlurFade
-            key={post.slug}
-            delay={delay + i * 0.05}
-            className={cn("h-full", isFeatured && "sm:col-span-2")}
-          >
-            <PostCard post={post} featured={isFeatured} />
-          </BlurFade>
-        );
-      })}
+    <div className="space-y-12">
+      {lead && first && <LeadPost post={first} />}
+      {cards.length > 0 && (
+        <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((post) => (
+            <PostCard key={post.slug} post={post} Heading={heading} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

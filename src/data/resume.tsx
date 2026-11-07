@@ -7,6 +7,7 @@ import {
   KeyRound,
   ListChecks,
   type LucideIcon,
+  MailIcon,
   NotebookIcon,
 } from "lucide-react";
 import {
@@ -150,6 +151,8 @@ export const DATA = {
   description:
     "Frontend-focused Fullstack Developer building production web apps with React, Next.js, TypeScript and Node.js.",
   yearsOfExperience: totalYearsExperience,
+  // Knowledge Chat, IDP and Credit Scoring, as sole frontend engineer.
+  aiProductsOwned: 3,
   avatarUrl: "/images/me.jpeg",
   cvUrl: "/cv-fachalik.pdf",
   // Shows the "open to work" badge in the hero; flip off once hired.
@@ -163,6 +166,7 @@ export const DATA = {
   navbar: [
     { href: "/", icon: HomeIcon, label: "home" },
     { href: "/blog", icon: NotebookIcon, label: "blog" },
+    { href: "/#contact", icon: MailIcon, label: "contact" },
   ],
   contact: {
     email: "fachalik@gmail.com",
@@ -350,18 +354,18 @@ export const DATA = {
       image: "/images/projects/idp.png",
       video: "",
     },
-    {
-      key: "idpCms",
-      title: "Intelligent Document Processing CMS",
-      href: "",
-      start: "2025-10",
-      ongoing: true,
-      active: true,
-      technologies: ["React Router", "TypeScript", "Tailwind CSS", "shadcn/ui"],
-      links: [],
-      image: "/images/projects/idp-cms.png",
-      video: "",
-    },
+    // {
+    //   key: "idpCms",
+    //   title: "Intelligent Document Processing CMS",
+    //   href: "",
+    //   start: "2025-10",
+    //   ongoing: true,
+    //   active: true,
+    //   technologies: ["React Router", "TypeScript", "Tailwind CSS", "shadcn/ui"],
+    //   links: [],
+    //   image: "/images/projects/idp-cms.png",
+    //   video: "",
+    // },
     {
       key: "clovePaper",
       // Published paper title; kept in English everywhere.

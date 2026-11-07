@@ -8,6 +8,7 @@ import {
 import matter from "gray-matter";
 import type { Element, Root } from "hast";
 import { toString as hastToString } from "hast-util-to-string";
+import { parse, render } from "pele";
 import { cache } from "react";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
@@ -16,6 +17,7 @@ import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
+import type { ShikiTransformer } from "shiki";
 import { unified } from "unified";
 import { type Locale, routing } from "@/i18n/routing";
 
@@ -25,12 +27,16 @@ type Metadata = {
   title: string;
   publishedAt: string;
   summary: string;
-  /** Cover, ideally 1200×630, e.g. `/blog/<slug>/cover.webp` in `public/`. */
+  /** Search and social snippet, 160 characters at most. Falls back to `summary`. */
+  description?: string;
+  /** Set when a post gets a meaningful revision. */
+  updatedAt?: string;
+  /** Cover for cards and social previews, ideally 1200×630, in `public/blog/<slug>/`. */
   image?: string;
-  /** Describes the cover on the post page; omit if it's purely decorative. */
-  imageAlt?: string;
   /** Lowercase, URL-safe topics, e.g. `["go", "typescript"]`. */
   tags?: string[];
+  /** Posts in the same series are suggested to each other first. */
+  series?: string;
 };
 
 export type Heading = { id: string; text: string; level: 2 | 3 };
@@ -95,12 +101,27 @@ function getPostFiles(): PostFile[] {
     });
 }
 
+/** Inner width of a diagram frame at the full article width. */
+const DIAGRAM_MAX_WIDTH = 688;
+const DIAGRAM_NARROW_WIDTH = 340;
+
+function diagramFrame(svg: string, className: string): Element {
+  return {
+    type: "element",
+    tagName: "div",
+    properties: { className: [className] },
+    children: [{ type: "raw", value: svg }],
+  };
+}
+
 /**
- * Turns ```mermaid blocks into empty placeholders before rehype-pretty-code
- * sees them; `MermaidDiagrams` renders them in the browser so they follow the theme.
+ * Turns ```mermaid blocks into SVG at build time, before rehype-pretty-code sees
+ * them, so diagrams ship no JavaScript. Colors come from `--pele-*` in
+ * globals.css, so they follow the theme. A bad diagram fails the build.
  */
-function rehypeMermaid() {
+function rehypeDiagrams() {
   return (tree: Root) => {
+    let count = 0;
     tree.children = tree.children.map((node) => {
       if (node.type !== "element" || node.tagName !== "pre") return node;
       const code = node.children[0];
@@ -111,18 +132,58 @@ function rehypeMermaid() {
       ) {
         return node;
       }
+
+      count += 1;
+      const model = parse(hastToString(code));
+      const fontFamily = "Inter, sans-serif";
+      const narrow = render(model, {
+        maxWidth: DIAGRAM_NARROW_WIDTH,
+        fontFamily,
+        idPrefix: `d${count}n-`,
+      });
+      const wide = render(model, {
+        maxWidth: DIAGRAM_MAX_WIDTH,
+        autoDirection: false,
+        fontFamily,
+        idPrefix: `d${count}w-`,
+      });
+
+      // A long left-to-right flow ignores maxWidth and would shrink until its
+      // labels are unreadable, so it uses the stacked layout everywhere.
+      const single =
+        wide.width > DIAGRAM_MAX_WIDTH || wide.width <= narrow.width;
       return {
         type: "element",
         tagName: "div",
-        properties: {
-          className: ["mermaid-diagram"],
-          dataMermaid: hastToString(code),
-        },
-        children: [],
+        properties: { className: ["diagram"] },
+        children: single
+          ? [diagramFrame(narrow.svg, "diagram-any")]
+          : [
+              diagramFrame(wide.svg, "diagram-wide"),
+              diagramFrame(narrow.svg, "diagram-narrow"),
+            ],
       } satisfies Element;
     });
   };
 }
+
+/** The themes' comment colors fail WCAG AA on the site's code block backgrounds. */
+const COMMENT_COLORS: [RegExp, string][] = [
+  [/--shiki-light:#6A737D/i, "--shiki-light:#57606A"],
+  [/--shiki-dark:#6B737C/i, "--shiki-dark:#9BA3AB"],
+];
+
+const transformerCommentContrast: ShikiTransformer = {
+  name: "comment-contrast",
+  span(node) {
+    const { style } = node.properties;
+    if (typeof style !== "string") return;
+    node.properties.style = COMMENT_COLORS.reduce(
+      (css, [from, to]) => css.replace(from, to),
+      style,
+    );
+  },
+};
 
 /** Collects h2/h3 for the table of contents; runs after rehype-slug assigns ids. */
 function rehypeCollectHeadings(headings: Heading[]) {
@@ -147,7 +208,7 @@ export async function markdownToHTML(markdown: string) {
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
-    .use(rehypeMermaid)
+    .use(rehypeDiagrams)
     .use(rehypeSlug)
     // Before autolink, so the "#" anchor text doesn't leak into TOC labels.
     .use(rehypeCollectHeadings(headings))
@@ -168,9 +229,11 @@ export async function markdownToHTML(markdown: string) {
         transformerNotationDiff(),
         transformerNotationHighlight(),
         transformerNotationFocus(),
+        transformerCommentContrast,
       ],
     })
-    .use(rehypeStringify)
+    // Only the SVG from rehypeDiagrams is raw; remark-rehype drops HTML in posts.
+    .use(rehypeStringify, { allowDangerousHtml: true })
     .process(markdown);
 
   return { html: p.toString(), headings };
@@ -236,7 +299,10 @@ export async function getBlogPosts(locale: Locale = routing.defaultLocale) {
     );
 }
 
-/** Every tag used by these posts with its post count, most used first. */
+/** A tag needs this many posts to get a page; rarer ones still work in search. */
+const MIN_POSTS_PER_TAG = 2;
+
+/** Tags that have their own page, with post counts, most used first. */
 export function getTags(posts: PostSummary[]) {
   const counts = new Map<string, number>();
   for (const post of posts) {
@@ -245,6 +311,27 @@ export function getTags(posts: PostSummary[]) {
     }
   }
   return [...counts]
+    .filter(([, count]) => count >= MIN_POSTS_PER_TAG)
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+const RELATED_COUNT = 4;
+const SERIES_WEIGHT = 3;
+
+/** Best matches for `post`: same series first, then shared tags, newest on ties. */
+export function getRelatedPosts(post: PostSummary, posts: Post[]) {
+  const { series, tags = [] } = post.metadata;
+  return posts
+    .filter((candidate) => candidate.slug !== post.slug)
+    .map((candidate) => ({
+      candidate,
+      score:
+        (series && candidate.metadata.series === series ? SERIES_WEIGHT : 0) +
+        tags.filter((tag) => candidate.metadata.tags?.includes(tag)).length,
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, RELATED_COUNT)
+    .map(({ candidate }) => candidate);
 }
